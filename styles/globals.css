@@ -5,19 +5,26 @@
 /* Font-face (local fonts). If you don't have Agency, use a fallback heading font */
 @font-face {
   font-family: 'Agency';
-  src: url('/fonts/Agency.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Lato';
-  src: url('/fonts/Lato.woff2') format('woff2');
+  src: url('/fonts/AgencyRegular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'Lato';
+  src: url('/fonts/Lato-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Lato';
+  src: url('/fonts/Lato-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 /* CSS variables */
 :root{
   --asad-gold: #d17600;
@@ -28,17 +35,12 @@
 
 /* Body */
 body {
-  font-family: 'Lato', ui-sans-serif, system-ui;
-  background-color: #ffffff;
-  color: #432e16;
+  font-family: 'Lato', sans-serif;
 }
 
-/* Headings */
-h1,h2,h3,h4 {
-  font-family: 'Agency', 'Lato', sans-serif;
-  color: var(--asad-dark-brown);
+h1, h2, h3, h4 {
+  font-family: 'Agency', sans-serif;
 }
-
 /* Buttons */
 .btn-primary {
   background: var(--asad-gold);
