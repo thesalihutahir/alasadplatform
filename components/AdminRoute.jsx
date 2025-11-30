@@ -18,6 +18,7 @@ export function AdminRoute({ children }) {
         router.push('/admin/login');
       } else if (!isAdmin) {
         // 2. Logged in, but not an Admin: Redirect to home or an unauthorized page
+        // If they are logged in but not an admin, we don't send them to the login page.
         router.push('/'); 
       }
     }
@@ -25,8 +26,15 @@ export function AdminRoute({ children }) {
 
   // Show a loading spinner or component while checking auth status
   if (loading || !user || !isAdmin) {
-    // Placeholder for a proper loading state (e.g., a simple spinner)
-    return <div className="flex justify-center items-center h-screen">Loading Admin Panel...</div>;
+    // A slightly nicer looking loading state
+    return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+            <p className="text-lg font-medium text-indigo-700">
+                {loading ? 'Verifying authentication...' : 'Redirecting...'}
+            </p>
+        </div>
+    );
   }
 
   // If authenticated AND is Admin, render the children (the Admin page content)
