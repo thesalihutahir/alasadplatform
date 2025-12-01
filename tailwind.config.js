@@ -1,25 +1,29 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./pages/**/*.{js,jsx}",
-    "./components/**/*.{js,jsx}"
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
       colors: {
-        'asad-gold': '#d17600',
-        'asad-dark-brown': '#432e16',
-        'asad-brown': '#655037',
-        'asad-white': '#ffffff'
-      },
-      borderRadius: {
-        'asad': '14px'
+        brand: {
+          gold: '#d17600',       // Primary
+          brown: {
+            DEFAULT: '#655037',  // Tertiary/Medium
+            dark: '#432e16',     // Secondary/Dark
+          },
+          white: '#ffffff',
+        }
       },
       fontFamily: {
-        'heading': ['Agency', 'system-ui', 'sans-serif'],
-        'body': ['Lato', 'ui-sans-serif', 'system-ui']
-      }
-    }
+        sans: ['Lato', 'sans-serif'],
+        heading: ['Agency', 'sans-serif'],
+        arabic: ['Tajawal', 'serif'],
+      },
+    },
   },
   plugins: [],
 }
