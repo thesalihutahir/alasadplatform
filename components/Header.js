@@ -1,81 +1,97 @@
 "use client";
 
-import React, { useState } from 'react';
 import Link from 'next/link';
-import { Heart, Menu, X } from 'lucide-react';
+import { Menu, X, DollarSign } from 'lucide-react';
+import { useState } from 'react';
+
+const navItems = [
+  { name: 'Home', href: '/' },
+  { name: 'About Us', href: '/about' },
+  { name: 'Programs', href: '/programs' },
+  { name: 'News', href: '/news' },
+  { name: 'Multimedia', href: '/multimedia' },
+];
 
 export default function Header() {
-    const [isOpen, setIsOpen] = useState(false);
-    const navItems = [
-        { name: 'Programs', href: '/programs' },
-        { name: 'Multimedia', href: '/multimedia' },
-        { name: 'News & Events', href: '/news' },
-        { name: 'Contact', href: '/contact' },
-    ];
+  const [isOpen, setIsOpen] = useState(false);
 
-    return (
-        <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm shadow-md border-b border-gray-100">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center h-20">
-                    {/* Logo/Brand */}
-                    <Link href="/" className="flex items-center gap-2">
-                         {/* https://github.com/thesalihutahir/al-asad-platform/blob/main/public/headerlogo.png */}
-                        <div className="w-10 h-10 bg-brand-gold rounded-full flex items-center justify-center text-white font-bold text-xl">
-                            A
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-xl font-extrabold text-brand-brown-dark leading-none">Al Asad</span>
-                            <span className="text-xs text-brand-brown tracking-widest uppercase">Foundation</span>
-                        </div>
-                    </Link>
+  return (
+    <header className="sticky top-0 z-50 bg-white shadow-md font-body">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-20">
+          
+          {/* Logo */}
+          <div className="flex-shrink-0">
+            <Link href="/" className="flex items-center space-x-2">
+              <img 
+                src="/headerlogo.png" 
+                alt="Al-Asad Platform Logo" 
+                className="h-12 w-auto" 
+                onError={(e) => { e.target.onerror = null; e.target.src="/placeholder.png" }} 
+              />
+              {/* Optional: Add text logo using custom font */}
+              <span className="hidden sm:inline text-3xl font-heading text-brand-brown-dark">
+                AL ASAD
+              </span>
+            </Link>
+          </div>
 
-                    {/* Desktop Navigation */}
-                    <nav className="hidden md:flex space-x-8 items-center">
-                        {navItems.map((item) => (
-                            <Link key={item.name} href={item.href} className="text-gray-600 hover:text-brand-gold font-medium transition-colors duration-200">
-                                {item.name}
-                            </Link>
-                        ))}
-                        <div className="flex items-center gap-4 ml-4">
-                             <Link href="/admin" className="text-sm font-medium text-gray-400 hover:text-brand-brown transition">
-                                Staff Login
-                            </Link>
-                            <Link href="/donate" className="flex items-center px-6 py-2.5 text-sm font-bold rounded-full text-white bg-green-600 hover:bg-green-700 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-                                <Heart className="w-4 h-4 mr-2 fill-white" /> Donate Now
-                            </Link>
-                        </div>
-                    </nav>
+          {/* Desktop Navigation */}
+          <nav className="hidden lg:flex lg:space-x-8 items-center">
+            {navItems.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className="text-gray-600 hover:text-brand-gold text-lg font-medium transition duration-150 ease-in-out font-heading tracking-wider uppercase"
+              >
+                {item.name}
+              </Link>
+            ))}
+          </nav>
+          
+          {/* Donate Button & Mobile Menu Button */}
+          <div className="flex items-center space-x-4">
+            <Link
+              href="/donate"
+              className="inline-flex items-center px-4 py-2 border-2 border-brand-gold text-base font-bold rounded-full shadow-md text-brand-gold bg-white hover:bg-brand-gold hover:text-white transition duration-200 ease-in-out transform hover:scale-105"
+            >
+              <DollarSign className="w-5 h-5 mr-2" />
+              Donate
+            </Link>
 
-                    {/* Mobile Menu Button */}
-                    <button 
-                        className="md:hidden p-2 text-brand-brown-dark rounded-lg hover:bg-gray-100 transition" 
-                        onClick={() => setIsOpen(!isOpen)}
-                        aria-label="Toggle navigation"
-                    >
-                        {isOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
-                    </button>
-                </div>
-            </div>
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="lg:hidden p-2 rounded-md text-gray-500 hover:text-brand-brown-dark hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-gold"
+              aria-expanded={isOpen}
+            >
+              <span className="sr-only">Open main menu</span>
+              {isOpen ? (
+                <X className="block h-6 w-6" aria-hidden="true" />
+              ) : (
+                <Menu className="block h-6 w-6" aria-hidden="true" />
+              )}
+            </button>
+          </div>
 
-            {/* Mobile Menu Overlay */}
-            {isOpen && (
-                <div className="md:hidden absolute w-full bg-white shadow-xl border-t border-gray-100 animate-in slide-in-from-top-5 duration-200">
-                    <nav className="flex flex-col p-4 space-y-2">
-                        {navItems.map((item) => (
-                            <Link key={item.name} href={item.href} onClick={() => setIsOpen(false)} className="px-4 py-3 rounded-lg text-base font-medium text-gray-700 hover:bg-brand-gold/10 hover:text-brand-gold">
-                                {item.name}
-                            </Link>
-                        ))}
-                        <div className="h-px bg-gray-100 my-2"></div>
-                        <Link href="/donate" onClick={() => setIsOpen(false)} className="flex items-center justify-center px-4 py-3 rounded-lg text-base font-bold text-white bg-green-600 hover:bg-green-700">
-                             Donate Now
-                        </Link>
-                         <Link href="/admin" onClick={() => setIsOpen(false)} className="block text-center px-4 py-3 text-sm text-gray-500 hover:text-brand-brown">
-                            Staff Login
-                        </Link>
-                    </nav>
-                </div>
-            )}
-        </header>
-    );
-};
+        </div>
+      </div>
+
+      {/* Mobile Menu Panel */}
+      <div className={`lg:hidden ${isOpen ? 'block' : 'hidden'}`}>
+        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+          {navItems.map((item) => (
+            <Link
+              key={item.name}
+              href={item.href}
+              onClick={() => setIsOpen(false)}
+              className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-brand-brown-dark hover:bg-gray-50 transition font-heading"
+            >
+              {item.name}
+            </Link>
+          ))}
+        </div>
+      </div>
+    </header>
+  );
+}
