@@ -1,49 +1,44 @@
 import { NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid'; // Now available thanks to package.json update
+
+// FIX: Explicitly set dynamic to 'force-dynamic' to prevent Next.js from
+// trying to statically render this route, which accesses request.url.
+export const dynamic = 'force-dynamic';
 
 // Simulated environment variable for the Paystack Secret Key
-// In a real Vercel app, this would be retrieved from the Vercel Environment Variables (process.env.PAYSTACK_SECRET_KEY)
-const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || "sk_test_..."; 
-const PAYSTACK_URL = 'https://api.paystack.co/transaction/initialize';
+const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || "sk_test_...";
+const PAYSTACK_VERIFY_URL = 'https://api.paystack.co/transaction/verify/';
 
-// API Handler for POST requests
-export async function POST(request) {
+// API Handler for GET requests (Paystack typically sends verification reference via query)
+export async function GET(request) {
     try {
-        const { amount, email, reference } = await request.json();
+        const { searchParams } = new URL(request.url);
+        const reference = searchParams.get('reference');
 
-        if (!amount || !email) {
-            return NextResponse.json({ error: 'Amount and email are required.' }, { status: 400 });
+        if (!reference) {
+            return NextResponse.json({ status: false, message: 'Transaction reference is missing.' }, { status: 400 });
         }
 
-        // Generate a unique reference if one is not provided
-        const transactionReference = reference || uuidv4();
-
-        const paystackResponse = await fetch(PAYSTACK_URL, {
-            method: 'POST',
+        const paystackResponse = await fetch(`${PAYSTACK_VERIFY_URL}${reference}`, {
+            method: 'GET',
             headers: {
-                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${PAYSTACK_SECRET_KEY}`,
             },
-            body: JSON.stringify({
-                // Paystack uses amount in kobo (cents/smallest currency unit), so we multiply by 100
-                amount: amount * 100, 
-                email: email,
-                reference: transactionReference,
-                callback_url: `${request.headers.get('origin')}/donate/verify`, // Redirect back to verify
-            }),
         });
 
         const data = await paystackResponse.json();
 
-        if (data.status) {
-            return NextResponse.json(data, { status: 200 });
+        if (data.status && data.data.status === 'success') {
+            // Transaction successful. Here you would typically update Firestore/DB.
+            // Example: await updateDonationRecord(data.data);
+            
+            return NextResponse.json({ status: true, message: 'Payment verified successfully.', data: data.data }, { status: 200 });
         } else {
-            console.error("Paystack API Error:", data.message);
-            return NextResponse.json({ error: 'Payment initialization failed.', details: data.message }, { status: 500 });
+            console.error("Paystack Verification Failed:", data);
+            return NextResponse.json({ status: false, message: 'Payment verification failed.', details: data.message }, { status: 500 });
         }
 
     } catch (error) {
-        console.error('API Processing Error:', error);
-        return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
+        console.error('API Verification Error:', error);
+        return NextResponse.json({ status: false, message: 'Internal server error during verification.' }, { status: 500 });
     }
 }
