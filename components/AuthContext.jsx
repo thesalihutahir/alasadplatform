@@ -1,77 +1,115 @@
-// components/AuthContext.jsx
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase'; // Assuming your firebase is in '@/lib/firebase'
-import { doc, getDoc } from 'firebase/firestore'; // For fetching custom role
+import { initializeApp } from "firebase/app";
+import { 
+    getAuth, 
+    signInAnonymously, 
+    signInWithCustomToken, 
+    onAuthStateChanged,
+    signOut
+} from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
-// 1. Create the Context
+// Get global variables (provided by the execution environment)
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+// Initialize Firebase App
+let app;
+if (Object.keys(firebaseConfig).length > 0) {
+    app = initializeApp(firebaseConfig);
+}
+
+// Global Firebase service instances
+let auth = app ? getAuth(app) : null;
+let db = app ? getFirestore(app) : null;
+
 const AuthContext = createContext({
-  user: null, // Firebase user object
-  isAdmin: false, // Custom role flag
-  loading: true, // Loading state
-  // Add other useful functions like login/logout if needed
+    isAuthenticated: false,
+    userId: null,
+    loading: true,
+    db: null,
+    auth: null,
+    appId: appId,
+    signOutUser: () => {}
 });
 
-// 2. Custom Hook to use the Auth Context
 export const useAuth = () => useContext(AuthContext);
 
-// 3. Provider Component
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+    const [userId, setUserId] = useState(null);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [loading, setLoading] = useState(true);
 
-  // Function to check and set the user's custom role
-  const checkUserRole = async (firebaseUser) => {
-    if (firebaseUser) {
-      try {
-        // Option A (Simple Role Check via Firestore)
-        // Check a 'users' collection in Firestore for a 'role: admin' field
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
-        const userDoc = await getDoc(userDocRef);
-
-        if (userDoc.exists() && userDoc.data().role === 'admin') {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
+    useEffect(() => {
+        if (!auth) {
+            console.error("Firebase Auth service is not available.");
+            setLoading(false);
+            return;
         }
 
-        /*
-        // OPTION B (More Secure: Use Firebase Custom Claims)
-        // If you set up Cloud Functions to write custom claims:
-        const token = await firebaseUser.getIdTokenResult();
-        setIsAdmin(token.claims.admin === true);
-        */
+        // 1. Initial Authentication Logic
+        const authenticate = async () => {
+            try {
+                if (initialAuthToken) {
+                    // Use custom token if provided (standard for the Canvas environment)
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    // Fallback to anonymous sign-in
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Firebase sign-in failed:", error);
+                // Fallback: If sign-in fails, we still listen for state change
+            }
+        };
 
-      } catch (error) {
-        console.error("Error checking user role:", error);
-        setIsAdmin(false);
-      }
-    } else {
-      setIsAdmin(false);
-    }
-  };
+        authenticate();
 
-  useEffect(() => {
-    // This is the core Firebase listener
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
-      setLoading(true); // Set loading to true while checking role
-      await checkUserRole(firebaseUser);
-      setLoading(false);
-    });
+        // 2. Auth State Change Listener (runs after initial auth)
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                setUserId(user.uid);
+                setIsAuthenticated(true);
+            } else {
+                // If sign-out or initial state is null
+                setUserId(null);
+                setIsAuthenticated(false);
+            }
+            setLoading(false);
+        });
 
-    // Cleanup subscription on unmount
-    return () => unsubscribe();
-  }, []);
+        // Cleanup subscription on unmount
+        return () => unsubscribe();
+    }, []);
 
-  const value = {
-    user,
-    isAdmin,
-    loading,
-  };
+    const signOutUser = async () => {
+        if (auth) {
+            try {
+                await signOut(auth);
+                // Optionally sign in anonymously again after signing out
+                await signInAnonymously(auth);
+            } catch (error) {
+                console.error("Error signing out:", error);
+            }
+        }
+    };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    const value = {
+        isAuthenticated,
+        userId,
+        loading,
+        db,
+        auth,
+        appId,
+        signOutUser
+    };
+
+    return (
+        <AuthContext.Provider value={value}>
+            {children}
+        </AuthContext.Provider>
+    );
 }
