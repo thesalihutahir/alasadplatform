@@ -24,19 +24,37 @@
 
 /* --- CUSTOM BRAND COLORS (Variables) --- */
 :root {
-  --color-brand-brown-light: #9d816c;
-  --color-brand-brown-dark: #6e4e3b;
-  --color-brand-gold: #c39d6e;
-  --color-brand-sand: #f8f6f2;
+  /* Official Brand Colors */
+  --color-brand-gold: #d17600;       
+  --color-brand-brown-dark: #432e16; 
+  --color-brand-brown-light: #655037; 
+  --color-brand-sand: #F8F6F2;
 }
 
-/* Utility classes remain the same for color mapping */
+/* Custom utility classes to access variables */
 .bg-brand-brown-light { background-color: var(--color-brand-brown-light); }
 .bg-brand-brown-dark { background-color: var(--color-brand-brown-dark); }
 .bg-brand-gold { background-color: var(--color-brand-gold); }
 .text-brand-brown-dark { color: var(--color-brand-brown-dark); }
 .text-brand-gold { color: var(--color-brand-gold); }
 
+/* Apply default font to body for consistency */
+body {
+  font-family: 'LatoRegular', sans-serif;
+}
+
 html {
   scroll-behavior: smooth;
+}
+
+/* Custom Component Styles for Mockup Look */
+.card-shadow {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+/* Style for the Featured Program/Lecture background effect */
+.featured-background {
+    background-color: var(--color-brand-sand);
+    border: 1px solid #e0e0e0;
+    border-radius: 1rem;
 }
