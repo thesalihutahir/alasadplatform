@@ -1,61 +1,49 @@
-// app/api/paystack/initialize/route.js
 import { NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid'; // You'll need to install this: npm install uuid
+import { v4 as uuidv4 } from 'uuid'; // Now available thanks to package.json update
 
-const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
-const PAYSTACK_INITIALIZE_URL = 'https://api.paystack.co/transaction/initialize';
+// Simulated environment variable for the Paystack Secret Key
+// In a real Vercel app, this would be retrieved from the Vercel Environment Variables (process.env.PAYSTACK_SECRET_KEY)
+const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || "sk_test_..."; 
+const PAYSTACK_URL = 'https://api.paystack.co/transaction/initialize';
 
+// API Handler for POST requests
 export async function POST(request) {
-  try {
-    const { amount, email, name, donationType } = await request.json();
+    try {
+        const { amount, email, reference } = await request.json();
 
-    // 1. Generate Unique Reference for the transaction
-    const reference = `ALASAD-${uuidv4()}`;
+        if (!amount || !email) {
+            return NextResponse.json({ error: 'Amount and email are required.' }, { status: 400 });
+        }
 
-    // 2. Prepare Paystack request body
-    const amountInKobo = Math.round(parseFloat(amount) * 100); // Paystack uses Kobo
+        // Generate a unique reference if one is not provided
+        const transactionReference = reference || uuidv4();
 
-    const body = JSON.stringify({
-      email: email,
-      amount: amountInKobo,
-      reference: reference,
-      // Pass donation type and donor name as metadata
-      metadata: {
-        custom_fields: [
-          { display_name: "Donor Name", variable_name: "donor_name", value: name },
-          { display_name: "Donation Type", variable_name: "donation_type", value: donationType }
-        ]
-      },
-      // You can set the callback_url here, or set it on your Paystack Dashboard
-      // callback_url: `${process.env.NEXT_PUBLIC_BASE_URL}/donations/verify` 
-    });
+        const paystackResponse = await fetch(PAYSTACK_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${PAYSTACK_SECRET_KEY}`,
+            },
+            body: JSON.stringify({
+                // Paystack uses amount in kobo (cents/smallest currency unit), so we multiply by 100
+                amount: amount * 100, 
+                email: email,
+                reference: transactionReference,
+                callback_url: `${request.headers.get('origin')}/donate/verify`, // Redirect back to verify
+            }),
+        });
 
-    // 3. Make the secure server-side call to Paystack
-    const paystackResponse = await fetch(PAYSTACK_INITIALIZE_URL, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: body,
-    });
+        const data = await paystackResponse.json();
 
-    const data = await paystackResponse.json();
+        if (data.status) {
+            return NextResponse.json(data, { status: 200 });
+        } else {
+            console.error("Paystack API Error:", data.message);
+            return NextResponse.json({ error: 'Payment initialization failed.', details: data.message }, { status: 500 });
+        }
 
-    if (!paystackResponse.ok || !data.status) {
-        // Log error and return user-friendly message
-        console.error("Paystack Initialization Error:", data.message);
-        return NextResponse.json({ error: 'Failed to initiate payment', details: data.message }, { status: 400 });
+    } catch (error) {
+        console.error('API Processing Error:', error);
+        return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
     }
-
-    // 4. Return the authorization URL to the frontend
-    return NextResponse.json({ 
-        url: data.data.authorization_url, 
-        reference: reference 
-    });
-
-  } catch (error) {
-    console.error('API Error during initialization:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-  }
 }
