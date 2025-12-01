@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-// FIX: Added DollarSign to the import list
+// FIX: DollarSign is correctly imported now
 import { BookOpen, Users, Zap, ArrowRight, Video, FileText, Image, CalendarDays, DollarSign } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -125,7 +125,7 @@ export default function HomePage() {
                                     >
                                         Learn More <ArrowRight className="w-4 h-4 ml-2" />
                                     </Link>
-                                }
+                                    {/* Removed the extra '}' here that was causing the error */}
                                 </div>
                             </div>
                         </div>
