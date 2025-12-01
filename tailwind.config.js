@@ -8,19 +8,18 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Defined in app/globals.css using CSS variables
-        'brand-brown-light': 'var(--color-brand-brown-light)',
-        'brand-brown-dark': 'var(--color-brand-brown-dark)',
-        'brand-gold': 'var(--color-brand-gold)',
-        'brand-sand': 'var(--color-brand-sand)',
+        // OFFICIAL BRAND COLORS
+        'brand-gold': '#d17600',       // Official Gold: #d17600
+        'brand-brown-dark': '#432e16', // Official Dark Brown: #432e16
+        'brand-brown-light': '#655037', // Official Brown: #655037
+        'brand-sand': '#F8F6F2',       // Off-White Background Color
       },
       fontFamily: {
-        // Map custom fonts
-        heading: ['AgencyRegular', 'sans-serif'], // For titles and headers
-        body: ['LatoRegular', 'sans-serif'],     // For body text
+        // Map custom fonts (assuming WOFF2 files are in public/fonts/)
+        heading: ['AgencyRegular', 'sans-serif'],
+        body: ['LatoRegular', 'sans-serif'],
       },
       backgroundImage: {
-        // Map the hero image
         'hero': "url('/hero.jpg')",
       }
     },
