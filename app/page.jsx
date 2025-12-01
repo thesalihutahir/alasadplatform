@@ -3,7 +3,8 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, Users, Zap, ArrowRight, Video, FileText, Image, CalendarDays } from 'lucide-react';
+// FIX: Added DollarSign to the import list
+import { BookOpen, Users, Zap, ArrowRight, Video, FileText, Image, CalendarDays, DollarSign } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { getNewsArticles, getPrograms, getMultimedia } from '@/lib/firestore-utils';
@@ -90,7 +91,7 @@ export default function HomePage() {
                                 { name: 'Programs', href: '/programs', icon: BookOpen },
                                 { name: 'Multimedia', href: '/multimedia', icon: Video },
                                 { name: 'News', href: '/news', icon: FileText },
-                                { name: 'Donate', href: '/donate', icon: DollarSign },
+                                { name: 'Donate', href: '/donate', icon: DollarSign }, // Uses DollarSign
                                 { name: 'Photos', href: '/multimedia?type=photos', icon: Image },
                             ].map((item, index) => (
                                 <Link key={index} href={item.href} className="flex flex-col items-center p-3 sm:p-4 rounded-xl hover:bg-brand-sand transition-colors w-full">
@@ -124,6 +125,7 @@ export default function HomePage() {
                                     >
                                         Learn More <ArrowRight className="w-4 h-4 ml-2" />
                                     </Link>
+                                }
                                 </div>
                             </div>
                         </div>
