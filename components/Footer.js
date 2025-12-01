@@ -21,15 +21,12 @@ const Footer = () => {
           <div className="space-y-4 col-span-2 md:col-span-2">
             <Link href="/">
                 <img 
-                    src="/headerlogo.png" 
+                    src="/footerlogo.png" 
                     alt="Al-Asad Education Foundation Logo" 
                     className="h-16 w-auto mb-2" 
                     onError={(e) => { e.target.onerror = null; e.target.src="/placeholder.png" }}
                 />
             </Link>
-            <p className="text-sm text-gray-300">
-              Expanding access to knowledge through Qur'an-centered and community driven education.
-            </p>
           </div>
           
           {/* Column 2: Quick Links */}
