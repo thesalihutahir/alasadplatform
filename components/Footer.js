@@ -15,12 +15,12 @@ export default function Footer() {
             alt="Al-Asad Education Foundation"
             width={100}
             height={100}
-            className="w-auto h-20"
+            className="w-60 h-auto"
           />
         </div>
 
         {/* Separator line */}
-        <div className="w-full border-t" style={{ borderColor: "#9a9a9a" }}></div>
+        <div className="w-90 border-t" style={{ borderColor: "#9a9a9a" }}></div>
 
         {/* Social icons + email bar */}
         <div className="flex flex-col sm:flex-row items-center justify-center w-full mt-6 gap-4">
@@ -61,7 +61,7 @@ export default function Footer() {
             action={`mailto:alasadeducationfoundation@yahoo.com`}
             method="POST"
             encType="text/plain"
-            className="flex w-70 sm:w-auto"
+            className="flex w-60 sm:w-auto"
           >
             <input
               type="email"
