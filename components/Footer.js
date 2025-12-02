@@ -1,47 +1,94 @@
 "use client";
 
-import Link from 'next/link';
-import { Facebook, Twitter, Instagram, Youtube } from 'lucide-react';
+import Link from "next/link";
+import Image from "next/image";
 
-const Footer = () => {
+export default function Footer() {
   return (
-    <footer className="bg-brand-brown-dark text-white font-body">
-      <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center">
-        
-        {/* 1. Logo */}
-        <div className="mb-6">
-          <Link href="/">
-              <img 
-                  src="/footerlogo.png" 
-                  alt="Al-Asad Education Foundation Logo" 
-                  className="h-16 w-auto" 
-              />
-          </Link>
+    <footer className="w-full bg-[#4d2f1a] text-white font-body pt-12 pb-6">
+      <div className="max-w-7xl mx-auto flex flex-col items-center px-4">
+
+        {/* Logo */}
+        <div className="mb-2">
+          <Image
+            src="/footerlogo.svg"
+            alt="Al-Asad Education Foundation"
+            width={200}
+            height={200}
+            className="w-auto h-20"
+          />
         </div>
-        
-        {/* 2. Social Media Icons */}
-        <div className="flex space-x-6 mb-8">
-          <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="text-gray-300 hover:text-brand-gold transition-colors">
-            <Facebook size={24} />
-          </a>
-          <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Twitter" className="text-gray-300 hover:text-brand-gold transition-colors">
-            <Twitter size={24} />
-          </a>
-          <a href="#" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-gray-300 hover:text-brand-gold transition-colors">
-            <Instagram size={24} />
-          </a>
-          <a href="#" target="_blank" rel="noopener noreferrer" aria-label="YouTube" className="text-gray-300 hover:text-brand-gold transition-colors">
-            <Youtube size={24} />
-          </a>
+
+        {/* Arabic and English name */}
+        <div className="text-center mb-4">
+          <p className="text-[#9a9a9a] text-lg">مؤسسة الأسد التعليمية</p>
+          <p className="text-[#9a9a9a] text-lg font-medium">Al-Asad Education Foundation</p>
         </div>
-      
-        {/* 3. Copyright (Full Width Separator) */}
-        <div className="pt-8 border-t border-gray-700 w-full text-center">
-          <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} Al-Asad Education Foundation. All rights reserved.</p>
+
+        {/* Separator line */}
+        <div className="w-full border-t" style={{ borderColor: "#9a9a9a" }}></div>
+
+        {/* Social icons + email bar */}
+        <div className="flex flex-col sm:flex-row items-center justify-center w-full mt-6 gap-4">
+
+          {/* Social icons */}
+          <div className="flex items-center gap-4">
+            <Link href="https://www.facebook.com/share/1D438MVXpQ/" target="_blank">
+              <Image src="/fbicon.svg" alt="Facebook" width={34} height={34} />
+            </Link>
+
+            <Link href="https://youtube.com/@alasadeducation" target="_blank">
+              <Image src="/yticon.svg" alt="YouTube" width={34} height={34} />
+            </Link>
+
+            <Link href="https://www.instagram.com/alasad_education_foundation" target="_blank">
+              <Image src="/igicon.svg" alt="Instagram" width={34} height={34} />
+            </Link>
+
+            <Link href="https://www.tiktok.com/@alasad_tv" target="_blank">
+              <Image src="/tticon.svg" alt="TikTok" width={34} height={34} />
+            </Link>
+
+            <Link href="https://t.me/alasadeducation" target="_blank">
+              <Image src="/tgicon.svg" alt="Telegram" width={34} height={34} />
+            </Link>
+
+            <Link href="https://x.com/AsadEducation" target="_blank">
+              <Image src="/xicon.svg" alt="X" width={34} height={34} />
+            </Link>
+
+            <Link href="https://whatsapp.com/channel/0029VawdL4n6xCSHyUsMzc2V" target="_blank">
+              <Image src="/waicon.svg" alt="WhatsApp" width={34} height={34} />
+            </Link>
+          </div>
+
+          {/* Email bar */}
+          <form
+            action={`mailto:alasadeducationfoundation@yahoo.com`}
+            method="POST"
+            encType="text/plain"
+            className="flex w-full sm:w-auto"
+          >
+            <input
+              type="email"
+              required
+              placeholder="Send us a mail..."
+              className="bg-white text-black px-4 py-2 rounded-l-md w-full sm:w-64 outline-none"
+            />
+            <button
+              type="submit"
+              className="bg-[#d97706] px-6 py-2 rounded-r-md font-semibold"
+            >
+              Send
+            </button>
+          </form>
         </div>
+
+        {/* Copyright */}
+        <p className="mt-6 text-[#9a9a9a] text-sm text-center">
+          © Al-Asad Education Foundation. All rights reserved.
+        </p>
       </div>
     </footer>
   );
-};
-
-export default Footer;
+}
