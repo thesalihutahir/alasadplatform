@@ -5,7 +5,7 @@ import Image from "next/image";
 
 export default function Footer() {
   return (
-    <footer className="w-full bg-[#4d2f1a] text-white font-body pt-12 pb-6">
+    <footer className="w-full bg-[#432e16] text-white font-body pt-12 pb-6">
       <div className="max-w-7xl mx-auto flex flex-col items-center px-4">
 
         {/* Logo */}
@@ -13,16 +13,10 @@ export default function Footer() {
           <Image
             src="/footerlogo.svg"
             alt="Al-Asad Education Foundation"
-            width={200}
-            height={200}
+            width={100}
+            height={100}
             className="w-auto h-20"
           />
-        </div>
-
-        {/* Arabic and English name */}
-        <div className="text-center mb-4">
-          <p className="text-[#9a9a9a] text-lg">مؤسسة الأسد التعليمية</p>
-          <p className="text-[#9a9a9a] text-lg font-medium">Al-Asad Education Foundation</p>
         </div>
 
         {/* Separator line */}
@@ -32,33 +26,33 @@ export default function Footer() {
         <div className="flex flex-col sm:flex-row items-center justify-center w-full mt-6 gap-4">
 
           {/* Social icons */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <Link href="https://www.facebook.com/share/1D438MVXpQ/" target="_blank">
-              <Image src="/fbicon.svg" alt="Facebook" width={34} height={34} />
+              <Image src="/fbicon.svg" alt="Facebook" width={30} height={30} />
             </Link>
 
             <Link href="https://youtube.com/@alasadeducation" target="_blank">
-              <Image src="/yticon.svg" alt="YouTube" width={34} height={34} />
+              <Image src="/yticon.svg" alt="YouTube" width={30} height={30} />
             </Link>
 
             <Link href="https://www.instagram.com/alasad_education_foundation" target="_blank">
-              <Image src="/igicon.svg" alt="Instagram" width={34} height={34} />
+              <Image src="/igicon.svg" alt="Instagram" width={30} height={30} />
             </Link>
 
             <Link href="https://www.tiktok.com/@alasad_tv" target="_blank">
-              <Image src="/tticon.svg" alt="TikTok" width={34} height={34} />
+              <Image src="/tticon.svg" alt="TikTok" width={30} height={30} />
             </Link>
 
             <Link href="https://t.me/alasadeducation" target="_blank">
-              <Image src="/tgicon.svg" alt="Telegram" width={34} height={34} />
+              <Image src="/tgicon.svg" alt="Telegram" width={30} height={30} />
             </Link>
 
             <Link href="https://x.com/AsadEducation" target="_blank">
-              <Image src="/xicon.svg" alt="X" width={34} height={34} />
+              <Image src="/xicon.svg" alt="X" width={30} height={30} />
             </Link>
 
             <Link href="https://whatsapp.com/channel/0029VawdL4n6xCSHyUsMzc2V" target="_blank">
-              <Image src="/waicon.svg" alt="WhatsApp" width={34} height={34} />
+              <Image src="/waicon.svg" alt="WhatsApp" width={30} height={30} />
             </Link>
           </div>
 
@@ -67,7 +61,7 @@ export default function Footer() {
             action={`mailto:alasadeducationfoundation@yahoo.com`}
             method="POST"
             encType="text/plain"
-            className="flex w-full sm:w-auto"
+            className="flex w-70 sm:w-auto"
           >
             <input
               type="email"
