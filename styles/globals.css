@@ -2,55 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Font-face (local fonts). If you don't have Agency, use a fallback heading font */
+/* --- FONT FACE DEFINITIONS --- */
+
+/* Agency Regular */
 @font-face {
-  font-family: 'Agency';
+  font-family: 'AgencyRegular';
   src: url('/fonts/AgencyRegular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
+/* Lato Regular */
 @font-face {
-  font-family: 'Lato';
+  font-family: 'LatoRegular';
   src: url('/fonts/Lato-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
+
+/* Lato Bold (Adding for semantic weight, ensure you have the file) */
 @font-face {
-  font-family: 'Lato';
+  font-family: 'LatoRegular';
   src: url('/fonts/Lato-Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
-/* CSS variables */
-:root{
-  --asad-gold: #d17600;
-  --asad-dark-brown: #432e16;
-  --asad-brown: #655037;
-  --asad-white: #ffffff;
-}
 
-/* Body */
+
+/* --- BASE STYLES --- */
+
+/* Apply default body font and color */
 body {
-  font-family: 'Lato', sans-serif;
+  font-family: 'LatoRegular', sans-serif;
+  color: var(--brand-brown-dark);
+  background-color: #ffffff;
 }
 
-h1, h2, h3, h4 {
-  font-family: 'Agency', sans-serif;
+html {
+  scroll-behavior: smooth;
 }
-/* Buttons */
-.btn-primary {
-  background: var(--asad-gold);
-  color: #fff;
-  padding: 0.6rem 1rem;
-  border-radius: 12px;
-  display: inline-block;
-}
-.card {
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+
+/* Custom utility for specific shadows if needed */
+.card-shadow {
+    box-shadow: 0 4px 20px rgba(67, 46, 22, 0.08);
 }
