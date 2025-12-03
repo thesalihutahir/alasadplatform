@@ -4,7 +4,7 @@ import Link from 'next/link';
 // Import the components needed for the icons
 import { Menu, Search, X } from 'lucide-react'; 
 import { useState } from 'react';
-import Image from 'next/image'; // Import Image component for the logo
+import Image from 'next/image';
 
 const navItems = [
   { name: 'Home', href: '/' },
@@ -15,95 +15,96 @@ const navItems = [
 ];
 
 // Define the dark brown color used in the icons/search background in the mockup
-const ICON_BG_COLOR = 'bg-[#432e16]';
+const ICON_COLOR = 'text-brand-brown-dark'; // Assume brand-brown-dark matches the icon color
 
 export default function Header() {
   // State for controlling the sidebar/drawer visibility
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  // State to track if the sidebar is opened for the search view or the main menu view
-  const [sidebarContentType, setSidebarContentType] = useState('menu'); // 'menu' or 'search'
-
-  const openSidebar = (type) => {
-    setSidebarContentType(type);
-    setIsSidebarOpen(true);
-  };
+  // We'll simplify the state to just handle the menu open/close for clarity
+  const [isSearchOpen, setIsSearchOpen] = useState(false); 
 
   const closeSidebar = () => {
     setIsSidebarOpen(false);
+    setIsSearchOpen(false);
   };
 
   return (
     // The header in the mockup is white/light
     <header className="sticky top-0 z-50 bg-white shadow-md font-body">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Adjusted h-16 or h-20 based on typical mobile header height */}
         <div className="flex justify-between items-center h-20">
           
-          {/* Left Side: Menu and Search Icons (Styled to match mockup) */}
+          {/* LEFT SIDE: Menu and Search Icons (LARGE, rounded, dark icons) */}
           <div className="flex items-center space-x-2">
             
-            {/* Menu Button (Styled as a rounded button with dark background) */}
+            {/* Menu Button (Large, rounded, dark background icon) */}
             <button
-              onClick={() => openSidebar('menu')}
-              className={`p-3 rounded-full ${ICON_BG_COLOR} text-white focus:outline-none`}
-              aria-expanded={isSidebarOpen && sidebarContentType === 'menu'}
+              onClick={() => setIsSidebarOpen(true)}
+              // Increased size to p-4 (or p-5) for large circle and w-6 h-6 for the icon itself
+              className={`p-3 md:p-4 rounded-full ${ICON_COLOR} hover:bg-gray-100 transition focus:outline-none`}
+              aria-expanded={isSidebarOpen}
             >
-              <Menu className="h-4 w-4" aria-hidden="true" />
+              <Menu className="h-6 w-6" aria-hidden="true" />
             </button>
 
-            {/* Search Button (Styled as a rounded button with dark background) */}
+            {/* Search Button (Large, rounded, dark background icon) */}
             <button
-              onClick={() => openSidebar('search')}
-              className={`p-3 rounded-full ${ICON_BG_COLOR} text-white focus:outline-none`}
-              aria-expanded={isSidebarOpen && sidebarContentType === 'search'}
+              onClick={() => setIsSearchOpen(true)}
+              className={`p-3 md:p-4 rounded-full ${ICON_COLOR} hover:bg-gray-100 transition focus:outline-none`}
+              aria-expanded={isSearchOpen}
             >
-              <Search className="h-4 w-4" aria-hidden="true" />
+              <Search className="h-6 w-6" aria-hidden="true" />
             </button>
           </div>
 
-          {/* Center: Logo (Styled and Sized to match mockup) */}
-          <div className="flex-shrink-0 absolute transform -translate-x-1/2 md:static md:translate-x-0">
-            <Link href="/" className="flex items-right">
-              {/* Using next/image for better performance and sizing */}
-              <Image 
-                src="/headerlogo.png" // Assume this path now points to the full Arabic/English logo
-                alt="Al-Asad Education Foundation Logo" 
-                width=auto // Increased size significantly to match the mockup
-                height=auto
-                className="h-12 w-auto" // Set height for visual control
-              />
-            </Link>
-          </div>
-          
-       
+          {/* CENTER/RIGHT: Logo (Structured to match the split text/icon mockup) */}
+          {/* Note: In a real app, this would be a single image asset for the full logo */}
+          <Link href="/" className="flex items-center space-x-2">
+            
+            {/* Arabic/English Text Logo */}
+            <div className="flex flex-col text-right pr-2 border-r border-gray-300">
+                <span className="font-agency text-sm md:text-base text-brand-brown-dark whitespace-nowrap">مؤسسة الأسد التعليمية</span>
+                <span className="font-lato text-xs text-gray-600 whitespace-nowrap">Al-Asad Education Foundation</span>
+            </div>
 
+            {/* Lion Icon Logo (Assuming separate file for the lion graphic) */}
+            <Image 
+                src="/lionicon.svg" // Changed to a smaller, specific icon file
+                alt="Al-Asad Lion Icon" 
+                width={36} 
+                height={36}
+                className="h-9 w-9 object-contain"
+            />
+          </Link>
         </div>
       </div>
 
       {/* ---------------------------------------------------- */}
-      {/* Sidebar/Drawer Navigation (Matches chat screenshot style) */}
+      {/* Sidebar/Drawer Navigation (Simplified Menu) */}
       {/* ---------------------------------------------------- */}
       
-      {/* Overlay Backdrop */}
+      {/* Menu Overlay Backdrop */}
       <div 
-        className={`fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300 ${isSidebarOpen ? 'opacity-80' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300 ${isSidebarOpen || isSearchOpen ? 'opacity-80' : 'opacity-0 pointer-events-none'}`}
         onClick={closeSidebar}
       />
 
       {/* Sidebar Panel */}
       <div 
-        className={`fixed top-0 left-0 w-60 max-w-full h-full bg-brand-brown opacity-80 text-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        // Side panel width is now 100% on small screens and slides from the left
+        className={`fixed top-0 left-0 w-60 max-w-full h-full bg-white text-brand-brown-dark shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${isSidebarOpen || isSearchOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="flex flex-col h-full">
           
           {/* Header Bar with Close Button */}
-          <div className="p-4 flex justify-between items-center border-b border-gray-200">
-            {/* Content Title based on what was clicked */}
+          <div className="p-4 flex justify-between items-center border-b border-gray-100">
             <h3 className="text-xl font-bold font-agency">
-                {sidebarContentType === 'menu' ? 'Navigation' : 'Search'}
+                {isSidebarOpen ? 'Menu' : 'Search'}
             </h3>
             <button 
               onClick={closeSidebar} 
-              className="p-2 text-brand-brown-dark hover:text-brand-gold rounded-full hover:bg-gray-100"
+              className={`p-1 text-gray-700 hover:text-brand-gold rounded-full hover:bg-gray-100`}
             >
               <X className="w-6 h-6" />
             </button>
@@ -111,7 +112,7 @@ export default function Header() {
 
           {/* Sidebar Content */}
           <div className="p-4 flex-grow overflow-y-auto">
-            {sidebarContentType === 'menu' ? (
+            {isSidebarOpen ? (
               // Main Navigation Links
               <nav className="space-y-1">
                 {navItems.map((item) => (
@@ -125,7 +126,7 @@ export default function Header() {
                   </Link>
                 ))}
               </nav>
-            ) : (
+            ) : isSearchOpen ? (
               // Search Input/Bar Content
               <div>
                 <div className="relative">
@@ -140,11 +141,11 @@ export default function Header() {
                     Type a query above to find programs, news, or media.
                 </p>
               </div>
-            )}
+            ) : null}
           </div>
           
-          {/* Footer of Sidebar (Optional, but good for context) */}
-          <div className="p-4 border-t border-gray-200 text-xs text-gray-500">
+          {/* Footer of Sidebar */}
+          <div className="p-4 border-t border-gray-100 text-xs text-gray-500">
             Al-Asad Education Foundation
           </div>
         </div>
