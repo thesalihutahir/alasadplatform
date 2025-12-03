@@ -36,26 +36,26 @@ export default function HomePage() {
                 <section className="py-6 px-8">
                     <div className="grid grid-cols-4 gap-4 justify-items-center">
                         <Link href="/programs" className="flex flex-col items-center group">
-                            <div className="w-13 h-13 relative mb-2 transition-transform group-hover:scale-110 drop-shadow-md">
-                                <Image src="/programsicon.svg" alt="Programs" fill className="object-contain" />
+                            <div className="w-14 h-14 relative mb-2 transition-transform group-hover:scale-110">
+                                <Image src="/programsicon.svg" alt="Programs" fill className="object-contain overflow-hidden drop-shadow-md" />
                             </div>
                             <span className="font-agency text-sm text-brand-brown-dark">Programs</span>
                         </Link>
                         <Link href="/multimedia" className="flex flex-col items-center group">
-                            <div className="w-13 h-13 relative mb-2 transition-transform group-hover:scale-110 drop-shadow-md">
-                                <Image src="/mediaicon.svg" alt="Media" fill className="object-contain" />
+                            <div className="w-14 h-14 relative mb-2 transition-transform group-hover:scale-110">
+                                <Image src="/mediaicon.svg" alt="Media" fill className="object-contain overflow-hidden drop-shadow-md" />
                             </div>
                             <span className="font-agency text-sm text-brand-brown-dark">Media</span>
                         </Link>
                         <Link href="/news" className="flex flex-col items-center group">
-                            <div className="w-13 h-13 relative mb-2 transition-transform group-hover:scale-110 drop-shadow-md">
-                                <Image src="/blogsicon.svg" alt="Blogs" fill className="object-contain" />
+                            <div className="w-14 h-14 relative mb-2 transition-transform group-hover:scale-110">
+                                <Image src="/blogsicon.svg" alt="Blogs" fill className="object-contain overflow-hidden drop-shadow-md" />
                             </div>
                             <span className="font-agency text-sm text-brand-brown-dark">Blogs</span>
                         </Link>
                         <Link href="/about" className="flex flex-col items-center group">
-                            <div className="w-13 h-13 relative mb-2 transition-transform group-hover:scale-110 drop-shadow-md">
-                                <Image src="/abouticon.svg" alt="About" fill className="object-contain" />
+                            <div className="w-14 h-14 relative mb-2 transition-transform group-hover:scale-110">
+                                <Image src="/abouticon.svg" alt="About" fill className="object-contain overflow-hidden drop-shadow-md" />
                             </div>
                             <span className="font-agency text-sm text-brand-brown-dark">About</span>
                         </Link>
@@ -63,61 +63,119 @@ export default function HomePage() {
                 </section>
 
                 {/* 3. ACTION BUTTONS */}
-                <section className="py-6 px-10 flex justify-center gap-4">
+                <section className="py-6 px-8 flex justify-center gap-4">
                     <Link
                         href="/donate"
-                        className="flex py-1 px-1 text-center font-agency text-lg text-white bg-brand-brown-dark rounded-xl shadow-xl transition-transform hover:scale-110"
+                        className="flex-1 py-1 px-3 text-center font-agency text-lg text-white bg-brand-brown-dark rounded-xl shadow-xl transition-transform hover:scale-110"
                     >
                         Donate
                     </Link>
                     <Link
                         href="/volunteer"
-                        className="flex py-1 px-1 text-center font-agency text-lg text-white bg-brand-gold rounded-xl shadow-xl transition-transform hover:scale-110"
+                        className="flex-1 py-1 px-3 text-center font-agency text-lg text-white bg-brand-gold rounded-xl shadow-xl transition-transform hover:scale-110"
                     >
                         Volunteer
                     </Link>
                 </section>
 
-                {/* 4. LATEST UPDATES (Horizontal Beige Design) */}
-<section className="py-12 px-6">
-  {/* Section Title */}
-  <h2 className="font-agency text-2xl text-brand-brown-dark mb-6 text-left">
-    Latest Updates:
-  </h2>
+                {/* 4. LATEST UPDATES */}
+                <section className="py-8 px-6">
+                    <h2 className="font-agency text-2xl text-brand-brown-dark mb-6 text-left">Latest Updates</h2>
 
-  {/* Card */}
-  <div className="bg-[#F0E4D4] rounded-[3rem] p-8 md:p-10">
-    <Link 
-      href="/news" 
-      className="flex flex-row items-center gap-10 group"
-    >
+                  {/* Sample Update 1 */}
+                    <div className="bg-[#F0E4D4] rounded-xl overflow-hidden card-shadow mb-4">
+<Link href="/news" className="flex flex-col items-center group">
+                        <div className="relative w-full h-48 transition-transform hover:scale-110">
+                            {/* Placeholder Image - Replace src with dynamic data later */}
+                            <Image
+                                src="/hero.jpg"
+                                alt="Latest Update"
+                                fill
+                                className="object-cover"
+                            />
+                        </div>
+                        <div className="p-5 relative">
+                            {/* Date Badge */}
+                            <div className="absolute top-0 left-0 bg-brand-gold text-white py-1 px-3 rounded-br-lg font-agency text-sm">
+                                20 DEC
+                            </div>
+                            <div className="flex items-center gap-2 mb-2 mt-4">
+                                <span className="font-lato text-xs text-brand-gold uppercase tracking-wider mt-3">Education</span>
+                            </div>
+                            <h3 className="font-agency text-xl text-brand-brown-dark mb-2 leading-snug">
+                                Students of Ma'ahad celebrates Qur'an memorization
+                            </h3>
+                            <p className="font-lato text-sm text-justify text-brand-brown line-clamp-3">
+                                Ma'ahad Sheikh Shareef Ibrahim Saleh Al-Hussaini celebrated over 30 students who memorized the Holy Qur'an this year.
+                            </p>
+                        </div>
+                      </Link>
+                    </div>
 
-      {/* IMAGE SIDE */}
-      <div className="relative w-[180px] sm:w-[240px] md:w-[320px] h-[160px] sm:h-[200px] md:h-[260px] flex-shrink-0 overflow-hidden rounded-[2.2rem]">
-        <Image
-          src="/hero.jpg"
-          alt="Weekly Lecture"
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-      </div>
 
-      {/* TEXT SIDE */}
-      <div className="flex-1 text-left">
-        <h3 className="font-agency text-[28px] sm:text-[34px] md:text-[42px] font-bold text-brand-brown-dark leading-tight">
-          Weekly Lecture: Bulugul Maram
-        </h3>
+{/* Sample Update 2 */}
+                    <div className="bg-[#F0E4D4] rounded-xl overflow-hidden card-shadow mb-4">
+<Link href="/news" className="flex flex-col items-center group">
+                        <div className="relative w-full h-48 transition-transform hover:scale-110">
+                            {/* Placeholder Image - Replace src with dynamic data later */}
+                            <Image
+                                src="/hero.jpg"
+                                alt="Latest Update"
+                                fill
+                                className="object-cover"
+                            />
+                        </div>
+                        <div className="p-5 relative">
+                            {/* Date Badge */}
+                            <div className="absolute top-0 left-0 bg-brand-gold text-white py-1 px-3 rounded-br-lg font-agency text-sm">
+                                20 DEC
+                            </div>
+                            <div className="flex items-center gap-2 mb-2 mt-4">
+                                <span className="font-lato text-xs text-brand-gold uppercase tracking-wider mt-3">Education</span>
+                            </div>
+                            <h3 className="font-agency text-xl text-brand-brown-dark mb-2 leading-snug">
+                                Students of Ma'ahad celebrates Qur'an memorization
+                            </h3>
+                            <p className="font-lato text-sm text-justify text-brand-brown line-clamp-3">
+                                Ma'ahad Sheikh Shareef Ibrahim Saleh Al-Hussaini celebrated over 30 students who memorized the Holy Qur'an this year.
+                            </p>
+                        </div>
+                      </Link>
+                    </div>
 
-        <div className="w-32 h-[3px] bg-brand-gold mt-4 mb-4"></div>
 
-        <p className="font-lato text-base sm:text-lg md:text-xl text-brand-brown-dark leading-relaxed">
-          Lessons on Bulugul Maram by Sheikh Goni Dr. Muneer Ja'afar Katsina
-        </p>
-      </div>
+{/* Sample Update 3 */}
+                    <div className="bg-[#F0E4D4] rounded-xl overflow-hidden card-shadow mb-4">
+<Link href="/news" className="flex flex-col items-center group">
+                        <div className="relative w-full h-48 transition-transform hover:scale-110">
+                            {/* Placeholder Image - Replace src with dynamic data later */}
+                            <Image
+                                src="/hero.jpg"
+                                alt="Latest Update"
+                                fill
+                                className="object-cover"
+                            />
+                        </div>
+                        <div className="p-5 relative">
+                            {/* Date Badge */}
+                            <div className="absolute top-0 left-0 bg-brand-gold text-white py-1 px-3 rounded-br-lg font-agency text-sm">
+                                20 DEC
+                            </div>
+                            <div className="flex items-center gap-2 mb-2 mt-4">
+                                <span className="font-lato text-xs text-brand-gold uppercase tracking-wider mt-3">Education</span>
+                            </div>
+                            <h3 className="font-agency text-xl text-brand-brown-dark mb-2 leading-snug">
+                                Students of Ma'ahad celebrates Qur'an memorization
+                            </h3>
+                            <p className="font-lato text-sm text-justify text-brand-brown line-clamp-3">
+                                Ma'ahad Sheikh Shareef Ibrahim Saleh Al-Hussaini celebrated over 30 students who memorized the Holy Qur'an this year.
+                            </p>
+                        </div>
+                      </Link>
+                    </div>
 
-    </Link>
-  </div>
-</section>
+
+                </section>
 
 
                 {/* 5. VISION AND MISSION STATEMENTS */}
@@ -125,7 +183,7 @@ export default function HomePage() {
     {/* Background Overlay Pattern */}
     <div className="absolute inset-0">
         <Image 
-            src="/visionandmissionbg.svg" 
+            src="/hero.jpg" 
             alt="Background pattern overlay" 
             fill 
             className="object-cover opacity-20 md:opacity-30" 
