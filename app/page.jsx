@@ -37,25 +37,25 @@ export default function HomePage() {
                     <div className="grid grid-cols-4 gap-4 justify-items-center">
                         <Link href="/programs" className="flex flex-col items-center group">
                             <div className="w-12 h-12 relative mb-2 transition-transform group-hover:scale-110">
-                                <Image src="/programsicon.svg" alt="Programs" fill className="object-contain shadow-md" />
+                                <Image src="/programsicon.svg" alt="Programs" fill className="object-contain overflow-hidden shadow-md" />
                             </div>
                             <span className="font-agency text-sm text-brand-brown-dark">Programs</span>
                         </Link>
                         <Link href="/multimedia" className="flex flex-col items-center group">
                             <div className="w-12 h-12 relative mb-2 transition-transform group-hover:scale-110">
-                                <Image src="/mediaicon.svg" alt="Media" fill className="object-contain shadow-md" />
+                                <Image src="/mediaicon.svg" alt="Media" fill className="object-contain overflow-hidden shadow-md" />
                             </div>
                             <span className="font-agency text-sm text-brand-brown-dark">Media</span>
                         </Link>
                         <Link href="/news" className="flex flex-col items-center group">
                             <div className="w-12 h-12 relative mb-2 transition-transform group-hover:scale-110">
-                                <Image src="/blogsicon.svg" alt="Blogs" fill className="object-contain shadow-md" />
+                                <Image src="/blogsicon.svg" alt="Blogs" fill className="object-contain overflow-hidden shadow-md" />
                             </div>
                             <span className="font-agency text-sm text-brand-brown-dark">Blogs</span>
                         </Link>
                         <Link href="/about" className="flex flex-col items-center group">
                             <div className="w-12 h-12 relative mb-2 transition-transform group-hover:scale-110">
-                                <Image src="/abouticon.svg" alt="About" fill className="object-contain shadow-md" />
+                                <Image src="/abouticon.svg" alt="About" fill className="object-contain overflow-hidden shadow-md" />
                             </div>
                             <span className="font-agency text-sm text-brand-brown-dark">About</span>
                         </Link>
@@ -94,7 +94,7 @@ export default function HomePage() {
                         </div>
                         <div className="p-5 relative">
                             {/* Date Badge */}
-                            <div className="absolute top-0 left-0 bg-brand-gold text-white py-1 px-3 rounded-br-lg font-agency text-sm">
+                            <div className="absolute top-0 left-0 buttom-2 bg-brand-gold text-white py-1 px-3 rounded-br-lg font-agency text-sm">
                                 20 DEC
                             </div>
                             <div className="flex items-center gap-2 mb-2 mt-2">
@@ -130,10 +130,10 @@ export default function HomePage() {
                         </div>
 
                         {/* Separator & Icons */}
-                            <div className="h-px bg-white flex-grow max-w-[60px]"></div>
+                            
                         <div className="flex items-center justify-center gap-4 mb-20 opacity-100">
-
-                            <div className="flex gap-4">
+<div className="h-px bg-white max-w-[60]"></div>
+                            <div className="flex gap-0">
                                 <div className="w-10 h-10 relative">
                                     <Image src="/educationalsupporticon.svg" alt="Educational Support" fill className="object-contain" />
                                 </div>
@@ -144,9 +144,9 @@ export default function HomePage() {
                                     <Image src="/trainingandinnovationicon.svg" alt="Training & Innovation" fill className="object-contain" />
                                 </div>
                             </div>
-
+<div className="h-px bg-white max-w-[60]"></div>
                         </div>
-                            <div className="h-px bg-white flex-grow max-w-[60px]"></div>
+                          
 
                         {/* Mission */}
                         <div>
