@@ -37,25 +37,25 @@ export default function HomePage() {
                     <div className="grid grid-cols-4 gap-4 justify-items-center">
                         <Link href="/programs" className="flex flex-col items-center group">
                             <div className="w-12 h-12 relative mb-2 transition-transform group-hover:scale-110">
-                                <Image src="/programsicon.svg" alt="Programs" fill className="object-contain" />
+                                <Image src="/programsicon.svg" alt="Programs" fill className="object-contain shadow-md" />
                             </div>
                             <span className="font-agency text-sm text-brand-brown-dark">Programs</span>
                         </Link>
                         <Link href="/multimedia" className="flex flex-col items-center group">
                             <div className="w-12 h-12 relative mb-2 transition-transform group-hover:scale-110">
-                                <Image src="/mediaicon.svg" alt="Media" fill className="object-contain" />
+                                <Image src="/mediaicon.svg" alt="Media" fill className="object-contain shadow-md" />
                             </div>
                             <span className="font-agency text-sm text-brand-brown-dark">Media</span>
                         </Link>
                         <Link href="/news" className="flex flex-col items-center group">
                             <div className="w-12 h-12 relative mb-2 transition-transform group-hover:scale-110">
-                                <Image src="/blogsicon.svg" alt="Blogs" fill className="object-contain" />
+                                <Image src="/blogsicon.svg" alt="Blogs" fill className="object-contain shadow-md" />
                             </div>
                             <span className="font-agency text-sm text-brand-brown-dark">Blogs</span>
                         </Link>
                         <Link href="/about" className="flex flex-col items-center group">
                             <div className="w-12 h-12 relative mb-2 transition-transform group-hover:scale-110">
-                                <Image src="/abouticon.svg" alt="About" fill className="object-contain" />
+                                <Image src="/abouticon.svg" alt="About" fill className="object-contain shadow-md" />
                             </div>
                             <span className="font-agency text-sm text-brand-brown-dark">About</span>
                         </Link>
@@ -72,7 +72,7 @@ export default function HomePage() {
                     </Link>
                     <Link
                         href="/volunteer"
-                        className="flex-1 py-1 text-center font-agency text-lg text-white bg-brand-gold rounded-xl shadow-xl transition-transform group-hover:scale-110"
+                        className="flex-1 py-1 text-center font-agency text-lg text-white bg-brand-gold rounded-xl shadow-xl transition-transform hover:scale-110"
                     >
                         Volunteer
                     </Link>
@@ -83,7 +83,7 @@ export default function HomePage() {
                     <h2 className="font-agency text-2xl text-brand-brown-dark mb-6 text-left">Latest Updates</h2>
                     <div className="bg-white rounded-xl overflow-hidden card-shadow">
 <Link href="/news" className="flex flex-col items-center group">
-                        <div className="relative w-full h-48 transition-transform group-hover:scale-110">
+                        <div className="relative w-full h-48 transition-transform hover:scale-110">
                             {/* Placeholder Image - Replace src with dynamic data later */}
                             <Image
                                 src="/hero.jpg"
@@ -94,10 +94,10 @@ export default function HomePage() {
                         </div>
                         <div className="p-5 relative">
                             {/* Date Badge */}
-                            <div className="absolute top-0 left-0 bg-brand-gold text-white py-2 px-3 rounded-br-lg font-agency text-sm">
+                            <div className="absolute top-0 left-0 bg-brand-gold text-white py-1 px-3 rounded-br-lg font-agency text-sm">
                                 20 DEC
                             </div>
-                            <div className="flex items-center gap-5 mb-2 mt-2">
+                            <div className="flex items-center gap-2 mb-2 mt-2">
                                 <span className="font-lato text-xs text-brand-gold uppercase tracking-wider">Education</span>
                             </div>
                             <h3 className="font-agency text-xl text-brand-brown-dark mb-3 leading-snug">
@@ -114,7 +114,7 @@ export default function HomePage() {
                 {/* 5. VISION AND MISSION STATEMENTS */}
                 <section className="relative py-16 px-6 bg-brand-gold overflow-hidden">
                     {/* Background Overlay Pattern */}
-                    <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute inset-0 opacity-10 pointer-events-none">
                         <Image src="/visionandmissionbg.svg" alt="" fill className="object-cover" />
                     </div>
 
@@ -130,7 +130,8 @@ export default function HomePage() {
                         </div>
 
                         {/* Separator & Icons */}
-                        <div className="flex items-center justify-center gap-4 mb-4 opacity-100">
+                            <div className="h-px bg-white flex-grow max-w-[60px]"></div>
+                        <div className="flex items-center justify-center gap-4 mb-20 opacity-100">
 
                             <div className="flex gap-4">
                                 <div className="w-10 h-10 relative">
@@ -145,6 +146,7 @@ export default function HomePage() {
                             </div>
 
                         </div>
+                            <div className="h-px bg-white flex-grow max-w-[60px]"></div>
 
                         {/* Mission */}
                         <div>
