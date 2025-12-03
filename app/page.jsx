@@ -66,17 +66,20 @@ export default function HomePage() {
                 <section className="py-6 px-8 flex justify-center gap-4">
                     <Link
                         href="/donate"
-                        className="flex-1 py-1 px-3 text-center font-agency text-lg text-white bg-brand-brown-dark rounded-xl shadow-xl transition-transform hover:scale-110"
+                        // **Adjustments for Padding, Roundness, and Size**
+                        className="py-3 px-8 text-center font-agency text-xl text-white bg-brand-gold rounded-full shadow-xl transition-transform hover:scale-110"
                     >
                         Donate
                     </Link>
                     <Link
                         href="/volunteer"
-                        className="flex-1 py-1 px-3 text-center font-agency text-lg text-white bg-brand-gold rounded-xl shadow-xl transition-transform hover:scale-110"
+                        // **Adjustments for Padding, Roundness, and Size**
+                        className="py-3 px-8 text-center font-agency text-xl text-white bg-brand-gold rounded-full shadow-xl transition-transform hover:scale-110"
                     >
                         Volunteer
                     </Link>
                 </section>
+
 
                 {/* 4. LATEST UPDATES */}
                 <section className="py-8 px-6">
@@ -183,7 +186,7 @@ export default function HomePage() {
     {/* Background Overlay Pattern */}
     <div className="absolute inset-0">
         <Image 
-            src="/hero.jpg" 
+            src="/overlay.jpg" 
             alt="Background pattern overlay" 
             fill 
             className="object-cover opacity-20 md:opacity-30" 
@@ -211,19 +214,19 @@ export default function HomePage() {
             {/* Icons and Labels */}
             <div className="grid grid-cols-3 gap-4">
                 <div className="flex flex-col items-center">
-                    <div className="w-18 h-18 relative">
+                    <div className="w-16 h-16 relative">
                         <Image src="/educationalsupporticon.svg" alt="Educational Support" fill className="object-contain" />
                     </div>
                 </div>
 
                 <div className="flex flex-col items-center">
-                    <div className="w-18 h-18 relative">
+                    <div className="w-16 h-16 relative">
                         <Image src="/communitydevelopmenticon.svg" alt="Community Development" fill className="object-contain" />
                     </div>
                 </div>
 
                 <div className="flex flex-col items-center">
-                    <div className="w-18 h-18 relative">
+                    <div className="w-16 h-16 relative">
                         <Image src="/trainingandinnovationicon.svg" alt="Training & Innovation" fill className="object-contain" />
                     </div>
                 </div>
