@@ -9,18 +9,19 @@ module.exports = {
     extend: {
       colors: {
         // OFFICIAL BRAND COLORS
-        'brand-gold': '#d17600',       // Official Gold: #d17600
-        'brand-brown-dark': '#432e16', // Official Dark Brown: #432e16
-        'brand-brown-light': '#655037', // Official Brown: #655037
-        'brand-sand': '#F8F6F2',       // Off-White Background Color
+        'brand-gold': '#d17600',       // Gold
+        'brand-brown-dark': '#432e16', // Dark Brown
+        'brand-brown': '#655037',      // Medium Brown
+        'brand-sand': '#F8F6F2',       // Light Sand/Cream background
       },
       fontFamily: {
-        // Map custom fonts (assuming WOFF2 files are in public/fonts/)
-        heading: ['AgencyRegular', 'sans-serif'],
-        body: ['LatoRegular', 'sans-serif'],
+        // Define custom font families
+        'agency': ['AgencyRegular', 'sans-serif'], // For headings
+        'lato': ['LatoRegular', 'sans-serif'],     // For body text
       },
       backgroundImage: {
-        'hero': "url('/hero.jpg')",
+        // Define background image patterns
+        'vision-overlay': "url('/visionandmissionbg.svg')",
       }
     },
   },
