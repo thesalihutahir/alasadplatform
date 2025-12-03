@@ -64,13 +64,10 @@ export default function Header() {
             
             {/* Arabic/English Text Logo */}
             <div className="flex flex-col text-right pr-2 border-r border-gray-300">
-                <span className="font-agency text-sm md:text-base text-brand-brown-dark whitespace-nowrap">مؤسسة الأسد التعليمية</span>
-                <span className="font-lato text-xs text-gray-600 whitespace-nowrap">Al-Asad Education Foundation</span>
-            </div>
-
+              
             {/* Lion Icon Logo (Assuming separate file for the lion graphic) */}
             <Image 
-                src="/lionicon.svg" // Changed to a smaller, specific icon file
+                src="/headerlogo.svg" // Changed to a smaller, specific icon file
                 alt="Al-Asad Lion Icon" 
                 width={36} 
                 height={36}
