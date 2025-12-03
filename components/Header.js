@@ -47,7 +47,7 @@ export default function Header() {
               className={`p-3 rounded-full ${ICON_BG_COLOR} text-white focus:outline-none`}
               aria-expanded={isSidebarOpen && sidebarContentType === 'menu'}
             >
-              <Menu className="h-5 w-5" aria-hidden="true" />
+              <Menu className="h-4 w-4" aria-hidden="true" />
             </button>
 
             {/* Search Button (Styled as a rounded button with dark background) */}
@@ -56,28 +56,25 @@ export default function Header() {
               className={`p-3 rounded-full ${ICON_BG_COLOR} text-white focus:outline-none`}
               aria-expanded={isSidebarOpen && sidebarContentType === 'search'}
             >
-              <Search className="h-5 w-5" aria-hidden="true" />
+              <Search className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
 
           {/* Center: Logo (Styled and Sized to match mockup) */}
-          <div className="flex-shrink-0 absolute left-1/2 transform -translate-x-1/2 md:static md:translate-x-0">
-            <Link href="/" className="flex items-center">
+          <div className="flex-shrink-0 absolute transform -translate-x-1/2 md:static md:translate-x-0">
+            <Link href="/" className="flex items-right">
               {/* Using next/image for better performance and sizing */}
               <Image 
                 src="/headerlogo.png" // Assume this path now points to the full Arabic/English logo
                 alt="Al-Asad Education Foundation Logo" 
-                width={300} // Increased size significantly to match the mockup
-                height={50}
+                width=auto // Increased size significantly to match the mockup
+                height=auto
                 className="h-12 w-auto" // Set height for visual control
               />
             </Link>
           </div>
           
-          {/* Right Side: Spacer (or additional links if needed, but the mockup is centered) */}
-          <div className="hidden lg:block">
-            {/* Empty div for balancing layout if flex-justify-between is used, or you can use justify-center on the main container */}
-          </div>
+       
 
         </div>
       </div>
@@ -88,20 +85,20 @@ export default function Header() {
       
       {/* Overlay Backdrop */}
       <div 
-        className={`fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300 ${isSidebarOpen ? 'opacity-80' : 'opacity-0 pointer-events-none'}`}
         onClick={closeSidebar}
       />
 
       {/* Sidebar Panel */}
       <div 
-        className={`fixed top-0 left-0 w-80 max-w-full h-full bg-[#f9f9f9] text-gray-800 shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed top-0 left-0 w-60 max-w-full h-full bg-brand-brown opacity-80 text-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="flex flex-col h-full">
           
           {/* Header Bar with Close Button */}
           <div className="p-4 flex justify-between items-center border-b border-gray-200">
             {/* Content Title based on what was clicked */}
-            <h3 className="text-xl font-bold font-heading">
+            <h3 className="text-xl font-bold font-agency">
                 {sidebarContentType === 'menu' ? 'Navigation' : 'Search'}
             </h3>
             <button 
@@ -135,7 +132,7 @@ export default function Header() {
                   <input
                     type="text"
                     placeholder="Search the site..."
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-brand-gold focus:border-brand-gold outline-none text-base"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-brand-gold focus:border-brand-gold outline-none text-base"
                   />
                   <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 </div>
