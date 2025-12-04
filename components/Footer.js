@@ -86,7 +86,7 @@ export default function Footer() {
         {/* Copyright */}
         <p className="mt-15 text-[#9a9a9a] text-sm text-center">
           © All rights reserved
-</br>
+<br />
 Al-Asad Education Foundation
         </p>
       </div>
