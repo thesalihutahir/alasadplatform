@@ -11,11 +11,11 @@ export default function Footer() {
 
         {/* Logo - The mockup uses a wide, integrated logo (Arabic and English text + icon) */}
         {/* We will rely on the provided image source for the full logo */}
-        <div className="mb-4">
+        <div className="mb-4 mt-15">
           <Image 
                 src="/footerlogo.svg" 
                 alt="Al-Asad Education Foundation Logo" 
-                className="h-12 w-80 object-contain" 
+                className="h-12 w-65 object-contain" 
                 sizes="100vw"
               />
         </div>
@@ -24,7 +24,7 @@ export default function Footer() {
         <div className="w-full border-t opacity-40" style={{ borderColor: "#9a9a9a" }}></div>
 
         {/* Social icons + email bar - Adjusted to center and align elements exactly as shown */}
-        <div className="flex flex-col sm:flex-row items-center justify-center w-full mt-6 gap-4">
+        <div className="flex flex-col sm:flex-row items-center justify-center w-full mt-6 gap-2">
 
           {/* Social icons - Added styling to match the circular, dark brown backgrounds */}
           <div className="flex items-center gap-1">
@@ -83,9 +83,11 @@ export default function Footer() {
           </form>
         </div>
 
-        {/* Copyright - Matched text, casing, and CAC number */}
-        <p className="mt-6 text-sm text-center">
-          © Al-Asad Education Foundation - CAC-IT-973975
+        {/* Copyright */}
+        <p className="mt-15 text-[#9a9a9a] text-sm text-center">
+          © All rights reserved
+</br>
+Al-Asad Education Foundation
         </p>
       </div>
     </footer>
