@@ -16,7 +16,7 @@ export default function HomePage() {
 
                 {/* 1. HERO SECTION */}
                 <section className="w-full">
-                    <div className="relative w-full aspect-[4/3] sm:aspect-[16/9]">
+                    <div className="relative w-full">
                         <Image
                             src="/hero.svg"
                             alt="Al-Asad Foundation Hero"
@@ -212,9 +212,9 @@ export default function HomePage() {
             </div>
 
             {/* Icons and Labels */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-2">
                 <div className="flex flex-col items-center">
-                    <div className="w-16 h-16 relative">
+                    <div className="w-20 h-20 relative">
                         <Image src="/educationalsupporticon.svg" alt="Educational Support" fill className="object-contain" />
                     </div>
                 </div>
