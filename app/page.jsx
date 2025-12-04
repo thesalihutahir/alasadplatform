@@ -70,15 +70,9 @@ export default function HomePage() {
                         // **Adjustments for Padding, Roundness, and Size**
                         className="py-3 px-8 text-center font-agency text-xl text-white bg-brand-gold rounded-full shadow-xl transition-transform hover:scale-110"
                     >
-                        Donate
+                        Make a Donation
                     </Link>
-                    <Link
-                        href="/volunteer"
-                        // **Adjustments for Padding, Roundness, and Size**
-                        className="py-3 px-8 text-center font-agency text-xl text-white bg-brand-gold rounded-full shadow-xl transition-transform hover:scale-110"
-                    >
-                        Volunteer
-                    </Link>
+                    
                 </section>
 
 
