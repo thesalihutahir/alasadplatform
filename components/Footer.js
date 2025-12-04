@@ -27,7 +27,7 @@ export default function Footer() {
         <div className="flex flex-col sm:flex-row items-center justify-center w-full mt-6 gap-4">
 
           {/* Social icons - Added styling to match the circular, dark brown backgrounds */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <Link href="https://www.facebook.com/share/1D438MVXpQ/" target="_blank" className="p-1 rounded-full bg-[#432e16]">
               <Image src="/fbicon.svg" alt="Facebook" width={28} height={28} />
             </Link>
