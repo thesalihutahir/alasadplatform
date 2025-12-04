@@ -28,7 +28,7 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white shadow-md font-lato">
+    <header className="sticky top-0 z-50 bg-white font-lato">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           
@@ -49,7 +49,7 @@ export default function Header() {
               <Image 
                 src="/headerlogo.svg" 
                 alt="Al-Asad Education Foundation Logo" 
-                className="h-12 w-auto object-contain" 
+                className="h-auto w-90 object-contain" 
                 sizes="100vw"
               />
             </Link>
@@ -67,7 +67,7 @@ export default function Header() {
       {/* Sidebar Panel - BRAND GOLD WITH OPACITY */}
       <div 
         style={{ backgroundColor: BRAND_GOLD, '--tw-bg-opacity': isSidebarOpen ? '0.9' : '0' }}
-        className={`fixed top-0 left-0 w-80 max-w-full h-full text-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed top-0 left-0 w-80 max-w-full h-full opacity-95 text-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="flex flex-col h-full">
           
@@ -111,9 +111,11 @@ export default function Header() {
           </div>
           
           {/* Footer of Sidebar */}
-          <div className="p-4 border-t border-gray-100 border-opacity-30 text-xs text-white opacity-80 font-lato">
+          <Link href="/adminlogin">
+<div className="p-4 border-t border-gray-100 border-opacity-30 text-xs text-white opacity-80 font-lato">
             Al-Asad Education Foundation
           </div>
+</Link>
         </div>
       </div>
     </header>
