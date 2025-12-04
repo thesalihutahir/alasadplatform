@@ -12,15 +12,12 @@ export default function Footer() {
         {/* Logo - The mockup uses a wide, integrated logo (Arabic and English text + icon) */}
         {/* We will rely on the provided image source for the full logo */}
         <div className="mb-4">
-          <Image
-            src="/footerlogo.svg"
-            alt="Al-Asad Education Foundation"
-            // Adjusted width and height to match the size relative to the mockup
-            // The mockup shows the logo centered and quite wide above the line
-            width={350}
-            height={60}
-            className="h-auto" // Added h-auto for responsiveness
-          />
+          <Image 
+                src="/footerlogo.svg" 
+                alt="Al-Asad Education Foundation Logo" 
+                className="h-12 w-80 object-contain" 
+                sizes="100vw"
+              />
         </div>
 
         {/* Separator line - Adjusted border color to match the mockup's light gray line */}
