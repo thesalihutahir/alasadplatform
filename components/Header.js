@@ -49,7 +49,7 @@ export default function Header() {
               <Image 
                 src="/headerlogo.svg" 
                 alt="Al-Asad Education Foundation Logo" 
-                className="h-auto w-90 object-contain" 
+                className="h-12 w-auto object-contain" 
                 sizes="100vw"
               />
             </Link>
