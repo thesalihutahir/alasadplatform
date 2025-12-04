@@ -7,8 +7,6 @@ import Image from "next/image";
 const BRAND_DARK = '#432e16'; // Footer background
 const BRAND_GOLD = '#d17600'; // Brand gold
 
-// NOTE: Assumes 'font-lato' and 'font-agency' are defined in tailwind.config.js
-
 export default function Footer() {
 
     // Define the updated navigation links
@@ -21,7 +19,7 @@ export default function Footer() {
     const getInvolved = [
         { name: "Donate", href: "/donate" },
         { name: "Volunteer", href: "/volunteer" },
-        { name: "Meet our team", href: "/team" }, // Assuming a /team or /about#team route
+        { name: "Meet our team", href: "/team" }, 
     ];
 
     return (
@@ -29,14 +27,14 @@ export default function Footer() {
             <div className="max-w-7xl mx-auto flex flex-col px-4">
 
                 {/* --- 1. MINI-NAVIGATION HORIZONTAL GRID (Quick Links & Get Involved) --- */}
-                {/* Grid is now always 2 columns (grid-cols-2) and uses text-left */}
-                <div className="w-full grid grid-cols-2 gap-8 mb-10">
+                {/* Changes: Added centering (mx-auto), set max-width for margin control, reduced gap */}
+                <div className="w-full grid grid-cols-2 gap-4 mb-10 mx-auto max-w-xs sm:max-w-md">
                     
                     {/* Quick Links Column */}
                     <div className="text-left"> 
                         {/* Heading uses the Agency font */}
                         <h3 className="font-agency text-xl font-bold mb-4">Quick Links</h3>
-                        <ul className="space-y-3 text-base">
+                        <ul className="space-y-2 text-sm"> {/* Changed space-y and text size */}
                             {quickLinks.map((link) => (
                                 <li key={link.name}>
                                     <Link href={link.href} className="hover:text-amber-400 transition-colors">
@@ -51,7 +49,7 @@ export default function Footer() {
                     <div className="text-left"> 
                         {/* Heading uses the Agency font */}
                         <h3 className="font-agency text-xl font-bold mb-4">Get Involved</h3>
-                        <ul className="space-y-3 text-base">
+                        <ul className="space-y-2 text-sm"> {/* Changed space-y and text size */}
                             {getInvolved.map((link) => (
                                 <li key={link.name}>
                                     <Link href={link.href} className="hover:text-amber-400 transition-colors">
@@ -68,7 +66,6 @@ export default function Footer() {
 
 
                 {/* --- 3. SOCIAL ICONS AND COPYRIGHT --- */}
-                {/* Copyright and social icons remain centered for visual balance */}
                 <div className="flex flex-col items-center justify-center w-full">
                     
                     {/* Social Icons */}
@@ -98,7 +95,9 @@ export default function Footer() {
 
                     {/* Copyright */}
                     <p className="mt-2 text-[#9a9a9a] text-sm text-center">
-                        © All rights reserved | Al-Asad Education Foundation - CAC-IT-973975
+                        Al-Asad Education Foundation
+<br />
+© All rights reserved | CAC-IT-973975
                     </p>
                 </div>
                 
