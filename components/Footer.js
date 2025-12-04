@@ -5,13 +5,13 @@ import Image from "next/image";
 
 export default function Footer() {
   return (
-    // Adjust overall background color to match the mockup's dark brown
+    
     <footer className="w-full bg-[#432e16] text-white font-body pt-12 pb-6">
       <div className="max-w-7xl mx-auto flex flex-col items-center px-4">
 
-        {/* Logo - The mockup uses a wide, integrated logo (Arabic and English text + icon) */}
-        {/* We will rely on the provided image source for the full logo */}
-        <div className="mb-4 mt-15">
+        {/* Logo */}
+        
+        <div className="mb-4 mt-30">
           <Image 
                 src="/footerlogo.svg" 
                 alt="Al-Asad Education Foundation Logo" 
@@ -20,40 +20,40 @@ export default function Footer() {
               />
         </div>
 
-        {/* Separator line - Adjusted border color to match the mockup's light gray line */}
-        <div className="w-full border-t opacity-40" style={{ borderColor: "#9a9a9a" }}></div>
+        {/* Separator line */}
+        <div className="w-70 border-t opacity-40" style={{ borderColor: "#9a9a9a" }}></div>
 
-        {/* Social icons + email bar - Adjusted to center and align elements exactly as shown */}
-        <div className="flex flex-col sm:flex-row items-center justify-center w-full mt-6 gap-2">
+        {/* Social icons + email bar */}
+        <div className="flex flex-col sm:flex-row items-center justify-center w-full mt-6 mb-6 gap-2">
 
-          {/* Social icons - Added styling to match the circular, dark brown backgrounds */}
+          {/* Social icons */}
           <div className="flex items-center gap-1">
-            <Link href="https://www.facebook.com/share/1D438MVXpQ/" target="_blank" className="p-1 rounded-full bg-[#432e16]">
-              <Image src="/fbicon.svg" alt="Facebook" w-3 h-3 />
+            <Link href="https://www.facebook.com/share/1D438MVXpQ/">
+              <Image src="/fbicon.svg" alt="Facebook" w-2 h-2 />
             </Link>
 
-            <Link href="https://youtube.com/@alasadeducation" target="_blank" className="p-1 rounded-full bg-[#432e16]">
-              <Image src="/yticon.svg" alt="YouTube" w-3 h-3 />
+            <Link href="https://youtube.com/@alasadeducation">
+              <Image src="/yticon.svg" alt="YouTube" w-2 h-2 />
             </Link>
 
-            <Link href="https://www.instagram.com/alasad_education_foundation" target="_blank" className="p-1 rounded-full bg-[#432e16]">
-              <Image src="/igicon.svg" alt="Instagram" w-3 h-3 />
+            <Link href="https://www.instagram.com/alasad_education_foundation">
+              <Image src="/igicon.svg" alt="Instagram" w-2 h-2 />
             </Link>
 
-            <Link href="https://www.tiktok.com/@alasad_tv" target="_blank" className="p-1 rounded-full bg-[#432e16]">
-              <Image src="/tticon.svg" alt="TikTok" w-3 h-3 />
+            <Link href="https://www.tiktok.com/@alasad_tv">
+              <Image src="/tticon.svg" alt="TikTok" w-2 h-2 />
             </Link>
 
-            <Link href="https://t.me/alasadeducation" target="_blank" className="p-1 rounded-full bg-[#432e16]">
-              <Image src="/tgicon.svg" alt="Telegram" w-3 h-3 />
+            <Link href="https://t.me/alasadeducation">
+              <Image src="/tgicon.svg" alt="Telegram" w-2 h-2 />
             </Link>
 
-            <Link href="https://x.com/AsadEducation" target="_blank" className="p-1 rounded-full bg-[#432e16]">
-              <Image src="/xicon.svg" alt="X" w-3 h-3 />
+            <Link href="https://x.com/AsadEducation">
+              <Image src="/xicon.svg" alt="X" w-2 h-2 />
             </Link>
 
-            <Link href="https://whatsapp.com/channel/0029VawdL4n6xCSHyUsMzc2V" target="_blank" className="p-1 rounded-full bg-[#432e16]">
-              <Image src="/waicon.svg" alt="WhatsApp" w-3 h-3 />
+            <Link href="https://whatsapp.com/channel/0029VawdL4n6xCSHyUsMzc2V">
+              <Image src="/waicon.svg" alt="WhatsApp" w-2 h-2 />
             </Link>
           </div>
 
@@ -84,7 +84,7 @@ export default function Footer() {
         </div>
 
         {/* Copyright */}
-        <p className="mt-15 text-[#9a9a9a] text-sm text-center">
+        <p className="mt-50 text-[#9a9a9a] text-sm text-center">
           © All rights reserved
 <br />
 Al-Asad Education Foundation
