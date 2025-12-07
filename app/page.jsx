@@ -194,34 +194,34 @@ export default function HomePage() {
 
                     <div className="mb-12">
                         <h2 className="font-agency text-2xl text-brand-brown-dark mb-6 text-left">Featured Audio</h2>
-                        <div className="p-5 rounded-2xl bg-[#f8f5f0] border-l-4 flex flex-row items-center gap-4 shadow-sm" style={{ borderColor: BRAND_GOLD }}>
+                        <div className="p-5 rounded-2xl bg-[#f8f5f0] border-l-4 flex flex-row items-center gap-4 shadow-sm" style={{ borderColor: brand-gold }}>
                             <div className="w-12 h-12 flex-shrink-0 rounded-full flex items-center justify-center bg-white shadow-sm">
-                                <svg className="w-6 h-6" style={{ color: BRAND_GOLD }} fill="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-6 h-6" style={{ color: brand-gold }} fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M8 5v14l11-7z" />
                                 </svg>
                             </div>
                             <div className="flex-grow">
                                 <h3 className="font-agency text-lg font-bold text-gray-800">Islamic Jurisprudence Intro</h3>
                                 <div className="mt-2 h-1 w-full bg-gray-200 rounded-full overflow-hidden">
-                                    <div className="h-full w-1/3" style={{ backgroundColor: BRAND_GOLD }}></div>
+                                    <div className="h-full w-1/3" style={{ backgroundColor: brand-gold }}></div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <div className="mb-8">
-                        <h2 className="font-agency text-2xl text-brand-brown-dark mb-6 text-left">Upcoming Events</h2>
+                        <h2 className="font-agency text-2xl text-brand-brown-dark mb-6 text-left">upcoming events</h2>
                         <div className="flex overflow-x-auto pb-4 gap-4">
                             {upcomingEvents.map((event, index) => (
                                 <div key={index} className="flex-shrink-0 w-[260px] p-3 bg-[#fdfaf6] rounded-2xl border border-gray-100 flex items-center gap-3">
                                     <div className="flex-shrink-0 flex flex-col items-center justify-center w-14 h-16 rounded-xl bg-[#ece1d4]">
                                         <span className="font-lato text-[9px] uppercase font-bold text-gray-500">{event.day}</span>
-                                        <span className="font-agency text-2xl font-bold" style={{ color: BRAND_DARK }}>{event.date}</span>
+                                        <span className="font-agency text-2xl font-bold" style={{ color: brand-brown-dark }}>{event.date}</span>
                                         <span className="font-lato text-[9px] uppercase font-bold text-gray-500">{event.month}</span>
                                     </div>
                                     <div className="flex flex-col">
                                         <h4 className="font-lato text-xs font-bold leading-tight mb-1" style={{ color: BRAND_DARK }}>{event.title}</h4>
-                                        <button className="font-lato text-[10px] font-semibold tracking-wider text-left" style={{ color: BRAND_GOLD }}>REGISTER NOW</button>
+                                        <button className="font-lato text-[10px] font-semibold tracking-wider text-left" style={{ color: brand-gold }}>REGISTER NOW</button>
                                     </div>
                                 </div>
                             ))}
