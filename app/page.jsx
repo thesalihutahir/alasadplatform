@@ -230,6 +230,93 @@ export default function HomePage() {
                     </div>
                 </section>
 
+
+{/* 5. VISION AND MISSION STATEMENTS */}
+<section className="relative py-20 px-4 bg-brand-gold overflow-hidden">
+    {/* Background Overlay Pattern */}
+    <div className="absolute inset-0">
+        <Image 
+            src="/overlay.jpg" 
+            alt="Background pattern overlay" 
+            fill 
+            className="object-cover opacity-20 md:opacity-30" 
+        />
+    </div>
+
+    <div className="relative z-10 text-center text-white">
+        {/* Vision */}
+        <div className="mb-5">
+            <h2 className="font-agency text-md text-white mb-2 text-center">
+                Vision Statement
+            </h2>
+            <p className="font-lato leading-snug mx-auto">
+                To be a leading force in transforming education through Qur'an values, excellence in learning, and empowerment of communities.
+            </p>
+        </div>
+
+        {/* Separator & Icons */}
+        <div className="mb-10 max-w-xl mx-auto">
+            {/* Separator Line */}
+            <div className="flex justify-center items-center my-6">
+                <hr className="w-3/4 h-0.5 bg-white border-0 ml-4" />
+            </div>
+
+            {/* Icons and Labels */}
+            <div className="grid grid-cols-3 gap-2">
+                <div className="flex flex-col items-center">
+                    <div className="w-20 h-20 relative">
+                        <Image src="/educationalsupporticon.svg" alt="Educational Support" fill className="object-contain" />
+                    </div>
+                </div>
+
+                <div className="flex flex-col items-center">
+                    <div className="w-20 h-20 relative">2
+                        <Image src="/communitydevelopmenticon.svg" alt="Community Development" fill className="object-contain" />
+                    </div>
+                </div>
+
+                <div className="flex flex-col items-center">
+                    <div className="w-20 h-20 relative">
+                        <Image src="/trainingandinnovationicon.svg" alt="Training & Innovation" fill className="object-contain" />
+                    </div>
+                </div>
+            </div>
+{/* Separator Line */}
+            <div className="flex justify-center items-center my-6">
+                <hr className="w-3/4 h-0.5 bg-white border-0 ml-4" />
+            </div>
+        </div>
+        
+
+        {/* Mission */}
+        <div>
+            <h2 className="font-agency text-md text-white mb-2 text-center">
+                Mission Statement
+            </h2>
+            <p className="font-lato leading-snug mx-auto">
+                Expanding access to knowledge through Qur'an-centered and community driven education.
+            </p>
+        </div>
+    </div>
+</section>
+
+
+                {/* 6. ARABIC QUOTE & FINAL CTA */}
+                <section className="py-12 px-4 text-center bg-white">
+                    <div className="relative w-4/5 mx-auto h-24 mb-8">
+                        <Image
+                            src="/ilmquote.svg"
+                            alt="Arabic Quote about Knowledge"
+                            fill
+                            className="object-contain"
+                        />
+                    </div>
+                    <h2 className="font-agency text-md text-brand-gold leading-snug max-w-xs mx-auto">
+                        Join us in building a future shaped by knowledge and faith.
+                    </h2>
+                </section>
+
+
             </main>
 
             <Footer />
