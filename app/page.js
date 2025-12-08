@@ -42,7 +42,7 @@ export default function HomePage() {
                             <span className="font-agency text-sm text-brand-brown-dark">Programs</span>
                         </Link>
 
-                        <Link href="/multimedia" className="flex flex-col items-center group">
+                        <Link href="/media" className="flex flex-col items-center group">
                             <div className="w-14 h-14 relative mb-2 transition-transform group-hover:scale-110">
                                 <Image src="/mediaicon.svg" alt="Media" fill className="object-contain overflow-hidden drop-shadow-md" />
                             </div>
