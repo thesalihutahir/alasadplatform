@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import Header from '@/components/layout/Header.js';
-import Footer from '@/components/layout/Footer.js';
+// CORRECTED: Removed the unnecessary .js extension from the layout components
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
 
 const galleryCategories = ["All", "Campus", "Events", "Students", "Outreach"];
 
