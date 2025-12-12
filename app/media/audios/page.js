@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 const audioTracks = [
   {
@@ -34,6 +36,8 @@ const audioTracks = [
 export default function AudiosPage() {
   return (
     <main className="bg-brand-sand min-h-screen pb-20">
+      <Header />
+
       {/* Page Header */}
       <section className="pt-32 pb-12 px-6">
         <div className="container mx-auto">
@@ -107,34 +111,35 @@ export default function AudiosPage() {
         </div>
       </section>
 
-      {/* Featured Podcast / Sidebar element */}
+      {/* Featured Podcast */}
       <section className="container mx-auto px-6 mt-16">
         <div className="bg-brand-brown-dark rounded-[2.5rem] p-8 md:p-12 flex flex-col md:flex-row items-center gap-10 featured-background overflow-hidden relative border-none">
           <div className="absolute top-0 right-0 w-32 h-32 bg-brand-gold opacity-10 rounded-full -mr-16 -mt-16"></div>
-          
+
           <div className="md:w-1/4">
-             <div className="w-full aspect-square bg-brand-gold rounded-2xl flex items-center justify-center text-6xl shadow-2xl">
-                🎙️
-             </div>
+            <div className="w-full aspect-square bg-brand-gold rounded-2xl flex items-center justify-center text-6xl shadow-2xl">
+              🎙️
+            </div>
           </div>
-          
+
           <div className="md:w-3/4">
             <h2 className="font-agency text-4xl text-white mb-4 uppercase">Podcast Series: Al-Asad Insights</h2>
             <p className="font-lato text-gray-300 mb-8 leading-relaxed max-w-2xl">
-              Subscribe to our weekly podcast where we discuss the intersection of faith, community, 
-              and leadership with global scholars.
+              Subscribe to our weekly podcast where we discuss the intersection of faith, community, and leadership with global scholars.
             </p>
             <div className="flex gap-4">
-               <button className="bg-brand-gold text-white font-bold font-lato px-8 py-3 rounded-full hover:brightness-110 transition-all">
-                  Subscribe via Spotify
-               </button>
-               <button className="border border-white/30 text-white font-bold font-lato px-8 py-3 rounded-full hover:bg-white/10 transition-all">
-                  RSS Feed
-               </button>
+              <button className="bg-brand-gold text-white font-bold font-lato px-8 py-3 rounded-full hover:brightness-110 transition-all">
+                Subscribe via Spotify
+              </button>
+              <button className="border border-white/30 text-white font-bold font-lato px-8 py-3 rounded-full hover:bg-white/10 transition-all">
+                RSS Feed
+              </button>
             </div>
           </div>
         </div>
       </section>
+
+      <Footer />
     </main>
   );
 }
