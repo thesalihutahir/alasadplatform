@@ -27,7 +27,7 @@ export default function HomePage() {
                             priority
                         />
                         {/* Gradient overlay for text readability if image is busy */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-white/90 to-transparent"></div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/90 to-transparent"></div>
                     </div>
 
                     <div className="relative -mt-12 text-left px-6 pb-4 z-10">
