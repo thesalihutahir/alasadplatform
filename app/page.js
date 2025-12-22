@@ -1,14 +1,17 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 export default function HomePage() {
+    // State to handle Video Facade (Load YouTube only when clicked)
+    const [playVideo, setPlayVideo] = useState(false);
+
     // Temporary data to simulate dynamic content sources
-    const updates = [1, 2, 3]; // Simulating 3 latest updates
+    const updates = [1, 2, 3]; 
 
     return (
         <div className="min-h-screen flex flex-col bg-white font-lato text-brand-brown-dark">
@@ -17,35 +20,35 @@ export default function HomePage() {
             <main className="flex-grow">
 
                 {/* 1. HERO SECTION */}
-<section className="w-full relative bg-white">
-    {/* Hero Image with Gradient Fade */}
-    <div className="relative w-full aspect-[720/400] md:aspect-[21/9]">
-        <Image
-            src="/sheikhhero.jpg"
-            alt="Al-Asad Foundation Hero"
-            fill
-            className="object-cover object-top"
-            priority
-        />
-        {/* The Fade Effect: Transparent top -> Solid White bottom */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/10 to-white"></div>
-    </div>
+                <section className="w-full relative bg-white">
+                    {/* Hero Image with Gradient Fade */}
+                    <div className="relative w-full aspect-[720/400] md:aspect-[21/9]">
+                        <Image
+                            src="/sheikhhero.jpg"
+                            alt="Al-Asad Foundation Hero"
+                            fill
+                            className="object-cover object-top"
+                            priority
+                        />
+                        {/* The Fade Effect: Transparent top -> Solid White bottom */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/10 to-white"></div>
+                    </div>
 
-    {/* Text Content */}
-    <div className="relative -mt-20 md:-mt-32 text-center px-4 z-10 pb-2">
-        {/* Subtitle / Welcome Text */}
-        <p className="font-lato text-brand-brown text-sm md:text-lg font-medium mb-1 drop-shadow-sm">
-            Welcome to <br className="md:hidden" />
-            Al-Asad Education Foundation
-        </p>
-        
-        {/* Main Headline */}
-        <h1 className="font-agency text-3xl md:text-6xl text-brand-brown-dark leading-none drop-shadow-sm">
-            Where Education <br />
-            Creates Impact
-        </h1>
-    </div>
-</section>
+                    {/* Text Content */}
+                    <div className="relative -mt-20 md:-mt-32 text-center px-4 z-10 pb-2">
+                        {/* Subtitle / Welcome Text */}
+                        <p className="font-lato text-brand-brown text-sm md:text-lg font-medium mb-1 drop-shadow-sm">
+                            Welcome to <br className="md:hidden" />
+                            Al-Asad Education Foundation
+                        </p>
+
+                        {/* Main Headline */}
+                        <h1 className="font-agency text-3xl md:text-6xl text-brand-brown-dark leading-none drop-shadow-sm">
+                            Where Education <br />
+                            Creates Impact
+                        </h1>
+                    </div>
+                </section>
 
 
                 {/* 2. ICON NAVIGATION MENU */}
@@ -84,14 +87,14 @@ export default function HomePage() {
                 {/* 3. ACTION BUTTONS */}
                 <section className="py-2 px-8 flex justify-center pb-8">
                     <Link
-                        href="/donate"
+                        href="/get-involved/donate"
                         className="w-full max-w-xs py-3 text-center font-agency text-xl text-white bg-brand-gold rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95"
                     >
                         Make a Donation
                     </Link>
                 </section>
 
-                {/* 4. LATEST UPDATES (Dynamic Source: likely 'Blogs' or 'News' collection) */}
+                {/* 4. LATEST UPDATES (Styled to match Blog Cards) */}
                 <section className="py-8 px-6 bg-brand-sand/30">
                     <div className="flex justify-between items-end mb-6">
                         <h2 className="font-agency text-2xl text-brand-brown-dark">Latest Updates</h2>
@@ -100,8 +103,8 @@ export default function HomePage() {
 
                     <div className="space-y-6">
                         {updates.map((item, index) => (
-                            <div key={index} className="bg-[#F0E4D4] rounded-3xl overflow-hidden card-shadow group">
-                                <Link href="/news" className="block">
+                            <div key={index} className="bg-white rounded-2xl overflow-hidden card-shadow group border border-transparent hover:border-brand-gold/20 transition-all">
+                                <Link href="/blogs/updates" className="block">
                                     <div className="relative w-full h-48 overflow-hidden">
                                         <Image
                                             src="/hero.jpg" // Placeholder
@@ -109,7 +112,7 @@ export default function HomePage() {
                                             fill
                                             className="object-cover transition-transform duration-500 group-hover:scale-105"
                                         />
-                                        <div className="absolute top-0 left-0 bg-brand-gold text-white py-1 px-3 rounded-br-lg font-agency text-sm z-10">
+                                        <div className="absolute top-0 left-0 bg-brand-gold text-white py-1 px-3 rounded-br-lg font-agency text-sm z-10 shadow-sm">
                                             20 DEC
                                         </div>
                                     </div>
@@ -119,11 +122,11 @@ export default function HomePage() {
                                             <span className="font-lato text-[10px] font-bold text-brand-gold uppercase tracking-wider">Education</span>
                                         </div>
 
-                                        <h3 className="font-agency text-xl text-brand-brown-dark mb-2 leading-tight">
+                                        <h3 className="font-agency text-xl text-brand-brown-dark mb-2 leading-tight group-hover:text-brand-gold transition-colors">
                                             Students of Ma'ahad celebrate Qur'an memorization
                                         </h3>
 
-                                        <p className="font-lato text-sm text-left text-brand-brown line-clamp-3 leading-relaxed">
+                                        <p className="font-lato text-sm text-left text-brand-brown line-clamp-2 leading-relaxed opacity-80">
                                             Ma'ahad Sheikh Shareef Ibrahim Saleh Al-Hussaini celebrated over 30 students who memorized the Holy Qur'an this year.
                                         </p>
                                     </div>
@@ -133,48 +136,86 @@ export default function HomePage() {
                     </div>
                 </section>
 
-                {/* 5. MEDIA PREVIEWS */}
-                <section className="py-10 px-6 bg-white">
+                {/* 5. MEDIA PREVIEWS (UPGRADED CARD STYLE) */}
+                <section className="py-12 px-6 bg-white">
 
-                    {/* VIDEO SECTION (Source: 'Videos' collection) */}
+                    {/* VIDEO SECTION - FACADE PATTERN */}
                     <div className="mb-12">
                         <div className="flex justify-between items-end mb-6">
                             <h2 className="font-agency text-2xl text-brand-brown-dark">Latest Video</h2>
                             <Link href="/media/videos" className="text-xs font-bold text-brand-gold uppercase tracking-widest hover:underline">See More</Link>
                         </div>
 
-                        <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-xl bg-black">
-                            <iframe
-                                className="absolute inset-0 w-full h-full"
-                                src="https://www.youtube.com/embed/BYdCnmAgvhs?rel=0&modestbranding=1"
-                                title="Featured Lecture"
-                                frameBorder="0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                            ></iframe>
+                        <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-xl bg-black group">
+                            {!playVideo ? (
+                                // STATE 1: Custom Facade (Image + Play Button)
+                                <button 
+                                    onClick={() => setPlayVideo(true)}
+                                    className="absolute inset-0 w-full h-full relative"
+                                >
+                                    <Image 
+                                        src="/hero.jpg" // Video Thumbnail
+                                        alt="Video Thumbnail" 
+                                        fill 
+                                        className="object-cover opacity-90 group-hover:opacity-100 transition-opacity" 
+                                    />
+                                    {/* Play Overlay */}
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:bg-brand-gold group-hover:scale-110 transition-all duration-300 shadow-lg">
+                                            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M8 5v14l11-7z" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    {/* Duration Badge */}
+                                    <div className="absolute bottom-4 right-4 bg-black/70 text-white text-[10px] font-bold px-2 py-1 rounded">
+                                        12:45
+                                    </div>
+                                </button>
+                            ) : (
+                                // STATE 2: Actual YouTube Iframe
+                                <iframe
+                                    className="absolute inset-0 w-full h-full"
+                                    src="https://www.youtube.com/embed/BYdCnmAgvhs?rel=0&modestbranding=1&autoplay=1"
+                                    title="Featured Lecture"
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                ></iframe>
+                            )}
                         </div>
                     </div>
 
-                    {/* AUDIO SECTION (Source: 'Audios' collection) */}
+                    {/* AUDIO SECTION - UPGRADED CARD */}
                     <div className="mb-12">
                         <div className="flex justify-between items-end mb-6">
                             <h2 className="font-agency text-2xl text-brand-brown-dark">Latest Audio</h2>
                             <Link href="/media/audios" className="text-xs font-bold text-brand-gold uppercase tracking-widest hover:underline">Listen All</Link>
                         </div>
 
-                        <div
-                            className="p-5 rounded-3xl bg-[#f8f5f0] border-l-4 border-brand-gold flex flex-row items-center gap-4 shadow-sm"
-                        >
-                            <div className="w-12 h-12 flex-shrink-0 rounded-full flex items-center justify-center bg-white shadow-sm text-brand-gold">
-                                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M8 5v14l11-7z" />
-                                </svg>
+                        <div className="bg-brand-sand/40 rounded-2xl p-4 flex gap-4 items-center border border-brand-gold/10 shadow-md transition-transform hover:-translate-y-1">
+                            {/* Album Art Placeholder */}
+                            <div className="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-brand-brown-dark">
+                                <Image src="/hero.jpg" alt="Audio Cover" fill className="object-cover" />
+                                {/* Overlay Play Icon */}
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                    <svg className="w-8 h-8 text-white drop-shadow-md" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                                </div>
                             </div>
-
-                            <div className="flex-grow">
-                                <h3 className="font-agency text-lg text-brand-brown-dark">Fassarar Diwani - Zama na 6</h3>
-                                <div className="mt-2 h-1 w-full bg-gray-200 rounded-full overflow-hidden">
-                                    <div className="h-full w-1/3 bg-brand-gold"></div>
+                            
+                            <div className="flex-grow min-w-0">
+                                <span className="text-[10px] font-bold text-brand-gold uppercase tracking-widest">Friday Khutbah</span>
+                                <h3 className="font-agency text-xl text-brand-brown-dark leading-tight truncate">Fassarar Diwani - Zama na 6</h3>
+                                <div className="flex items-center gap-2 mt-2">
+                                    {/* Fake Waveform Visual */}
+                                    <div className="flex gap-0.5 items-end h-4 opacity-50">
+                                        <div className="w-1 h-3 bg-brand-brown"></div>
+                                        <div className="w-1 h-2 bg-brand-brown"></div>
+                                        <div className="w-1 h-4 bg-brand-brown"></div>
+                                        <div className="w-1 h-2 bg-brand-brown"></div>
+                                        <div className="w-1 h-3 bg-brand-brown"></div>
+                                    </div>
+                                    <span className="text-[10px] text-gray-500 font-bold">25:00</span>
                                 </div>
                             </div>
                         </div>
@@ -185,11 +226,10 @@ export default function HomePage() {
                         <h2 className="font-agency text-2xl text-brand-brown-dark mb-6">Upcoming Events</h2>
 
                         <div className="flex overflow-x-auto pb-4 gap-4 scrollbar-hide">
-                            {/* Placeholder Event Card */}
-                            <div className="min-w-[260px] bg-[#F0E4D4] rounded-xl p-5 shadow-md border border-brand-gold/10">
-                                <span className="text-xs font-bold text-brand-gold uppercase">Coming Soon</span>
-                                <h3 className="font-agency text-xl text-brand-brown-dark mt-2 mb-1">Annual Conference</h3>
-                                <p className="font-lato text-sm text-brand-brown">
+                            <div className="min-w-[260px] bg-brand-sand/30 rounded-2xl p-6 shadow-sm border border-brand-gold/10">
+                                <span className="text-xs font-bold text-brand-gold uppercase bg-white px-2 py-1 rounded-md shadow-sm">Coming Soon</span>
+                                <h3 className="font-agency text-xl text-brand-brown-dark mt-3 mb-1">Annual Conference</h3>
+                                <p className="font-lato text-sm text-brand-brown opacity-80">
                                     Details to be announced shortly.
                                 </p>
                             </div>
@@ -234,36 +274,30 @@ export default function HomePage() {
                                     <div className="w-16 h-16 relative mb-2">
                                         <Image src="/educationalsupporticon.svg" alt="Educational Support" fill className="object-contain" />
                                     </div>
-                                    <span className="font-agency text-xs tracking-wide">Educational
-<br className="md:hidden" />
-Support</span>
+                                    <span className="font-agency text-xs tracking-wide leading-tight">Educational<br className="md:hidden" /> Support</span>
                                 </div>
 
                                 <div className="flex flex-col items-center">
                                     <div className="w-16 h-16 relative mb-2">
                                         <Image src="/communitydevelopmenticon.svg" alt="Community Development" fill className="object-contain" />
                                     </div>
-                                    <span className="font-agency text-xs tracking-wide">Community
-<br className="md:hidden" />
-Development</span>
+                                    <span className="font-agency text-xs tracking-wide leading-tight">Community<br className="md:hidden" /> Development</span>
                                 </div>
 
                                 <div className="flex flex-col items-center">
                                     <div className="w-16 h-16 relative mb-2">
                                         <Image src="/trainingandinnovationicon.svg" alt="Training & Innovation" fill className="object-contain" />
                                     </div>
-                                    <span className="font-agency text-xs tracking-wide">Training &
-<br className="md:hidden" />
-Innovation</span>
+                                    <span className="font-agency text-xs tracking-wide leading-tight">Training &<br className="md:hidden" /> Innovation</span>
                                 </div>
                             </div>
                         </div>
 
-<div className="flex justify-center items-center my-6 opacity-50">
-                                <div className="w-24 h-0.5 bg-white"></div>
-                                <div className="mx-4 text-2xl">✦</div>
-                                <div className="w-24 h-0.5 bg-white"></div>
-                            </div>
+                        <div className="flex justify-center items-center my-6 opacity-50">
+                             <div className="w-24 h-0.5 bg-white"></div>
+                             <div className="mx-4 text-2xl">✦</div>
+                             <div className="w-24 h-0.5 bg-white"></div>
+                        </div>
 
                         {/* Mission */}
                         <div>
