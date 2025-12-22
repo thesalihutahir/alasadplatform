@@ -163,7 +163,7 @@ export default function HomePage() {
                         </div>
 
                         <div
-                            className="p-5 rounded-2xl bg-[#f8f5f0] border-l-4 border-brand-gold flex flex-row items-center gap-4 shadow-sm"
+                            className="p-5 rounded-3xl bg-[#f8f5f0] border-l-4 border-brand-gold flex flex-row items-center gap-4 shadow-sm"
                         >
                             <div className="w-12 h-12 flex-shrink-0 rounded-full flex items-center justify-center bg-white shadow-sm text-brand-gold">
                                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
@@ -172,7 +172,7 @@ export default function HomePage() {
                             </div>
 
                             <div className="flex-grow">
-                                <h3 className="font-agency text-lg font-bold text-brand-brown-dark">Islamic Jurisprudence Intro</h3>
+                                <h3 className="font-agency text-lg text-brand-brown-dark">Fassarar Diwani - Zama na 6</h3>
                                 <div className="mt-2 h-1 w-full bg-gray-200 rounded-full overflow-hidden">
                                     <div className="h-full w-1/3 bg-brand-gold"></div>
                                 </div>
