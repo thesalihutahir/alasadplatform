@@ -1,93 +1,55 @@
-import Link from 'next/link';
+"use client";
 
-const updates = [
-  {
-    title: "Phase 1 of Water Project Completed in Katsina",
-    desc: "Over 200 families now have access to clean, solar-powered water systems.",
-    date: "Dec 05, 2024",
-    location: "Katsina, Nigeria",
-    type: "Project Success"
-  },
-  {
-    title: "New Intake: 50 Students Awarded Scholarships",
-    desc: "Our selection committee has finalized the list for the upcoming academic year.",
-    date: "Nov 28, 2024",
-    location: "Lagos Hub",
-    type: "Academic"
-  },
-  {
-    title: "Al-Asad Foundation Partners with Global Tech NGO",
-    desc: "A new collaboration to bring digital literacy workshops to rural Quranic students.",
-    date: "Nov 15, 2024",
-    location: "Headquarters",
-    type: "Partnership"
-  }
-];
+import React from 'react';
+import Image from 'next/image';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 export default function UpdatesPage() {
-  return (
-    <main className="bg-brand-sand min-h-screen pb-20">
-      {/* Header */}
-      <section className="pt-32 pb-12 px-6">
-        <div className="container mx-auto">
-          <Link href="/blogs" className="text-brand-gold font-bold font-lato hover:underline mb-4 inline-block">
-            ← Back to Blog Hub
-          </Link>
-          <h1 className="font-agency text-5xl md:text-6xl text-brand-brown-dark uppercase tracking-tight">
-            Latest <span className="text-brand-gold">Updates</span>
-          </h1>
-          <p className="font-lato text-brand-brown mt-2 text-lg">
-            Real-time news and progress reports from our centers across the globe.
-          </p>
+    return (
+        <div className="min-h-screen flex flex-col bg-white">
+            <Header />
+            <main className="flex-grow pb-16">
+                
+                {/* HERO */}
+                <section className="w-full relative bg-white mb-8">
+                    <div className="relative w-full aspect-[3/1]">
+                        <Image src="/hero.jpg" alt="News" fill className="object-cover" />
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/40 to-white"></div>
+                    </div>
+                    <div className="relative -mt-16 text-center px-6 z-10">
+                        <h1 className="font-agency text-4xl text-brand-brown-dark">News & Updates</h1>
+                        <p className="font-lato text-xs text-brand-brown">Foundation Activities</p>
+                    </div>
+                </section>
+
+                {/* NEWS FEED */}
+                <section className="px-6 space-y-6">
+                    {[1, 2, 3].map((item) => (
+                        <div key={item} className="bg-brand-sand/30 rounded-xl p-4 flex gap-4 items-start shadow-sm border border-transparent hover:border-brand-gold/20 transition-all">
+                            {/* Date Box */}
+                            <div className="flex-shrink-0 w-14 bg-white rounded-lg flex flex-col items-center justify-center py-2 shadow-sm text-brand-brown-dark">
+                                <span className="font-agency text-2xl leading-none font-bold">20</span>
+                                <span className="font-lato text-[10px] uppercase font-bold text-brand-gold">DEC</span>
+                            </div>
+                            
+                            {/* Content */}
+                            <div>
+                                <h3 className="font-agency text-xl text-brand-brown-dark leading-tight mb-2">
+                                    Annual Qur'an Graduation Ceremony Announced
+                                </h3>
+                                <p className="font-lato text-xs text-brand-brown leading-relaxed mb-2">
+                                    We are pleased to announce the date for the 5th annual Ma'ahad graduation. All parents are invited.
+                                </p>
+                                <span className="text-[10px] font-bold text-brand-brown-dark underline decoration-brand-gold">
+                                    See Details
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </section>
+            </main>
+            <Footer />
         </div>
-      </section>
-
-      {/* Timeline Feed */}
-      <section className="container mx-auto px-6 relative">
-        {/* Vertical Line for Timeline */}
-        <div className="absolute left-10 md:left-1/2 top-0 bottom-0 w-0.5 bg-gray-200 -z-10"></div>
-
-        <div className="space-y-12">
-          {updates.map((update, index) => (
-            <div 
-              key={index} 
-              className={`flex flex-col md:flex-row items-start md:items-center gap-8 ${
-                index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'
-              }`}
-            >
-              {/* Timeline Marker */}
-              <div className="absolute left-10 md:left-1/2 -ml-3 w-6 h-6 rounded-full bg-brand-gold border-4 border-white shadow-md"></div>
-
-              {/* Content Card */}
-              <div className="w-full md:w-[45%] bg-white p-6 md:p-8 rounded-3xl card-shadow group hover:border-brand-gold border-2 border-transparent transition-all">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-brand-gold font-bold font-lato text-xs uppercase tracking-widest">{update.type}</span>
-                  <span className="text-brand-brown/60 text-xs font-lato">{update.date}</span>
-                </div>
-                <h3 className="font-agency text-2xl text-brand-brown-dark uppercase leading-tight mb-4">
-                  {update.title}
-                </h3>
-                <p className="font-lato text-brand-brown text-sm leading-relaxed mb-6">
-                  {update.desc}
-                </p>
-                <div className="flex items-center text-xs font-lato text-brand-gold font-bold uppercase tracking-tighter">
-                  📍 {update.location}
-                </div>
-              </div>
-
-              {/* Spacer for symmetrical layout on desktop */}
-              <div className="hidden md:block w-[45%]"></div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Load More Button */}
-      <div className="text-center mt-20">
-        <button className="bg-brand-brown-dark text-white font-bold font-lato px-12 py-4 rounded-full hover:bg-brand-gold transition-all shadow-lg">
-          Explore Older News
-        </button>
-      </div>
-    </main>
-  );
+    );
 }
