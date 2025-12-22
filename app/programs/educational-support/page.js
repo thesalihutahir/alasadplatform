@@ -1,147 +1,171 @@
-import Link from "next/link";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+"use client";
 
-const eligibilityCriteria = [
-  "Must be a registered student of an affiliated Quranic center.",
-  "Demonstrated excellence in Quranic memorization or studies.",
-  "Financial need based on family income assessment.",
-  "Recommendation from a recognized community lead or scholar.",
-];
+import React from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
-export default function ScholarshipsPage() {
-  return (
-    <>
-      <Header />
+export default function EducationalSupportPage() {
+    return (
+        <div className="min-h-screen flex flex-col bg-white">
+            <Header />
 
-      <main className="bg-brand-sand min-h-screen">
-        {/* Hero */}
-        <section className="pt-24 pb-16 px-6 bg-brand-brown-dark text-white text-center">
-          <div className="container mx-auto">
-            <h1 className="font-agency text-5xl md:text-7xl uppercase tracking-wider mb-4">
-              Scholarship Portal
-            </h1>
-            <p className="font-lato text-lg md:text-xl max-w-2xl mx-auto opacity-90">
-              Investing in the future of our youth through Quranic excellence and access to education.
-            </p>
+            <main className="flex-grow pb-16">
 
-            <div className="mt-8">
-              <Link
-                href="/programs/scholarships/apply"
-                className="bg-brand-gold text-white font-bold px-10 py-4 rounded-full text-lg shadow-lg hover:brightness-110 transition-all inline-block"
-              >
-                Start Application
-              </Link>
-            </div>
-          </div>
-        </section>
+                {/* 1. HERO SECTION (Consistent with Parent Page) */}
+                <section className="w-full relative bg-white mb-8">
+                    <div className="relative w-full aspect-[2.5/1] md:aspect-[4/1]">
+                        <Image
+                            src="/hero.jpg" // Placeholder: Needs an image of students/classroom
+                            alt="Educational Support Hero"
+                            fill
+                            className="object-cover object-center"
+                            priority
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/20 to-white"></div>
+                    </div>
 
-        {/* Main Section */}
-        <section className="container mx-auto px-6 py-16 grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* About */}
-          <div className="space-y-6">
-            <h2 className="font-agency text-4xl text-brand-brown-dark uppercase">
-              About the Scholarship
-            </h2>
-            <p className="font-lato text-brand-brown leading-relaxed">
-              The Al Asad Education Foundation Scholarship Program exists to remove financial barriers for hardworking students. We support Quranic learners and students in need with tuition coverage, study materials, and mentorship throughout the academic year.
-            </p>
+                    <div className="relative -mt-12 md:-mt-20 text-center px-6 z-10">
+                        <h1 className="font-agency text-4xl text-brand-brown-dark mb-3 drop-shadow-sm">
+                            Educational Support
+                        </h1>
+                        <div className="w-16 h-1 bg-brand-gold mx-auto rounded-full mb-4"></div>
+                        <p className="font-lato text-brand-brown text-sm max-w-md mx-auto leading-relaxed">
+                            Building a generation grounded in faith and equipped for the modern world.
+                        </p>
+                    </div>
+                </section>
 
-            {/* Eligibility */}
-            <div className="bg-white p-8 rounded-2xl card-shadow">
-              <h3 className="font-agency text-2xl text-brand-gold mb-4">
-                Eligibility Requirements
-              </h3>
-              <ul className="space-y-3">
-                {eligibilityCriteria.map((item, index) => (
-                  <li key={index} className="flex items-start font-lato text-brand-brown">
-                    <span className="text-brand-gold mr-3">✔</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+                {/* 2. INTRODUCTION & CONTEXT */}
+                <section className="px-6 mb-12">
+                    <div className="bg-brand-sand/30 rounded-2xl p-6 border-l-4 border-brand-gold">
+                        <h2 className="font-agency text-2xl text-brand-brown-dark mb-3">
+                            Our Philosophy
+                        </h2>
+                        <p className="font-lato text-sm text-brand-brown leading-relaxed text-justify">
+                            At Al-Asad Education Foundation, we believe that education is the foundation of dignity. Our approach integrates <strong>Tahfeez (Qur'an Memorization)</strong> with rigorous western education, ensuring our students become Hafiz doctors, engineers, and leaders who serve humanity with Ihsan.
+                        </p>
+                    </div>
+                </section>
 
-          {/* Timeline */}
-          <div className="bg-brand-brown-dark text-white p-8 rounded-2xl relative overflow-hidden">
-            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-brand-gold rounded-full opacity-10"></div>
+                {/* 3. KEY INITIATIVES (Vertical Cards) */}
+                <section className="px-6 space-y-8">
+                    <h3 className="font-agency text-2xl text-brand-brown-dark border-b border-gray-100 pb-2 mb-6">
+                        Core Initiatives
+                    </h3>
 
-            <h2 className="font-agency text-4xl mb-8 uppercase text-brand-gold">
-              How to Apply
-            </h2>
+                    {/* Initiative 1: The Ma'ahad */}
+                    <div className="flex flex-col gap-4">
+                        <div className="relative w-full h-48 rounded-2xl overflow-hidden shadow-md">
+                            <Image 
+                                src="/hero.jpg" // Placeholder: Image of Qur'an circles
+                                alt="Ma'ahad Classes" 
+                                fill 
+                                className="object-cover"
+                            />
+                        </div>
+                        <div>
+                            <h4 className="font-agency text-xl text-brand-brown-dark mb-1">
+                                Ma'ahad (Integrated Institute)
+                            </h4>
+                            <p className="font-lato text-sm text-brand-brown leading-relaxed mb-3">
+                                A structured learning environment providing full-time Tahfeez classes alongside English, Mathematics, and Science curriculum.
+                            </p>
+                            <span className="inline-block px-3 py-1 bg-brand-brown-dark/5 text-brand-brown-dark text-xs font-bold uppercase rounded-md">
+                                Active Program
+                            </span>
+                        </div>
+                    </div>
 
-            <div className="space-y-8 relative z-10">
-              {[
-                {
-                  step: "01",
-                  title: "Create an Account",
-                  desc: "Register on the portal with your basic information.",
-                },
-                {
-                  step: "02",
-                  title: "Upload Documents",
-                  desc: "Submit your academic records and proof of financial need.",
-                },
-                {
-                  step: "03",
-                  title: "Interview Stage",
-                  desc: "Shortlisted applicants will attend an oral evaluation.",
-                },
-                {
-                  step: "04",
-                  title: "Award Decision",
-                  desc: "Successful students receive scholarship packages.",
-                },
-              ].map((item) => (
-                <div key={item.step} className="flex gap-4">
-                  <span className="font-agency text-4xl text-brand-gold opacity-50">
-                    {item.step}
-                  </span>
-                  <div>
-                    <h4 className="font-bold text-xl mb-1">{item.title}</h4>
-                    <p className="text-gray-300 font-lato text-sm">{item.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                    {/* Initiative 2: Adult Literacy */}
+                    <div className="flex flex-col gap-4">
+                        <div className="relative w-full h-48 rounded-2xl overflow-hidden shadow-md">
+                            <Image 
+                                src="/hero.jpg" // Placeholder: Adult education setting
+                                alt="Adult Literacy" 
+                                fill 
+                                className="object-cover"
+                            />
+                        </div>
+                        <div>
+                            <h4 className="font-agency text-xl text-brand-brown-dark mb-1">
+                                Adult Literacy & Islamic Studies
+                            </h4>
+                            <p className="font-lato text-sm text-brand-brown leading-relaxed mb-3">
+                                Evening and weekend classes designed for community members to improve their reading, writing, and understanding of Fiqh.
+                            </p>
+                            <span className="inline-block px-3 py-1 bg-brand-brown-dark/5 text-brand-brown-dark text-xs font-bold uppercase rounded-md">
+                                Active Program
+                            </span>
+                        </div>
+                    </div>
 
-            <div className="mt-10 pt-6 border-t border-white/10">
-              <p className="text-sm italic opacity-70">
-                Deadline for this semester: December 31st, 2024
-              </p>
-            </div>
-          </div>
-        </section>
+                    {/* Initiative 3: Scholarships (Future) */}
+                    <div className="flex flex-col gap-4 opacity-90">
+                        <div className="relative w-full h-48 rounded-2xl overflow-hidden shadow-md grayscale-[50%]">
+                            <Image 
+                                src="/hero.jpg" // Placeholder
+                                alt="Scholarship Fund" 
+                                fill 
+                                className="object-cover"
+                            />
+                            {/* Coming Soon Overlay */}
+                            <div className="absolute inset-0 bg-brand-brown-dark/60 flex items-center justify-center">
+                                <span className="text-white font-agency text-xl tracking-widest border border-white px-4 py-2 rounded">
+                                    COMING SOON
+                                </span>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 className="font-agency text-xl text-brand-brown-dark mb-1">
+                                Student Scholarship Fund
+                            </h4>
+                            <p className="font-lato text-sm text-brand-brown leading-relaxed mb-3">
+                                A dedicated fund to support indigent students with tuition, books, and welfare to ensure no child is left behind due to poverty.
+                            </p>
+                            <span className="inline-block px-3 py-1 bg-brand-gold/10 text-brand-gold text-xs font-bold uppercase rounded-md">
+                                In Development
+                            </span>
+                        </div>
+                    </div>
+                </section>
 
-        {/* Stats */}
-        <section className="bg-white py-16">
-          <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div>
-              <div className="font-agency text-5xl text-brand-gold">500+</div>
-              <div className="font-lato text-brand-brown uppercase tracking-widest mt-2">
-                Scholars Supported
-              </div>
-            </div>
+                {/* 4. IMPACT / STATS */}
+                <section className="mt-12 px-6 py-10 bg-brand-sand">
+                    <div className="text-center mb-8">
+                        <h3 className="font-agency text-3xl text-brand-gold mb-1">500+</h3>
+                        <p className="font-lato text-brand-brown-dark text-sm uppercase tracking-widest font-bold">
+                            Students Enrolled
+                        </p>
+                    </div>
+                    <div className="text-center">
+                        <h3 className="font-agency text-3xl text-brand-gold mb-1">30+</h3>
+                        <p className="font-lato text-brand-brown-dark text-sm uppercase tracking-widest font-bold">
+                            Huffaz Graduated
+                        </p>
+                    </div>
+                </section>
 
-            <div>
-              <div className="font-agency text-5xl text-brand-gold">20+</div>
-              <div className="font-lato text-brand-brown uppercase tracking-widest mt-2">
-                Partner Centers
-              </div>
-            </div>
+                {/* 5. CTA */}
+                <section className="px-6 mt-12 mb-4">
+                    <div className="bg-brand-brown-dark rounded-2xl p-8 text-center text-white relative overflow-hidden">
+                        <h3 className="font-agency text-2xl mb-3 relative z-10">Sponsor Knowledge</h3>
+                        <p className="font-lato text-sm text-white/80 mb-6 relative z-10">
+                            "He who follows a path in pursuit of knowledge, Allah will make the path to Paradise easy for him."
+                        </p>
+                        <Link
+                            href="/get-involved/donate"
+                            className="inline-block py-3 px-8 font-agency text-lg text-brand-brown-dark bg-white rounded-full shadow-lg hover:bg-brand-gold transition-colors relative z-10"
+                        >
+                            Support Education
+                        </Link>
+                    </div>
+                </section>
 
-            <div>
-              <div className="font-agency text-5xl text-brand-gold">100%</div>
-              <div className="font-lato text-brand-brown uppercase tracking-widest mt-2">
-                Transparency
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
+            </main>
 
-      <Footer />
-    </>
-  );
-    }
+            <Footer />
+        </div>
+    );
+}
