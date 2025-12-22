@@ -132,7 +132,7 @@ export default function ProgramsPage() {
                     </p>
                     <Link
                         href="/get-involved/donate"
-                        className="inline-block py-3 px-8 font-agency text-lg text-brand-gold bg-white rounded-full shadow-lg hover:bg-white transition-colors relative z-10"
+                        className="inline-block py-3 px-8 font-agency text-lg text-brand-brown-dark bg-white rounded-full shadow-lg hover:bg-white transition-colors relative z-10"
                     >
                         Donate Now
                     </Link>
