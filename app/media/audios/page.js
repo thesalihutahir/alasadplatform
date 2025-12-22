@@ -1,145 +1,162 @@
+"use client";
+
+import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
-const audioTracks = [
-  {
-    title: "Surah Al-Baqarah (Full)",
-    reciter: "Sheikh Ahmad Al-Asad",
-    duration: "2:15:40",
-    category: "Quran",
-    size: "45MB"
-  },
-  {
-    title: "The Importance of Community in Islam",
-    reciter: "Dr. Sulaiman Tahir",
-    duration: "45:12",
-    category: "Podcasts",
-    size: "18MB"
-  },
-  {
-    title: "Modern Challenges for Quranic Students",
-    reciter: "Ustaz Muhammad Sani",
-    duration: "32:05",
-    category: "Lectures",
-    size: "14MB"
-  },
-  {
-    title: "Morning Adhkar (Remembrances)",
-    reciter: "Sheikh Ahmad Al-Asad",
-    duration: "15:20",
-    category: "Dua",
-    size: "7MB"
-  }
-];
-
 export default function AudiosPage() {
-  return (
-    <main className="bg-brand-sand min-h-screen pb-20">
-      <Header />
+    
+    // Mock Data for Audios
+    const audios = [
+        {
+            id: 1,
+            title: "Khutbah: The Rights of Neighbors",
+            category: "Friday Sermon",
+            date: "22 Dec 2024",
+            duration: "25:00",
+            size: "12MB",
+            url: "#" 
+        },
+        {
+            id: 2,
+            title: "Tafsir Surah Yasin (Full Series) - Part 1",
+            category: "Tafsir",
+            date: "15 Dec 2024",
+            duration: "55:30",
+            size: "45MB",
+            url: "#"
+        },
+        {
+            id: 3,
+            title: "Understanding Purification (Kitab At-Taharah)",
+            category: "Fiqh Class",
+            date: "10 Dec 2024",
+            duration: "40:15",
+            size: "32MB",
+            url: "#"
+        },
+        {
+            id: 4,
+            title: "Historical Context of the Prophetic Migration",
+            category: "Seerah",
+            date: "01 Dec 2024",
+            duration: "60:00",
+            size: "50MB",
+            url: "#"
+        }
+    ];
 
-      {/* Page Header */}
-      <section className="pt-32 pb-12 px-6">
-        <div className="container mx-auto">
-          <Link href="/media" className="text-brand-gold font-bold font-lato hover:underline mb-4 inline-block">
-            ← Back to Media Hub
-          </Link>
-          <h1 className="font-agency text-5xl md:text-6xl text-brand-brown-dark uppercase tracking-wide">
-            Audio Library
-          </h1>
-          <p className="font-lato text-brand-brown mt-4 text-lg max-w-2xl">
-            Listen to soulful recitations, scholarly podcasts, and educational lectures anywhere, anytime.
-          </p>
+    const filters = ["All Audios", "Tafsir", "Khutbah", "Fiqh", "Seerah"];
+
+    return (
+        <div className="min-h-screen flex flex-col bg-white">
+            <Header />
+
+            <main className="flex-grow pb-16">
+
+                {/* 1. HERO SECTION */}
+                <section className="w-full relative bg-white mb-6">
+                    <div className="relative w-full aspect-[2.5/1] md:aspect-[4/1]">
+                        <Image
+                            src="/hero.jpg" // Placeholder: Microphone or abstract sound wave image
+                            alt="Audio Library Hero"
+                            fill
+                            className="object-cover object-center"
+                            priority
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/20 to-white"></div>
+                    </div>
+
+                    <div className="relative -mt-12 md:-mt-20 text-center px-6 z-10">
+                        <h1 className="font-agency text-4xl text-brand-brown-dark mb-3 drop-shadow-sm">
+                            Audio Library
+                        </h1>
+                        <div className="w-16 h-1 bg-brand-gold mx-auto rounded-full mb-4"></div>
+                        <p className="font-lato text-brand-brown text-sm max-w-md mx-auto leading-relaxed">
+                            Listen to sermons, tafsir, and educational series on the go.
+                        </p>
+                    </div>
+                </section>
+
+                {/* 2. FILTER BAR */}
+                <section className="px-6 mb-8">
+                    <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-hide">
+                        {filters.map((filter, index) => (
+                            <button 
+                                key={index}
+                                className={`px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
+                                    index === 0 
+                                    ? 'bg-brand-gold text-white shadow-md' 
+                                    : 'bg-brand-sand text-brand-brown-dark hover:bg-brand-gold/10'
+                                }`}
+                            >
+                                {filter}
+                            </button>
+                        ))}
+                    </div>
+                </section>
+
+                {/* 3. AUDIO LIST */}
+                <section className="px-6 space-y-4">
+                    {audios.map((audio) => (
+                        <div key={audio.id} className="group bg-white rounded-2xl p-4 shadow-md border border-gray-100 flex items-center gap-4 transition-transform hover:-translate-y-1">
+                            
+                            {/* Play Icon / Visual */}
+                            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-brand-sand text-brand-gold flex items-center justify-center group-hover:bg-brand-gold group-hover:text-white transition-colors">
+                                <svg className="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z" />
+                                </svg>
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-grow min-w-0">
+                                <div className="flex justify-between items-start mb-1">
+                                    <span className="text-[10px] font-bold text-brand-gold uppercase tracking-widest">
+                                        {audio.category}
+                                    </span>
+                                    <span className="text-[10px] text-gray-400 font-lato">
+                                        {audio.duration}
+                                    </span>
+                                </div>
+                                
+                                <h3 className="font-agency text-lg text-brand-brown-dark leading-tight truncate pr-2">
+                                    {audio.title}
+                                </h3>
+                                
+                                <div className="flex items-center gap-3 mt-1">
+                                    <p className="text-[10px] text-gray-500 font-lato">
+                                        {audio.date}
+                                    </p>
+                                    <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                    <p className="text-[10px] text-gray-500 font-lato">
+                                        {audio.size}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Download/Action Icon (Optional) */}
+                            <div className="flex-shrink-0 text-gray-300 hover:text-brand-brown-dark cursor-pointer">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                            </div>
+
+                        </div>
+                    ))}
+                </section>
+
+                {/* 4. LOAD MORE */}
+                <section className="py-8 text-center">
+                    <button className="px-6 py-3 border-2 border-brand-sand text-brand-brown-dark rounded-full font-agency text-sm hover:bg-brand-sand transition-colors">
+                        Load More Audios
+                    </button>
+                </section>
+
+            </main>
+
+            <Footer />
         </div>
-      </section>
-
-      {/* Tracks Container */}
-      <section className="container mx-auto px-6">
-        <div className="bg-white rounded-[2rem] card-shadow overflow-hidden border border-gray-100">
-          {/* Track Header (Desktop only) */}
-          <div className="hidden md:grid grid-cols-12 gap-4 p-6 bg-brand-brown-dark text-white font-agency uppercase tracking-widest text-sm">
-            <div className="col-span-1 text-center">Play</div>
-            <div className="col-span-5">Title / Reciter</div>
-            <div className="col-span-2">Category</div>
-            <div className="col-span-2">Duration</div>
-            <div className="col-span-2 text-right">Download</div>
-          </div>
-
-          {/* Tracks List */}
-          <div className="divide-y divide-gray-100">
-            {audioTracks.map((track, index) => (
-              <div 
-                key={index} 
-                className="grid grid-cols-12 gap-4 p-6 items-center hover:bg-brand-sand/50 transition-colors group"
-              >
-                {/* Play Icon */}
-                <div className="col-span-2 md:col-span-1 flex justify-center">
-                  <button className="w-12 h-12 bg-brand-gold rounded-full flex items-center justify-center text-white shadow-md hover:scale-110 transition-transform">
-                    ▶
-                  </button>
-                </div>
-
-                {/* Info */}
-                <div className="col-span-7 md:col-span-5">
-                  <h3 className="font-lato font-bold text-brand-brown-dark text-lg group-hover:text-brand-gold transition-colors">
-                    {track.title}
-                  </h3>
-                  <p className="font-lato text-sm text-brand-brown italic">{track.reciter}</p>
-                </div>
-
-                {/* Category (Hidden on mobile) */}
-                <div className="hidden md:block col-span-2">
-                  <span className="bg-brand-sand text-brand-brown-dark font-lato text-xs font-bold px-3 py-1 rounded-full uppercase">
-                    {track.category}
-                  </span>
-                </div>
-
-                {/* Duration */}
-                <div className="col-span-3 md:col-span-2 text-brand-brown font-lato text-sm font-bold">
-                  {track.duration}
-                </div>
-
-                {/* Download (Hidden on mobile) */}
-                <div className="hidden md:block col-span-2 text-right">
-                  <button className="text-brand-gold font-bold font-lato text-sm hover:underline">
-                    ↓ {track.size}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Podcast */}
-      <section className="container mx-auto px-6 mt-16">
-        <div className="bg-brand-brown-dark rounded-[2.5rem] p-8 md:p-12 flex flex-col md:flex-row items-center gap-10 featured-background overflow-hidden relative border-none">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-brand-gold opacity-10 rounded-full -mr-16 -mt-16"></div>
-
-          <div className="md:w-1/4">
-            <div className="w-full aspect-square bg-brand-gold rounded-2xl flex items-center justify-center text-6xl shadow-2xl">
-              🎙️
-            </div>
-          </div>
-
-          <div className="md:w-3/4">
-            <h2 className="font-agency text-4xl text-white mb-4 uppercase">Podcast Series: Al-Asad Insights</h2>
-            <p className="font-lato text-gray-300 mb-8 leading-relaxed max-w-2xl">
-              Subscribe to our weekly podcast where we discuss the intersection of faith, community, and leadership with global scholars.
-            </p>
-            <div className="flex gap-4">
-              <button className="bg-brand-gold text-white font-bold font-lato px-8 py-3 rounded-full hover:brightness-110 transition-all">
-                Subscribe via Spotify
-              </button>
-              <button className="border border-white/30 text-white font-bold font-lato px-8 py-3 rounded-full hover:bg-white/10 transition-all">
-                RSS Feed
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <Footer />
-    </main>
-  );
+    );
 }
