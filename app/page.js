@@ -17,25 +17,36 @@ export default function HomePage() {
             <main className="flex-grow">
 
                 {/* 1. HERO SECTION */}
-                <section className="w-full relative">
-                    <div className="relative w-full aspect-[720/400]">
-                        <Image
-                            src="/sheikhhero.jpg"
-                            alt="Al-Asad Foundation Hero"
-                            fill
-                            className="object-cover"
-                            priority
-                        />
-                        {/* Gradient overlay for text readability if image is busy */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-white/90 to-transparent"></div>
-                    </div>
+<section className="w-full relative bg-white">
+    {/* Hero Image with Gradient Fade */}
+    <div className="relative w-full aspect-[4/3] md:aspect-[21/9]">
+        <Image
+            src="/sheikhhero.jpg"
+            alt="Al-Asad Foundation Hero"
+            fill
+            className="object-cover object-top"
+            priority
+        />
+        {/* The Fade Effect: Transparent top -> Solid White bottom */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/10 to-white"></div>
+    </div>
 
-                    <div className="relative -mt-12 text-left px-6 pb-4 z-10">
-                        <h1 className="font-agency text-3xl text-brand-brown-dark leading-none drop-shadow-sm">
-                            Welcome to Al-Asad Education Foundation Official Platform
-                        </h1>
-                    </div>
-                </section>
+    {/* Text Content */}
+    <div className="relative -mt-20 md:-mt-32 text-center px-4 z-10 pb-2">
+        {/* Subtitle / Welcome Text */}
+        <p className="font-lato text-brand-brown text-sm md:text-lg font-medium mb-1 drop-shadow-sm">
+            Welcome to <br className="md:hidden" />
+            Al-Asad Education Foundation
+        </p>
+        
+        {/* Main Headline */}
+        <h1 className="font-agency text-4xl md:text-6xl text-brand-brown-dark font-bold leading-none drop-shadow-sm">
+            Where Education <br />
+            Creates Impact
+        </h1>
+    </div>
+</section>
+
 
                 {/* 2. ICON NAVIGATION MENU */}
                 <section className="py-6 px-6">
