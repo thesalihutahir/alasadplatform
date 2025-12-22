@@ -15,11 +15,11 @@ export default function Footer() {
     ];
 
     const actionLinks = [
-        { name: "Donate / Pay Zakat", href: "/get-involved/donate" },
+        { name: "Donate", href: "/get-involved/donate" },
         { name: "Volunteer", href: "/get-involved/volunteer" },
         { name: "Partner With Us", href: "/get-involved/partner-with-us" },
         { name: "Contact & Team", href: "/contact" },
-        { name: "FAQ & Policies", href: "/faq" },
+        { name: "FAQ", href: "/faq" },
     ];
 
     // Social Media Data (Centralized for easy updates)
@@ -38,7 +38,7 @@ export default function Footer() {
             <div className="max-w-7xl mx-auto flex flex-col px-6"> 
 
                 {/* --- 1. NAVIGATION GRID --- */}
-                <div className="w-full grid grid-cols-2 gap-8 mb-10 mx-auto max-w-md md:max-w-2xl text-left">
+                <div className="w-full grid grid-cols-2 gap-8 mb-8 mx-auto max-w-md md:max-w-2xl text-left">
                     
                     {/* Quick Links Column */}
                     <div> 
@@ -99,7 +99,7 @@ export default function Footer() {
                             © {new Date().getFullYear()} All rights reserved | CAC-IT-973975
                         </p>
                         
-                        <div className="mt-2 text-[10px] text-[#9a9a9a]/60 space-x-2">
+                        <div className="mt-2 text-sm text-[#9a9a9a]/60 space-x-2">
                              <Link href="/terms-and-policies" className="hover:text-brand-gold">Terms & Policies</Link>
                              <span>|</span>
                              <Link href="/faq" className="hover:text-brand-gold">FAQ</Link>
