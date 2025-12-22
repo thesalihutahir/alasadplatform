@@ -1,147 +1,143 @@
-import Link from "next/link";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+"use client";
 
-const eligibilityCriteria = [
-  "Must be a registered student of an affiliated Quranic center.",
-  "Demonstrated excellence in Quranic memorization or studies.",
-  "Financial need based on family income assessment.",
-  "Recommendation from a recognized community lead or scholar.",
-];
+import React from 'react';
+import Image from 'next/image';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
-export default function ScholarshipsPage() {
-  return (
-    <>
-      <Header />
+export default function PodcastsPage() {
+    
+    // Mock Data for Podcasts
+    const episodes = [
+        {
+            id: 1,
+            title: "Navigating Challenges as Muslim Youth",
+            series: "The Young Believer",
+            ep: "EP 05",
+            date: "20 Dec 2024",
+            duration: "35:00",
+            cover: "/hero.jpg", // Podcast Art
+        },
+        {
+            id: 2,
+            title: "Business Ethics in the 21st Century",
+            series: "Faith & Finance",
+            ep: "EP 12",
+            date: "12 Dec 2024",
+            duration: "42:15",
+            cover: "/hero.jpg",
+        },
+        {
+            id: 3,
+            title: "Marriage: Rights and Responsibilities",
+            series: "Family Matters",
+            ep: "EP 08",
+            date: "05 Dec 2024",
+            duration: "50:00",
+            cover: "/hero.jpg",
+        },
+    ];
 
-      <main className="bg-brand-sand min-h-screen">
-        {/* Hero */}
-        <section className="pt-24 pb-16 px-6 bg-brand-brown-dark text-white text-center">
-          <div className="container mx-auto">
-            <h1 className="font-agency text-5xl md:text-7xl uppercase tracking-wider mb-4">
-              Scholarship Portal
-            </h1>
-            <p className="font-lato text-lg md:text-xl max-w-2xl mx-auto opacity-90">
-              Investing in the future of our youth through Quranic excellence and access to education.
-            </p>
+    return (
+        <div className="min-h-screen flex flex-col bg-white">
+            <Header />
 
-            <div className="mt-8">
-              <Link
-                href="/programs/scholarships/apply"
-                className="bg-brand-gold text-white font-bold px-10 py-4 rounded-full text-lg shadow-lg hover:brightness-110 transition-all inline-block"
-              >
-                Start Application
-              </Link>
-            </div>
-          </div>
-        </section>
+            <main className="flex-grow pb-16">
 
-        {/* Main Section */}
-        <section className="container mx-auto px-6 py-16 grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* About */}
-          <div className="space-y-6">
-            <h2 className="font-agency text-4xl text-brand-brown-dark uppercase">
-              About the Scholarship
-            </h2>
-            <p className="font-lato text-brand-brown leading-relaxed">
-              The Al Asad Education Foundation Scholarship Program exists to remove financial barriers for hardworking students. We support Quranic learners and students in need with tuition coverage, study materials, and mentorship throughout the academic year.
-            </p>
+                {/* 1. HERO SECTION */}
+                <section className="w-full relative bg-white mb-8">
+                    <div className="relative w-full aspect-[2.5/1] md:aspect-[4/1]">
+                        <Image
+                            src="/hero.jpg" 
+                            alt="Podcasts Hero"
+                            fill
+                            className="object-cover object-center"
+                            priority
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/20 to-white"></div>
+                    </div>
 
-            {/* Eligibility */}
-            <div className="bg-white p-8 rounded-2xl card-shadow">
-              <h3 className="font-agency text-2xl text-brand-gold mb-4">
-                Eligibility Requirements
-              </h3>
-              <ul className="space-y-3">
-                {eligibilityCriteria.map((item, index) => (
-                  <li key={index} className="flex items-start font-lato text-brand-brown">
-                    <span className="text-brand-gold mr-3">✔</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+                    <div className="relative -mt-12 md:-mt-20 text-center px-6 z-10">
+                        <h1 className="font-agency text-4xl text-brand-brown-dark mb-3 drop-shadow-sm">
+                            Podcasts
+                        </h1>
+                        <div className="w-16 h-1 bg-brand-gold mx-auto rounded-full mb-4"></div>
+                        <p className="font-lato text-brand-brown text-sm max-w-md mx-auto leading-relaxed">
+                            Engaging discussions on contemporary issues through the lens of Islam.
+                        </p>
+                    </div>
+                </section>
 
-          {/* Timeline */}
-          <div className="bg-brand-brown-dark text-white p-8 rounded-2xl relative overflow-hidden">
-            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-brand-gold rounded-full opacity-10"></div>
+                {/* 2. LATEST EPISODE CARD (Featured) */}
+                <section className="px-6 mb-8">
+                    <div className="bg-brand-brown-dark rounded-2xl p-6 text-white flex flex-col md:flex-row items-center gap-6 shadow-xl relative overflow-hidden">
+                        {/* Background pattern */}
+                        <div className="absolute top-0 right-0 w-40 h-40 bg-brand-gold opacity-10 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                        
+                        <div className="relative w-24 h-24 md:w-32 md:h-32 flex-shrink-0 rounded-xl overflow-hidden shadow-lg border-2 border-brand-gold/50">
+                             <Image src="/hero.jpg" alt="Featured Podcast" fill className="object-cover" />
+                        </div>
+                        
+                        <div className="text-center md:text-left relative z-10">
+                            <span className="text-[10px] font-bold text-brand-gold uppercase tracking-widest">
+                                Latest Release
+                            </span>
+                            <h2 className="font-agency text-2xl mt-1 mb-2">
+                                The Young Believer: EP 06
+                            </h2>
+                            <p className="font-lato text-xs text-white/70 mb-4 line-clamp-2">
+                                Sheikh Muneer discusses the impact of social media on spiritual health.
+                            </p>
+                            <button className="px-6 py-2 bg-brand-gold text-white font-bold text-xs rounded-full uppercase tracking-wider hover:bg-white hover:text-brand-gold transition-colors">
+                                Listen Now
+                            </button>
+                        </div>
+                    </div>
+                </section>
 
-            <h2 className="font-agency text-4xl mb-8 uppercase text-brand-gold">
-              How to Apply
-            </h2>
+                {/* 3. EPISODE LIST */}
+                <section className="px-6 space-y-4">
+                    <h3 className="font-agency text-xl text-brand-brown-dark mb-4">
+                        Recent Episodes
+                    </h3>
+                    
+                    {episodes.map((ep) => (
+                        <div key={ep.id} className="group bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex items-center gap-4 transition-all hover:shadow-md hover:border-brand-gold/30">
+                            
+                            {/* Square Thumbnail (Album Art style) */}
+                            <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-brand-sand">
+                                <Image src={ep.cover} alt={ep.title} fill className="object-cover" />
+                                {/* Play Overlay */}
+                                <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                                </div>
+                            </div>
 
-            <div className="space-y-8 relative z-10">
-              {[
-                {
-                  step: "01",
-                  title: "Create an Account",
-                  desc: "Register on the portal with your basic information.",
-                },
-                {
-                  step: "02",
-                  title: "Upload Documents",
-                  desc: "Submit your academic records and proof of financial need.",
-                },
-                {
-                  step: "03",
-                  title: "Interview Stage",
-                  desc: "Shortlisted applicants will attend an oral evaluation.",
-                },
-                {
-                  step: "04",
-                  title: "Award Decision",
-                  desc: "Successful students receive scholarship packages.",
-                },
-              ].map((item) => (
-                <div key={item.step} className="flex gap-4">
-                  <span className="font-agency text-4xl text-brand-gold opacity-50">
-                    {item.step}
-                  </span>
-                  <div>
-                    <h4 className="font-bold text-xl mb-1">{item.title}</h4>
-                    <p className="text-gray-300 font-lato text-sm">{item.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                            {/* Content */}
+                            <div className="flex-grow min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-[9px] font-bold text-white bg-brand-brown px-2 py-0.5 rounded-full">
+                                        {ep.ep}
+                                    </span>
+                                    <span className="text-[10px] text-gray-400 font-lato">
+                                        {ep.duration}
+                                    </span>
+                                </div>
+                                
+                                <h4 className="font-agency text-lg text-brand-brown-dark leading-none truncate mb-1">
+                                    {ep.title}
+                                </h4>
+                                <p className="text-xs text-brand-gold font-bold uppercase tracking-wide">
+                                    {ep.series}
+                                </p>
+                            </div>
+                        </div>
+                    ))}
+                </section>
 
-            <div className="mt-10 pt-6 border-t border-white/10">
-              <p className="text-sm italic opacity-70">
-                Deadline for this semester: December 31st, 2024
-              </p>
-            </div>
-          </div>
-        </section>
+            </main>
 
-        {/* Stats */}
-        <section className="bg-white py-16">
-          <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div>
-              <div className="font-agency text-5xl text-brand-gold">500+</div>
-              <div className="font-lato text-brand-brown uppercase tracking-widest mt-2">
-                Scholars Supported
-              </div>
-            </div>
-
-            <div>
-              <div className="font-agency text-5xl text-brand-gold">20+</div>
-              <div className="font-lato text-brand-brown uppercase tracking-widest mt-2">
-                Partner Centers
-              </div>
-            </div>
-
-            <div>
-              <div className="font-agency text-5xl text-brand-gold">100%</div>
-              <div className="font-lato text-brand-brown uppercase tracking-widest mt-2">
-                Transparency
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      <Footer />
-    </>
-  );
-                  }
+            <Footer />
+        </div>
+    );
+}
