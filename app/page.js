@@ -269,6 +269,35 @@ export default function HomePage() {
                         </div>
                     </div>
 
+                    {/* UPCOMING EVENTS */}
+                    <div className="mt-12">
+                        <div className="flex justify-between items-end mb-4">
+                            <h2 className="font-agency text-2xl text-brand-brown-dark">Upcoming Events</h2>
+                        </div>
+
+                        <div className="flex overflow-x-auto pb-4 gap-4 scrollbar-hide">
+                            {/* Event Card */}
+                            <div className="min-w-[280px] md:min-w-[320px] bg-white rounded-2xl p-0 shadow-md border border-gray-100 flex flex-col group overflow-hidden">
+                                {/* Date Strip */}
+                                <div className="bg-brand-brown-dark text-white text-center py-2 font-agency text-lg tracking-widest">
+                                    COMING SOON
+                                </div>
+                                <div className="p-6 flex-grow flex flex-col justify-center text-center bg-brand-sand/10 group-hover:bg-brand-sand/30 transition-colors">
+                                    <h3 className="font-agency text-2xl text-brand-brown-dark mb-2">
+                                        Annual Ramadan Tafsir
+                                    </h3>
+                                    <p className="font-lato text-sm text-brand-brown mb-4">
+                                        Join us for the daily commentary of the Holy Qur'an.
+                                    </p>
+                                    <span className="text-xs font-bold text-brand-gold uppercase tracking-widest border border-brand-gold/30 rounded-full px-4 py-2 mx-auto">
+                                        Details Pending
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
                 </section>
 
                 {/* 6. VISION AND MISSION (Unchanged) */}
