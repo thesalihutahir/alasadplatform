@@ -228,7 +228,7 @@ export default function Header() {
           {/* Footer of Sidebar */}
           <Link href="/admin/login" onClick={closeSidebar}>
             <div className="p-4 border-t border-white/10 text-[10px] text-white/40 hover:text-[#d17600] font-mono text-center transition-colors">
-              admin access
+              Al-Asad Education Foundation
             </div>
           </Link>
         </div>
