@@ -5,7 +5,7 @@ import Image from "next/image";
 
 export default function Footer() {
 
-    // Updated Navigation Links to match new Sitemap
+    // Updated Navigation Links
     const quickLinks = [
         { name: "Home", href: "/" },
         { name: "About Us", href: "/about" },
@@ -22,7 +22,7 @@ export default function Footer() {
         { name: "FAQ", href: "/faq" },
     ];
 
-    // Social Media Data (Centralized for easy updates)
+    // Social Media Data
     const socialLinks = [
         { name: "Facebook", icon: "/fbicon.svg", href: "https://www.facebook.com/share/1D438MVXpQ/" },
         { name: "YouTube", icon: "/yticon.svg", href: "https://youtube.com/@alasadeducation" },
@@ -37,72 +37,94 @@ export default function Footer() {
         <footer className="w-full bg-brand-brown-dark text-white font-lato pt-12 pb-6">
             <div className="max-w-7xl mx-auto flex flex-col px-6"> 
 
-                {/* --- 1. NAVIGATION GRID --- */}
-                <div className="w-full grid grid-cols-2 gap-8 mb-8 mx-auto max-w-md md:max-w-2xl text-left">
-                    
-                    {/* Quick Links Column */}
-                    <div> 
-                        <h3 className="font-agency text-lg font-bold mb-3 text-brand-gold">Quick Menu</h3>
-                        <ul className="space-y-2 text-sm"> 
-                            {quickLinks.map((link) => (
-                                <li key={link.name}>
-                                    <Link href={link.href} className="hover:text-brand-gold transition-colors opacity-90 hover:opacity-100">
-                                        {link.name}
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
+                {/* --- 1. MAIN CONTENT (Desktop: Row / Mobile: Stack) --- */}
+                <div className="flex flex-col md:flex-row md:justify-between md:items-start md:gap-12 mb-8">
+
+                    {/* LEFT COLUMN: BRAND INFO (Hidden on Mobile, Visible on Tablet/Desktop) */}
+                    <div className="hidden md:flex flex-col space-y-4 max-w-xs">
+                        <div className="flex items-center gap-3">
+                            <div className="relative w-10 h-10 opacity-90">
+                                <Image src="/headerlogo.svg" alt="Logo" fill className="object-contain brightness-0 invert" />
+                            </div>
+                            <span className="font-agency text-2xl font-bold tracking-wide text-brand-gold">
+                                AL-ASAD FOUNDATION
+                            </span>
+                        </div>
+                        <p className="text-sm text-gray-400 leading-relaxed">
+                            Empowering communities through education, development, and innovation. Join us in making a lasting impact.
+                        </p>
                     </div>
 
-                    {/* Get Involved Column */}
-                    <div> 
-                        <h3 className="font-agency text-lg font-bold mb-3 text-brand-gold">Get Involved</h3>
-                        <ul className="space-y-2 text-sm"> 
-                            {actionLinks.map((link) => (
-                                <li key={link.name}>
-                                    <Link href={link.href} className="hover:text-brand-gold transition-colors opacity-90 hover:opacity-100">
-                                        {link.name}
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
+                    {/* RIGHT SIDE: NAVIGATION LINKS */}
+                    {/* Mobile: Centered Grid. Desktop: Aligned Right */}
+                    <div className="w-full md:w-auto grid grid-cols-2 gap-8 mx-auto md:mx-0 max-w-md md:max-w-none md:gap-20 text-left">
+                        
+                        {/* Quick Links Column */}
+                        <div> 
+                            <h3 className="font-agency text-lg font-bold mb-4 text-brand-gold uppercase tracking-wider">Quick Menu</h3>
+                            <ul className="space-y-2 text-sm"> 
+                                {quickLinks.map((link) => (
+                                    <li key={link.name}>
+                                        <Link href={link.href} className="hover:text-brand-gold transition-colors opacity-80 hover:opacity-100 block py-1">
+                                            {link.name}
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        {/* Get Involved Column */}
+                        <div> 
+                            <h3 className="font-agency text-lg font-bold mb-4 text-brand-gold uppercase tracking-wider">Get Involved</h3>
+                            <ul className="space-y-2 text-sm"> 
+                                {actionLinks.map((link) => (
+                                    <li key={link.name}>
+                                        <Link href={link.href} className="hover:text-brand-gold transition-colors opacity-80 hover:opacity-100 block py-1">
+                                            {link.name}
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
                     </div>
                 </div>
                 
                 {/* --- 2. DIVIDER LINE --- */}
                 <hr className="border-t border-white/10 my-6" />
 
-                {/* --- 3. SOCIAL ICONS AND COPYRIGHT --- */}
-                <div className="flex flex-col items-center justify-center w-full">
+                {/* --- 3. BOTTOM BAR (Desktop: Row / Mobile: Column) --- */}
+                <div className="flex flex-col md:flex-row-reverse md:justify-between md:items-center w-full gap-6">
                     
-                    {/* Social Icons Row */}
-                    <div className="flex flex-wrap items-center justify-center gap-4 w-full my-4"> 
+                    {/* Social Icons (Desktop: Right Side) */}
+                    <div className="flex flex-wrap items-center justify-center md:justify-end gap-4"> 
                         {socialLinks.map((social) => (
-                            <Link key={social.name} href={social.href} target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
+                            <Link key={social.name} href={social.href} target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform p-1">
                                 <Image 
                                     src={social.icon} 
                                     alt={social.name} 
                                     width={24} 
                                     height={24} 
-                                    className="w-6 h-6 object-contain"
+                                    className="w-5 h-5 md:w-6 md:h-6 object-contain opacity-80 hover:opacity-100"
                                 />
                             </Link>
                         ))}
                     </div>
 
-                    {/* Copyright & Legal */}
-                    <div className="mt-4 text-center">
-                        <p className="text-[#9a9a9a] text-sm">
+                    {/* Copyright & Legal (Desktop: Left Side) */}
+                    <div className="text-center md:text-left">
+                        <p className="text-[#9a9a9a] text-sm md:hidden">
                             Al-Asad Education Foundation
                         </p>
                         <p className="text-[#9a9a9a] text-xs mt-1">
-                            © {new Date().getFullYear()} All rights reserved | CAC-IT-973975
+                            © {new Date().getFullYear()} All rights reserved <span className="hidden md:inline">| Al-Asad Education Foundation</span> | CAC-IT-973975
                         </p>
                         
                         <div className="mt-2 text-sm text-[#9a9a9a]/60 space-x-2">
-                             <Link href="/terms-and-policies" className="hover:text-brand-gold">Terms & Policies</Link>
+                             <Link href="/terms-and-policies" className="hover:text-brand-gold">Terms</Link>
                              <span>|</span>
                              <Link href="/faq" className="hover:text-brand-gold">FAQ</Link>
+                             <span>|</span>
+                             <Link href="/contact" className="hover:text-brand-gold">Contact</Link>
                         </div>
                     </div>
                 </div>
