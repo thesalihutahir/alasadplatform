@@ -8,20 +8,29 @@ import {
     Save, 
     UploadCloud, 
     X, 
-    FileText 
+    FileText,
+    List,
+    LayoutList
 } from 'lucide-react';
 
 export default function CreateBlogPage() {
     
+    // Mock Series (In real app, fetch from API)
+    const availableSeries = [
+        { id: 1, title: "Ramadan Preparation Guide" },
+        { id: 2, title: "The Fiqh of Prayer (Salat)" }
+    ];
+
     // Form State
     const [formData, setFormData] = useState({
         title: '',
         excerpt: '',
         content: '',
         category: 'Article',
-        author: 'Sheikh Goni Dr. Muneer Ja\'afar', // Default author
+        series: '', // New Field
+        author: 'Sheikh Goni Dr. Muneer Ja\'afar', 
         readTime: '',
-        date: new Date().toISOString().split('T')[0], // Default today
+        date: new Date().toISOString().split('T')[0], 
         tags: '',
         pdfFile: null
     });
@@ -50,7 +59,7 @@ export default function CreateBlogPage() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        alert("Post Saved (Frontend Demo). Data ready for Backend.");
+        alert(`Post Saved! \nTitle: ${formData.title} \nSeries: ${formData.series || 'None'}`);
         console.log(formData);
     };
 
@@ -178,6 +187,27 @@ export default function CreateBlogPage() {
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
                         <h3 className="font-agency text-xl text-brand-brown-dark border-b border-gray-100 pb-2">Publishing</h3>
                         
+                        {/* Series Selection (NEW) */}
+                        <div className="bg-brand-sand/20 p-4 rounded-xl border border-brand-gold/20 mb-4">
+                            <label className="flex items-center gap-2 text-xs font-bold text-brand-brown-dark uppercase tracking-wider mb-2">
+                                <LayoutList className="w-4 h-4" /> Add to Series
+                            </label>
+                            <select 
+                                name="series"
+                                value={formData.series}
+                                onChange={handleChange}
+                                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer"
+                            >
+                                <option value="">Select a Series (Optional)</option>
+                                {availableSeries.map(s => (
+                                    <option key={s.id} value={s.title}>{s.title}</option>
+                                ))}
+                            </select>
+                            <p className="text-[10px] text-gray-500 mt-1">
+                                Group this article (e.g. "Part 1") into a larger collection.
+                            </p>
+                        </div>
+
                         <div>
                             <label className="block text-xs font-bold text-brand-brown mb-1">Category</label>
                             <select 
