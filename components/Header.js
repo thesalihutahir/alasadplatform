@@ -91,12 +91,12 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 bg-white font-lato shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-24"> {/* Increased height for better balance */}
+        <div className="flex justify-between items-center h-20">
 
           {/* =========================================
               LEFT SIDE: Navigation (Desktop) & Menu Trigger (Mobile)
              ========================================= */}
-          <div className="flex items-center"> 
+          <div className="flex items-center gap-6"> 
 
             {/* Mobile Menu Trigger (Visible lg:hidden) */}
             <button
@@ -107,8 +107,8 @@ export default function Header() {
               <Menu className="h-5 w-5" aria-hidden="true" />
             </button>
 
-            {/* Desktop Navigation (Hidden lg:flex) - MOVED TO LEFT */}
-            <nav className="hidden lg:flex items-center space-x-8"> {/* Increased spacing between items */}
+            {/* Desktop Navigation (Hidden lg:flex) */}
+            <nav className="hidden lg:flex items-center space-x-6">
               {navItems.map((item) => {
                 const isActive = pathname === item.href || (item.children && pathname.startsWith(item.href));
                 
@@ -116,7 +116,7 @@ export default function Header() {
                   <div key={item.name} className="relative group">
                     <Link 
                       href={item.href}
-                      className={`flex items-center gap-1 text-xs font-bold uppercase tracking-wide py-9 border-b-2 transition-all duration-200 
+                      className={`flex items-center gap-1 text-xs font-bold uppercase tracking-wide py-8 border-b-2 transition-all duration-200 
                         ${isActive 
                           ? 'text-[#d17600] border-[#d17600]' 
                           : 'text-[#432e16] border-transparent hover:text-[#d17600]'
@@ -157,11 +157,11 @@ export default function Header() {
               RIGHT SIDE: Logo (Both Mobile & Desktop)
              ========================================= */}
           <Link href="/" className="flex items-center">
-            {/* Reduced size reasonably for desktop balance */}
             <Image 
               src="/headerlogo.svg" 
               alt="Al-Asad Education Foundation Logo" 
-              className="h-14 lg:h-16 w-auto object-contain max-h-full" 
+              // Changed size from h-20 to h-12 for better balance on desktop
+              className="h-12 lg:h-14 w-auto object-contain max-h-full transition-all duration-300" 
               width={200}
               height={80}
               priority 
@@ -172,7 +172,7 @@ export default function Header() {
       </div>
 
       {/* =========================================
-          MOBILE SIDEBAR (Drawer) - UNCHANGED AS REQUESTED
+          MOBILE SIDEBAR (Drawer) - UNCHANGED
          ========================================= */}
       
       {/* Overlay */}
