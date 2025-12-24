@@ -6,7 +6,7 @@ import { Lock } from "lucide-react";
 
 export default function Footer() {
 
-    // Updated Navigation Links
+    // Navigation Links
     const quickLinks = [
         { name: "Home", href: "/" },
         { name: "About Us", href: "/about" },
@@ -35,20 +35,18 @@ export default function Footer() {
     ];
 
     return (
-        <footer className="w-full bg-brand-brown-dark text-white font-lato pt-16 pb-8 border-t-4 border-brand-gold">
+        <footer className="w-full bg-brand-brown-dark text-white font-lato pt-12 md:pt-16 pb-8 border-t-4 border-brand-gold">
             <div className="max-w-7xl mx-auto px-6"> 
 
-                {/* --- 1. MAIN CONTENT (Grid Layout) --- */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-8 mb-12">
+                {/* --- 1. MAIN CONTENT --- */}
+                {/* Mobile: 2 Columns (Links side-by-side). Desktop: 12 Columns. */}
+                <div className="grid grid-cols-2 md:grid-cols-12 gap-8 mb-12">
 
-                    {/* COLUMN 1: BRAND LOGO & MISSION (Spans 5 cols on Desktop) */}
-                    <div className="md:col-span-5 space-y-6">
-                        {/* Standalone Grey Logo */}
-                        <div className="relative w-20 h-20">
-                            {/* CSS Filter Trick for Grey:
-                               1. brightness-0: Turns image solid black.
-                               2. invert-[0.6]: Inverts black by 60%, resulting in a solid medium grey (approx #999).
-                            */}
+                    {/* COLUMN 1: BRAND LOGO & MISSION (DESKTOP ONLY) */}
+                    {/* Hidden on mobile to match your screenshot */}
+                    <div className="hidden md:block md:col-span-5 space-y-6">
+                        {/* Larger Grey Logo for Desktop */}
+                        <div className="relative w-32 h-32">
                             <Image 
                                 src="/headerlogo.svg" 
                                 alt="Al-Asad Logo" 
@@ -65,16 +63,17 @@ export default function Footer() {
                     {/* SPACER COLUMN (Desktop Only) */}
                     <div className="hidden md:block md:col-span-1"></div>
 
-                    {/* COLUMN 2: QUICK LINKS (Spans 3 cols) */}
-                    <div className="md:col-span-3">
-                        <h3 className="font-agency text-lg font-bold mb-6 text-brand-gold uppercase tracking-wider flex items-center gap-2">
+                    {/* COLUMN 2: QUICK LINKS */}
+                    <div className="col-span-1 md:col-span-3">
+                        <h3 className="font-agency text-lg font-bold mb-4 md:mb-6 text-brand-gold uppercase tracking-wider flex items-center gap-2">
                             Quick Menu
-                            <span className="h-px flex-grow bg-white/10 ml-2"></span>
+                            {/* Line decoration only on Desktop */}
+                            <span className="hidden md:block h-px flex-grow bg-white/10 ml-2"></span>
                         </h3>
                         <ul className="space-y-3 text-sm"> 
                             {quickLinks.map((link) => (
                                 <li key={link.name}>
-                                    <Link href={link.href} className="hover:text-brand-gold hover:pl-2 transition-all duration-300 text-gray-300 block w-fit">
+                                    <Link href={link.href} className="hover:text-brand-gold md:hover:pl-2 transition-all duration-300 text-gray-300 block w-fit">
                                         {link.name}
                                     </Link>
                                 </li>
@@ -82,16 +81,17 @@ export default function Footer() {
                         </ul>
                     </div>
 
-                    {/* COLUMN 3: GET INVOLVED (Spans 3 cols) */}
-                    <div className="md:col-span-3">
-                        <h3 className="font-agency text-lg font-bold mb-6 text-brand-gold uppercase tracking-wider flex items-center gap-2">
+                    {/* COLUMN 3: GET INVOLVED */}
+                    <div className="col-span-1 md:col-span-3">
+                        <h3 className="font-agency text-lg font-bold mb-4 md:mb-6 text-brand-gold uppercase tracking-wider flex items-center gap-2">
                             Get Involved
-                            <span className="h-px flex-grow bg-white/10 ml-2"></span>
+                            {/* Line decoration only on Desktop */}
+                            <span className="hidden md:block h-px flex-grow bg-white/10 ml-2"></span>
                         </h3>
                         <ul className="space-y-3 text-sm"> 
                             {actionLinks.map((link) => (
                                 <li key={link.name}>
-                                    <Link href={link.href} className="hover:text-brand-gold hover:pl-2 transition-all duration-300 text-gray-300 block w-fit">
+                                    <Link href={link.href} className="hover:text-brand-gold md:hover:pl-2 transition-all duration-300 text-gray-300 block w-fit">
                                         {link.name}
                                     </Link>
                                 </li>
@@ -106,8 +106,8 @@ export default function Footer() {
                 {/* --- 3. BOTTOM BAR --- */}
                 <div className="flex flex-col md:flex-row-reverse md:justify-between md:items-center w-full gap-6">
                     
-                    {/* Social Icons (Right) */}
-                    <div className="flex flex-wrap items-center gap-4"> 
+                    {/* Social Icons (Centered on Mobile, Right on Desktop) */}
+                    <div className="flex justify-center md:justify-end flex-wrap items-center gap-4"> 
                         {socialLinks.map((social) => (
                             <Link key={social.name} href={social.href} target="_blank" rel="noopener noreferrer" className="group p-2 bg-white/5 rounded-full hover:bg-brand-gold transition-all duration-300">
                                 <Image 
@@ -121,27 +121,35 @@ export default function Footer() {
                         ))}
                     </div>
 
-                    {/* Copyright & Legal (Left) */}
+                    {/* Copyright & Legal (Centered on Mobile, Left on Desktop) */}
                     <div className="text-center md:text-left">
-                        <p className="text-gray-500 text-xs mt-1">
-                            © {new Date().getFullYear()} Al-Asad Education Foundation | CAC/IT/8168079
+                        
+                        {/* Mobile Company Name (Since Logo is hidden) */}
+                        <p className="md:hidden text-white/90 text-sm font-agency mb-2">
+                            Al-Asad Education Foundation
+                        </p>
+
+                        <p className="text-gray-500 text-xs">
+                            © {new Date().getFullYear()} All rights reserved <span className="hidden md:inline">| Al-Asad Education Foundation</span> | CAC/IT/8168079
                         </p>
                         
                         <div className="mt-3 text-xs text-gray-600 flex flex-wrap gap-4 justify-center md:justify-start items-center">
                              <Link href="/terms-and-policies" className="hover:text-gray-300 transition-colors">Terms & Policies</Link>
                              <span>•</span>
-                             <Link href="/contact" className="hover:text-gray-300 transition-colors">Contact Support</Link>
+                             <Link href="/contact" className="hover:text-gray-300 transition-colors">FAQ</Link>
                              
-                             {/* --- HIDDEN ADMIN LINK --- */}
-                             <span className="hidden md:inline">•</span>
-                             <Link 
-                                href="/admin/login" 
-                                className="flex items-center gap-1 opacity-20 hover:opacity-100 hover:text-brand-gold transition-all duration-500"
-                                title="Admin Access"
-                             >
-                                <Lock className="w-3 h-3" />
-                                <span>Admin</span>
-                             </Link>
+                             {/* --- HIDDEN ADMIN LINK (Desktop Only) --- */}
+                             <div className="hidden md:flex items-center gap-4">
+                                <span>•</span>
+                                <Link 
+                                    href="/admin/login" 
+                                    className="flex items-center gap-1 opacity-20 hover:opacity-100 hover:text-brand-gold transition-all duration-500"
+                                    title="Admin Access"
+                                >
+                                    <Lock className="w-3 h-3" />
+                                    <span>Admin</span>
+                                </Link>
+                             </div>
                         </div>
                     </div>
                 </div>
