@@ -46,7 +46,7 @@ export default function Footer() {
                     {/* Hidden on mobile to match your screenshot */}
                     <div className="hidden md:block md:col-span-5 space-y-6">
                         {/* Larger Grey Logo for Desktop */}
-                        <div className="relative w-100 h-40">
+                        <div className="relative w-60 h-24">
                             <Image 
                                 src="/headerlogo.svg" 
                                 alt="Al-Asad Logo" 
@@ -135,7 +135,7 @@ export default function Footer() {
                         
                         <div className="mt-3 text-xs text-gray-600 flex flex-wrap gap-4 justify-center md:justify-start items-center">
                              <Link href="/terms-and-policies" className="hover:text-gray-300 transition-colors">Terms & Policies</Link>
-                             <span>•</span>
+                             <span></span>
                              
                              
                              {/* --- HIDDEN ADMIN LINK (Desktop Only) --- */}
