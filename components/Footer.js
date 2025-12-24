@@ -41,21 +41,22 @@ export default function Footer() {
                 {/* --- 1. MAIN CONTENT (Grid Layout) --- */}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-8 mb-12">
 
-                    {/* COLUMN 1: BRAND INFO (Spans 5 cols on Desktop) */}
+                    {/* COLUMN 1: BRAND LOGO & MISSION (Spans 5 cols on Desktop) */}
                     <div className="md:col-span-5 space-y-6">
-                        <div className="flex items-center gap-4">
-                            <div className="relative w-12 h-12">
-                                <Image src="/headerlogo.svg" alt="Logo" fill className="object-contain brightness-0 invert" />
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="font-agency text-3xl font-bold tracking-wide text-brand-gold leading-none">
-                                    AL-ASAD
-                                </span>
-                                <span className="text-[10px] uppercase tracking-[0.2em] text-white/60">
-                                    Education Foundation
-                                </span>
-                            </div>
+                        {/* Standalone Grey Logo */}
+                        <div className="relative w-20 h-20">
+                            {/* CSS Filter Trick for Grey:
+                               1. brightness-0: Turns image solid black.
+                               2. invert-[0.6]: Inverts black by 60%, resulting in a solid medium grey (approx #999).
+                            */}
+                            <Image 
+                                src="/headerlogo.svg" 
+                                alt="Al-Asad Logo" 
+                                fill 
+                                className="object-contain brightness-0 invert-[0.6]" 
+                            />
                         </div>
+                        
                         <p className="text-sm text-gray-400 leading-relaxed max-w-sm">
                             Empowering communities through Qur'an-centered education, sustainable development, and social innovation. Bridging the gap between traditional values and modern excellence.
                         </p>
