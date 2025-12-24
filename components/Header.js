@@ -104,7 +104,7 @@ export default function Header() {
               className={`lg:hidden p-3 rounded-full ${ICON_BG_COLOR} text-white focus:outline-none hover:bg-[#d17600] transition-colors`}
               aria-expanded={isSidebarOpen}
             >
-              <Menu className="h-5 w-5" aria-hidden="true" />
+              <Menu className="h-4 w-4" aria-hidden="true" />
             </button>
 
             {/* Desktop Navigation (Moved to Left) */}
@@ -182,7 +182,7 @@ export default function Header() {
 
       {/* Sidebar Panel */}
       <div 
-        className={`fixed top-0 left-0 w-72 max-w-[85%] h-full bg-[#432e16] text-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed top-0 left-0 w-72 max-w-[80%] h-full bg-[#432e16] text-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="flex flex-col h-full">
 
