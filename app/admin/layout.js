@@ -19,16 +19,18 @@ import {
     X,
     BookOpen,
     UserCircle,
-    ChevronRight
+    ChevronRight,
+    Radio,  // For Podcasts
+    Image as ImageIcon, // For Gallery (Renamed to avoid conflict with next/image)
+    Book    // For eBooks
 } from 'lucide-react';
 
 export default function AdminLayout({ children }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const pathname = usePathname();
     const router = useRouter();
-    
+
     // Get user and logout from AuthContext
-    // Ensure your AuthContext provides a 'user' object
     const { user, logout } = useAuth(); 
 
     // Skip the layout for the login page specifically
@@ -40,8 +42,15 @@ export default function AdminLayout({ children }) {
         { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/dashboard' },
         { name: 'Manage Blogs', icon: FileText, href: '/admin/blogs' },
         { name: 'Manage Programs', icon: BookOpen, href: '/admin/programs' },
+        
+        // --- MEDIA SECTION ---
         { name: 'Video Library', icon: Video, href: '/admin/videos' },
         { name: 'Audio Library', icon: Mic, href: '/admin/audios' },
+        { name: 'Podcasts', icon: Radio, href: '/admin/podcasts' }, // NEW
+        { name: 'Photo Gallery', icon: ImageIcon, href: '/admin/gallery' }, // NEW
+        { name: 'eBooks', icon: Book, href: '/admin/ebooks' }, // NEW
+        
+        // --- PEOPLE SECTION ---
         { name: 'Volunteers', icon: Users, href: '/admin/volunteers' },
         { name: 'Partnerships', icon: Handshake, href: '/admin/partners' },
         { name: 'Settings', icon: Settings, href: '/admin/settings' },
@@ -63,7 +72,7 @@ export default function AdminLayout({ children }) {
 
     return (
         <div className="min-h-screen bg-gray-50 flex font-lato">
-            
+
             {/* 1. MOBILE OVERLAY */}
             <div 
                 className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
@@ -115,7 +124,7 @@ export default function AdminLayout({ children }) {
 
                 {/* --- USER PROFILE SECTION (New) --- */}
                 <div className="p-4 border-t border-white/10 bg-[#3a2813]">
-                    
+
                     {/* Profile Card -> Links to Settings */}
                     <Link href="/admin/settings" onClick={() => setIsSidebarOpen(false)}>
                         <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group mb-3">
@@ -151,7 +160,7 @@ export default function AdminLayout({ children }) {
 
             {/* 3. MAIN CONTENT AREA */}
             <div className="flex-grow flex flex-col min-w-0 h-screen overflow-y-auto bg-gray-50">
-                
+
                 {/* Top Mobile Header (Only visible on small screens) */}
                 <header className="lg:hidden bg-white border-b border-gray-200 p-4 flex items-center justify-between sticky top-0 z-30 shadow-sm">
                     <div className="flex items-center gap-3">
