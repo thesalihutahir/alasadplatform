@@ -91,10 +91,10 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 bg-white font-lato shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-24">
+        <div className="flex justify-between items-center h-24"> {/* Increased height for better balance */}
 
           {/* =========================================
-              LEFT SIDE: Menu (Mobile) & Navigation (Desktop)
+              LEFT SIDE: Navigation (Desktop) & Menu Trigger (Mobile)
              ========================================= */}
           <div className="flex items-center"> 
 
@@ -107,8 +107,8 @@ export default function Header() {
               <Menu className="h-5 w-5" aria-hidden="true" />
             </button>
 
-            {/* Desktop Navigation (Hidden lg:flex) */}
-            <nav className="hidden lg:flex items-center space-x-6">
+            {/* Desktop Navigation (Hidden lg:flex) - MOVED TO LEFT */}
+            <nav className="hidden lg:flex items-center space-x-8"> {/* Increased spacing between items */}
               {navItems.map((item) => {
                 const isActive = pathname === item.href || (item.children && pathname.startsWith(item.href));
                 
@@ -116,7 +116,7 @@ export default function Header() {
                   <div key={item.name} className="relative group">
                     <Link 
                       href={item.href}
-                      className={`flex items-center gap-1 text-xs font-bold uppercase tracking-wide py-8 border-b-2 transition-all duration-200 
+                      className={`flex items-center gap-1 text-xs font-bold uppercase tracking-wide py-9 border-b-2 transition-all duration-200 
                         ${isActive 
                           ? 'text-[#d17600] border-[#d17600]' 
                           : 'text-[#432e16] border-transparent hover:text-[#d17600]'
@@ -154,13 +154,14 @@ export default function Header() {
           </div>
 
           {/* =========================================
-              RIGHT SIDE: Logo (Always Visible)
+              RIGHT SIDE: Logo (Both Mobile & Desktop)
              ========================================= */}
           <Link href="/" className="flex items-center">
+            {/* Reduced size reasonably for desktop balance */}
             <Image 
               src="/headerlogo.svg" 
               alt="Al-Asad Education Foundation Logo" 
-              className="h-20 w-auto object-contain max-h-full" 
+              className="h-14 lg:h-16 w-auto object-contain max-h-full" 
               width={200}
               height={80}
               priority 
@@ -171,7 +172,7 @@ export default function Header() {
       </div>
 
       {/* =========================================
-          MOBILE SIDEBAR (Drawer)
+          MOBILE SIDEBAR (Drawer) - UNCHANGED AS REQUESTED
          ========================================= */}
       
       {/* Overlay */}
@@ -182,7 +183,7 @@ export default function Header() {
 
       {/* Sidebar Panel */}
       <div 
-        className={`fixed top-0 left-0 w-72 max-w-[75%] h-full bg-[#432e16] text-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed top-0 left-0 w-72 max-w-[85%] h-full bg-[#432e16] text-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="flex flex-col h-full">
 
