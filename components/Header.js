@@ -21,7 +21,7 @@ import { usePathname } from 'next/navigation';
 
 const ICON_BG_COLOR = 'bg-[#432e16]'; 
 
-// Updated Sitemap with Icons
+// Sitemap
 const navItems = [
   { name: 'Home', href: '/', icon: Home },
   { name: 'About Us', href: '/about', icon: Info },
@@ -93,10 +93,12 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
 
-          {/* LEFT SIDE: Menu Icon (Mobile Only) and Logo */}
-          <div className="flex items-center space-x-3 sm:space-x-4"> 
+          {/* =========================================
+              LEFT SIDE: Navigation (Desktop) & Menu (Mobile)
+             ========================================= */}
+          <div className="flex items-center gap-6"> 
 
-            {/* Menu Icon - HIDDEN ON DESKTOP (lg:hidden) */}
+            {/* Mobile Menu Trigger */}
             <button
               onClick={() => setIsSidebarOpen(true)}
               className={`lg:hidden p-3 rounded-full ${ICON_BG_COLOR} text-white focus:outline-none hover:bg-[#d17600] transition-colors`}
@@ -105,76 +107,74 @@ export default function Header() {
               <Menu className="h-5 w-5" aria-hidden="true" />
             </button>
 
-            {/* Logo */}
-            <Link href="/" className="flex items-center">
-              <Image 
-                src="/headerlogo.svg" 
-                alt="Al-Asad Education Foundation Logo" 
-                className="h-16 w-auto object-contain max-h-full" 
-                width={200}
-                height={80}
-                priority 
-              />
-            </Link>
-          </div>
+            {/* Desktop Navigation (Moved to Left) */}
+            <nav className="hidden lg:flex items-center space-x-6">
+              {navItems.map((item) => {
+                const isActive = pathname === item.href || (item.children && pathname.startsWith(item.href));
+                
+                return (
+                  <div key={item.name} className="relative group">
+                    <Link 
+                      href={item.href}
+                      className={`flex items-center gap-1 text-xs font-bold uppercase tracking-wide py-8 border-b-2 transition-all duration-200 
+                        ${isActive 
+                          ? 'text-[#d17600] border-[#d17600]' 
+                          : 'text-[#432e16] border-transparent hover:text-[#d17600]'
+                        }`}
+                    >
+                      {item.name}
+                      {item.children && <ChevronDown className="w-3 h-3" />}
+                    </Link>
 
-          {/* CENTER/RIGHT: DESKTOP NAVIGATION (Hidden on Mobile) */}
-          <nav className="hidden lg:flex items-center space-x-8">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href || (item.children && pathname.startsWith(item.href));
-              
-              return (
-                <div key={item.name} className="relative group">
-                  {/* Top Level Link */}
-                  <Link 
-                    href={item.href}
-                    className={`flex items-center gap-1 text-sm font-bold uppercase tracking-wide py-8 border-b-2 transition-all duration-200 
-                      ${isActive 
-                        ? 'text-[#d17600] border-[#d17600]' 
-                        : 'text-[#432e16] border-transparent hover:text-[#d17600]'
-                      }`}
-                  >
-                    {item.name}
-                    {item.children && <ChevronDown className="w-4 h-4" />}
-                  </Link>
-
-                  {/* Desktop Dropdown Menu */}
-                  {item.children && (
-                    <div className="absolute top-full left-0 w-64 bg-white shadow-xl rounded-b-xl border-t-2 border-[#d17600] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0">
-                      <div className="py-2">
-                        {item.children.map((child) => (
-                          <Link 
-                            key={child.name} 
-                            href={child.href}
-                            className="block px-6 py-3 text-sm text-gray-600 hover:text-[#d17600] hover:bg-gray-50 transition-colors border-l-4 border-transparent hover:border-[#d17600]"
-                          >
-                            {child.name}
-                          </Link>
-                        ))}
+                    {/* Desktop Dropdown */}
+                    {item.children && (
+                      <div className="absolute top-full left-0 w-64 bg-white shadow-xl rounded-b-xl border-t-2 border-[#d17600] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform translate-y-2 group-hover:translate-y-0 z-50">
+                        <div className="py-2">
+                          {item.children.map((child) => (
+                            <Link 
+                              key={child.name} 
+                              href={child.href}
+                              className="block px-6 py-3 text-sm text-gray-600 hover:text-[#d17600] hover:bg-gray-50 transition-colors border-l-4 border-transparent hover:border-[#d17600]"
+                            >
+                              {child.name}
+                            </Link>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
-
-          {/* RIGHT SIDE: Utility Icons (Search/Donate Button) */}
-          <div className="flex-shrink-0 flex items-center gap-4">
-             {/* Desktop Search Icon */}
-             <button className="hidden lg:block p-2 text-gray-500 hover:text-[#d17600] transition-colors">
-                <Search className="w-5 h-5" />
-             </button>
-             
-             {/* Optional: 'Donate' CTA for Desktop could go here */}
+                    )}
+                  </div>
+                );
+              })}
+              
+              {/* Search Icon (Desktop) */}
+              <button className="hidden lg:block p-2 text-gray-400 hover:text-[#d17600] transition-colors">
+                <Search className="w-4 h-4" />
+              </button>
+            </nav>
           </div>
+
+          {/* =========================================
+              RIGHT SIDE: Logo (Both Mobile & Desktop)
+             ========================================= */}
+          <Link href="/" className="flex items-center">
+            <Image 
+              src="/headerlogo.svg" 
+              alt="Al-Asad Education Foundation Logo" 
+              className="h-16 w-auto object-contain max-h-full" 
+              width={200}
+              height={80}
+              priority 
+            />
+          </Link>
 
         </div>
       </div>
 
-      {/* --- MOBILE SIDEBAR CODE (UNCHANGED) --- */}
-
-      {/* Overlay Backdrop */}
+      {/* =========================================
+          MOBILE SIDEBAR (Drawer)
+         ========================================= */}
+      
+      {/* Overlay */}
       <div 
         className={`fixed inset-0 bg-black z-40 transition-opacity duration-300 lg:hidden ${isSidebarOpen ? 'opacity-50' : 'opacity-0 pointer-events-none'}`}
         onClick={closeSidebar}
@@ -182,11 +182,11 @@ export default function Header() {
 
       {/* Sidebar Panel */}
       <div 
-        className={`fixed top-0 left-0 w-72 max-w-full h-full bg-[#432e16] text-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed top-0 left-0 w-72 max-w-[85%] h-full bg-[#432e16] text-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="flex flex-col h-full">
 
-          {/* Header Bar with Close Button */}
+          {/* Sidebar Header */}
           <div className="p-6 flex justify-between items-center border-b border-white/10">
             <div className="flex items-center gap-3">
                <div className="relative w-8 h-8 opacity-90">
@@ -202,9 +202,9 @@ export default function Header() {
             </button>
           </div>
 
-          {/* Sidebar Content */}
+          {/* Sidebar Links */}
           <div className="p-4 flex-grow overflow-y-auto">
-
+            
             {/* Search Input */}
             <div className="relative mb-6">
               <input
@@ -215,7 +215,6 @@ export default function Header() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/50" />
             </div>
 
-            {/* Integrated Navigation Links */}
             <nav className="space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -225,7 +224,6 @@ export default function Header() {
                   <div key={item.name} className="flex flex-col">
                     <div className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer group ${isActive ? 'bg-[#d17600] text-white shadow-md' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}>
                       
-                      {/* Main Link Area */}
                       <Link
                         href={item.href}
                         onClick={closeSidebar}
@@ -235,7 +233,6 @@ export default function Header() {
                         <span className="text-sm font-lato font-medium tracking-wide">{item.name}</span>
                       </Link>
 
-                      {/* Expand Toggle */}
                       {item.children && (
                         <button 
                           onClick={(e) => {
@@ -271,10 +268,9 @@ export default function Header() {
                 );
               })}
             </nav>
-
           </div>
 
-          {/* Footer of Sidebar */}
+          {/* Hidden Admin Link (Footer) */}
           <Link href="/admin/login" onClick={closeSidebar}>
             <div className="p-4 border-t border-white/10 text-[10px] text-white/40 hover:text-[#d17600] font-mono text-center transition-colors">
               Al-Asad Education Foundation
