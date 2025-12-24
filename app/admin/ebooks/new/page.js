@@ -54,9 +54,9 @@ export default function UploadBookPage() {
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6 max-w-6xl mx-auto pb-12">
-            
-            {/* Header */}
-            <div className="flex justify-between items-center gap-4 sticky top-0 bg-gray-50 z-20 py-4 border-b border-gray-200">
+
+            {/* Header - Adjusted for Mobile Responsiveness */}
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 sticky top-0 bg-gray-50 z-20 py-4 border-b border-gray-200">
                 <div className="flex items-center gap-4">
                     <Link href="/admin/ebooks" className="p-2 hover:bg-gray-200 rounded-lg"><ArrowLeft className="w-5 h-5 text-gray-600" /></Link>
                     <div>
@@ -64,16 +64,16 @@ export default function UploadBookPage() {
                         <p className="font-lato text-sm text-gray-500">Add a new book or paper to the library.</p>
                     </div>
                 </div>
-                <div className="flex gap-3">
-                    <button type="button" className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-100">Cancel</button>
-                    <button type="submit" disabled={!pdfFile} className={`flex items-center gap-2 px-6 py-2.5 font-bold rounded-xl shadow-md text-white ${pdfFile ? 'bg-brand-gold hover:bg-brand-brown-dark' : 'bg-gray-300 cursor-not-allowed'}`}>
+                <div className="flex gap-3 w-full md:w-auto">
+                    <button type="button" className="flex-1 md:flex-none px-6 py-2.5 bg-white border border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-100 text-center justify-center">Cancel</button>
+                    <button type="submit" disabled={!pdfFile} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 font-bold rounded-xl shadow-md text-white ${pdfFile ? 'bg-brand-gold hover:bg-brand-brown-dark' : 'bg-gray-300 cursor-not-allowed'}`}>
                         <Save className="w-4 h-4" /> Publish
                     </button>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                
+
                 {/* LEFT: Upload Zones */}
                 <div className="space-y-6">
                     {/* PDF Upload */}
@@ -116,7 +116,7 @@ export default function UploadBookPage() {
                 <div className="lg:col-span-2 space-y-6">
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
                         <h3 className="font-agency text-xl text-brand-brown-dark border-b border-gray-100 pb-2">Book Details</h3>
-                        
+
                         <div>
                             <label className="block text-xs font-bold text-brand-brown mb-1">Book Title</label>
                             <input type="text" name="title" value={formData.title} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50" />
