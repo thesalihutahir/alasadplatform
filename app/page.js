@@ -47,7 +47,7 @@ export default function HomePage() {
                             src="/sheikhhero.jpg"
                             alt="Al-Asad Foundation Hero"
                             fill
-                            className="object-cover object-top md:object-cover object-top"
+                            className="object-cover object-top"
                             priority
                         />
                         {/* Perfected Gradient Overlay */}
