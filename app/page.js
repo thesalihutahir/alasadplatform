@@ -51,7 +51,7 @@ export default function HomePage() {
                             priority
                         />
                         {/* Improved Gradient for Desktop readability */}
-                        <div className="absolute inset-0 bg-gradient-to-b from-transparent/50 via-transparent to-white md:bg-gradient-to-r md:from-black/60 md:to-transparent"></div>
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent/70 via-transparent to-white md:bg-gradient-to-r md:from-black/60 md:to-transparent"></div>
                     </div>
 
                     <div className="absolute inset-0 flex items-end md:items-center justify-center md:justify-start px-6 md:px-16 lg:px-24 pb-12 md:pb-0 z-10">
