@@ -116,7 +116,7 @@ export default function Footer() {
                             Al-Asad Education Foundation
                         </p>
                         <p className="text-[#9a9a9a] text-xs mt-1">
-                            © {new Date().getFullYear()} All rights reserved <span className="hidden md:inline">| Al-Asad Education Foundation</span> | CAC-IT-973975
+                            © {new Date().getFullYear()} All rights reserved <span className="hidden md:inline">| Al-Asad Education Foundation</span> | CAC/IT/NO 8168079
                         </p>
                         
                         <div className="mt-2 text-sm text-[#9a9a9a]/60 space-x-2">
