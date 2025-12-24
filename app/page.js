@@ -365,7 +365,7 @@ Al-Asad Education Foundation
                 <section className="relative py-16 md:py-24 px-6 bg-brand-gold overflow-hidden">
                     <div className="absolute inset-0 mix-blend-overlay">
                         <Image 
-                            src="/overlay.jpg" 
+                            src="/images/chairman/sheikh1.webp" 
                             alt="Background pattern overlay" 
                             fill 
                             className="object-cover opacity-20" 
