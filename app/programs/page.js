@@ -59,7 +59,7 @@ export default function ProgramsPage() {
 
                     {/* Text Content - Pulled up into the fade area */}
                     <div className="relative -mt-12 md:-mt-24 lg:-mt-32 text-center px-6 z-10">
-                        <h1 className="font-agency text-4xl md:text-6xl lg:text-7xl text-brand-gold mb-3 md:mb-6 drop-shadow-sm">
+                        <h1 className="font-agency text-4xl md:text-6xl lg:text-7xl text-brand-brown-dark mb-3 md:mb-6 drop-shadow-sm">
                             Our Programs
                         </h1>
                         <div className="w-16 md:w-24 h-1 bg-brand-gold mx-auto rounded-full mb-4 md:mb-6"></div>
