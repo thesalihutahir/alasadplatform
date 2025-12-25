@@ -83,11 +83,11 @@ export default function BlogsPage() {
                             src="/images/heroes/blogs-overview-hero.webp" // Placeholder
                             alt="Blogs Hero"
                             fill
-                            className="object-cover object-center opacity-90"
+                            className="object-cover object-center"
                             priority
                         />
                         {/* Gradient Overlay - FIXED NESTING */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-white via-brand-gold/70 to-transparent "></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-white via-white/40 to-transparent "></div>
                     </div>
 
                     <div className="relative -mt-16 md:-mt-32 text-center px-6 z-10 max-w-4xl mx-auto">
