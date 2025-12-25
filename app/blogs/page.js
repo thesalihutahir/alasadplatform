@@ -87,7 +87,7 @@ export default function BlogsPage() {
                             priority
                         />
                         {/* Gradient Overlay - FIXED NESTING */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-white via-brand-gold/40 to-transparent "></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-white via-brand-gold/60 to-transparent "></div>
                     </div>
 
                     <div className="relative -mt-16 md:-mt-32 text-center px-6 z-10 max-w-4xl mx-auto">
