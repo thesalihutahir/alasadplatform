@@ -16,7 +16,11 @@ import {
     ClipboardList,
     MonitorPlay,
     Newspaper,
-    Users
+    Users,
+    // Icons for Vision and Missions
+    GraduationCap,
+    HandHeart,
+    Lightbulb
 } from 'lucide-react'; 
 
 export default function HomePage() {
@@ -102,7 +106,7 @@ export default function HomePage() {
                             
                             {/* Programs */}
                             <Link href="/programs" className="flex flex-col items-center group cursor-pointer">
-                                <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-brand-sand flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-brand-gold shadow-sm">
+                                <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-[#F0E4D4] flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-brand-gold shadow-sm">
                                     <ClipboardList className="w-7 h-7 md:w-10 md:h-10 text-brand-brown-dark group-hover:text-white transition-colors" strokeWidth={1.5} />
                                 </div>
                                 <span className="font-agency text-sm md:text-lg text-brand-brown-dark tracking-wide group-hover:text-brand-gold transition-colors">Programs</span>
@@ -110,7 +114,7 @@ export default function HomePage() {
 
                             {/* Media */}
                             <Link href="/media" className="flex flex-col items-center group cursor-pointer">
-                                <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-brand-sand flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-brand-gold shadow-sm">
+                                <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-[#F0E4D4] flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-brand-gold shadow-sm">
                                     <MonitorPlay className="w-7 h-7 md:w-10 md:h-10 text-brand-brown-dark group-hover:text-white transition-colors" strokeWidth={1.5} />
                                 </div>
                                 <span className="font-agency text-sm md:text-lg text-brand-brown-dark tracking-wide group-hover:text-brand-gold transition-colors">Media</span>
@@ -118,7 +122,7 @@ export default function HomePage() {
 
                             {/* Blogs */}
                             <Link href="/blogs" className="flex flex-col items-center group cursor-pointer">
-                                <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-brand-sand flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-brand-gold shadow-sm">
+                                <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-[#F0E4D4] flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-brand-gold shadow-sm">
                                     <Newspaper className="w-7 h-7 md:w-10 md:h-10 text-brand-brown-dark group-hover:text-white transition-colors" strokeWidth={1.5} />
                                 </div>
                                 <span className="font-agency text-sm md:text-lg text-brand-brown-dark tracking-wide group-hover:text-brand-gold transition-colors">Blogs</span>
@@ -126,7 +130,7 @@ export default function HomePage() {
 
                             {/* About */}
                             <Link href="/about" className="flex flex-col items-center group cursor-pointer">
-                                <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-brand-sand flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-brand-gold shadow-sm">
+                                <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-[#F0E4D4] flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-brand-gold shadow-sm">
                                     <Users className="w-7 h-7 md:w-10 md:h-10 text-brand-brown-dark group-hover:text-white transition-colors" strokeWidth={1.5} />
                                 </div>
                                 <span className="font-agency text-sm md:text-lg text-brand-brown-dark tracking-wide group-hover:text-brand-gold transition-colors">About</span>
@@ -388,10 +392,10 @@ export default function HomePage() {
                             className="object-cover opacity-20" 
                         />
                     </div>
-                    
+
                     <div className="relative z-10 max-w-6xl mx-auto">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                            
+
                             {/* Vision (Left) */}
                             <div className="text-center md:text-left md:border-r md:border-white/20 md:pr-12">
                                 <h2 className="font-agency text-2xl md:text-4xl text-white/90 mb-4">Vision Statement</h2>
@@ -412,28 +416,36 @@ export default function HomePage() {
                         {/* Center Icons (Full Width Row) */}
                         <div className="mt-16 max-w-4xl mx-auto">
                             <div className="grid grid-cols-3 gap-8">
+                                
+                                {/* Educational Support */}
                                 <div className="flex flex-col items-center group">
-                                    <div className="w-16 h-16 md:w-24 md:h-24 relative mb-4 bg-white/10 rounded-full p-4 transition-transform group-hover:scale-110">
-                                        <Image src="/educationalsupporticon.svg" alt="Educational Support" fill className="object-contain p-3" />
+                                    <div className="w-16 h-16 md:w-24 md:h-24 mb-4 bg-white/10 rounded-full flex items-center justify-center transition-transform group-hover:scale-110">
+                                        <GraduationCap className="w-8 h-8 md:w-12 md:h-12 text-white" strokeWidth={1.5} />
                                     </div>
                                     <span className="font-agency text-sm md:text-lg text-white tracking-wide leading-tight text-center">Educational<br/> Support</span>
                                 </div>
+
+                                {/* Community Development */}
                                 <div className="flex flex-col items-center group">
-                                    <div className="w-16 h-16 md:w-24 md:h-24 relative mb-4 bg-white/10 rounded-full p-4 transition-transform group-hover:scale-110">
-                                        <Image src="/communitydevelopmenticon.svg" alt="Community Development" fill className="object-contain p-3" />
+                                    <div className="w-16 h-16 md:w-24 md:h-24 mb-4 bg-white/10 rounded-full flex items-center justify-center transition-transform group-hover:scale-110">
+                                        <HandHeart className="w-8 h-8 md:w-12 md:h-12 text-white" strokeWidth={1.5} />
                                     </div>
                                     <span className="font-agency text-sm md:text-lg text-white tracking-wide leading-tight text-center">Community<br/> Development</span>
                                 </div>
+
+                                {/* Training & Innovation */}
                                 <div className="flex flex-col items-center group">
-                                    <div className="w-16 h-16 md:w-24 md:h-24 relative mb-4 bg-white/10 rounded-full p-4 transition-transform group-hover:scale-110">
-                                        <Image src="/trainingandinnovationicon.svg" alt="Training & Innovation" fill className="object-contain p-3" />
+                                    <div className="w-16 h-16 md:w-24 md:h-24 mb-4 bg-white/10 rounded-full flex items-center justify-center transition-transform group-hover:scale-110">
+                                        <Lightbulb className="w-8 h-8 md:w-12 md:h-12 text-white" strokeWidth={1.5} />
                                     </div>
                                     <span className="font-agency text-sm md:text-lg text-white tracking-wide leading-tight text-center">Training &<br/> Innovation</span>
                                 </div>
+
                             </div>
                         </div>
                     </div>
                 </section>
+
 
                 {/* 7. ARABIC QUOTE */}
                 <section className="py-20 px-6 text-center bg-white">
