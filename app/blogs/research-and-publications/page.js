@@ -75,7 +75,7 @@ export default function ResearchPage() {
                 <section className="w-full relative bg-white mb-8 md:mb-16">
                     <div className="relative w-full aspect-[2.5/1] md:aspect-[3.5/1] lg:aspect-[4/1]">
                         <Image 
-                            src="/hero.jpg" 
+                            src="/images/heroes/blogs-research-publications-hero.webp" 
                             alt="Research Hero" 
                             fill 
                             className="object-cover object-center" 
