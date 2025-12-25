@@ -12,7 +12,7 @@ import {
     Clock, 
     Download, 
     ChevronRight,
-    // New Icons for Menu
+    // Icons for Menu
     ClipboardList,
     MonitorPlay,
     Newspaper,
@@ -63,7 +63,7 @@ export default function HomePage() {
                             priority
                         />
                         
-                        {/* Perfected Gradient Overlay */}
+                        {/* Gradient Overlay */}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent md:bg-gradient-to-r md:from-black/90 md:via-black/50 md:to-transparent"></div>
 
                         <div className="absolute inset-0 flex items-end md:items-center justify-center md:justify-start px-6 md:px-16 lg:px-24 pb-12 md:pb-0 z-10">
@@ -95,14 +95,14 @@ export default function HomePage() {
                     </div>
                 </section>
 
-                {/* 2. ICON NAVIGATION MENU (Updated with Lucide Icons) */}
+                {/* 2. ICON NAVIGATION MENU (Lucide Icons) */}
                 <section className="py-8 md:py-16 px-6 bg-white relative z-20 -mt-6 md:-mt-0 rounded-t-3xl md:rounded-none">
                     <div className="max-w-5xl mx-auto">
-                        <div className="grid grid-cols-4 gap-4 md:gap-12 justify-items-center">
+                        <div className="grid grid-cols-4 gap-3 md:gap-12 justify-items-center">
                             
                             {/* Programs */}
                             <Link href="/programs" className="flex flex-col items-center group cursor-pointer">
-                                <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-brand-sand/20 flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-brand-gold shadow-sm">
+                                <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-brand-sand flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-brand-gold shadow-sm">
                                     <ClipboardList className="w-7 h-7 md:w-10 md:h-10 text-brand-brown-dark group-hover:text-white transition-colors" strokeWidth={1.5} />
                                 </div>
                                 <span className="font-agency text-sm md:text-lg text-brand-brown-dark tracking-wide group-hover:text-brand-gold transition-colors">Programs</span>
@@ -110,7 +110,7 @@ export default function HomePage() {
 
                             {/* Media */}
                             <Link href="/media" className="flex flex-col items-center group cursor-pointer">
-                                <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-brand-sand/20 flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-brand-gold shadow-sm">
+                                <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-brand-sand flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-brand-gold shadow-sm">
                                     <MonitorPlay className="w-7 h-7 md:w-10 md:h-10 text-brand-brown-dark group-hover:text-white transition-colors" strokeWidth={1.5} />
                                 </div>
                                 <span className="font-agency text-sm md:text-lg text-brand-brown-dark tracking-wide group-hover:text-brand-gold transition-colors">Media</span>
@@ -118,7 +118,7 @@ export default function HomePage() {
 
                             {/* Blogs */}
                             <Link href="/blogs" className="flex flex-col items-center group cursor-pointer">
-                                <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-brand-sand/20 flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-brand-gold shadow-sm">
+                                <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-brand-sand flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-brand-gold shadow-sm">
                                     <Newspaper className="w-7 h-7 md:w-10 md:h-10 text-brand-brown-dark group-hover:text-white transition-colors" strokeWidth={1.5} />
                                 </div>
                                 <span className="font-agency text-sm md:text-lg text-brand-brown-dark tracking-wide group-hover:text-brand-gold transition-colors">Blogs</span>
@@ -126,7 +126,7 @@ export default function HomePage() {
 
                             {/* About */}
                             <Link href="/about" className="flex flex-col items-center group cursor-pointer">
-                                <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-brand-sand/20 flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-brand-gold shadow-sm">
+                                <div className="w-14 h-14 md:w-20 md:h-20 rounded-full bg-brand-sand flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-brand-gold shadow-sm">
                                     <Users className="w-7 h-7 md:w-10 md:h-10 text-brand-brown-dark group-hover:text-white transition-colors" strokeWidth={1.5} />
                                 </div>
                                 <span className="font-agency text-sm md:text-lg text-brand-brown-dark tracking-wide group-hover:text-brand-gold transition-colors">About</span>
@@ -148,7 +148,7 @@ export default function HomePage() {
                 <section className="py-12 md:py-20 px-6 bg-brand-sand/30">
                     <div className="max-w-7xl mx-auto">
                         <div className="flex justify-between items-end mb-8 md:mb-12">
-                            <h2 className="font-agency text-3xl md:text-5xl text-brand-brown-dark">Latest Updates</h2>
+                            <h2 className="font-agency text-2xl md:text-5xl text-brand-brown-dark">Latest Updates</h2>
                             <Link href="/blogs" className="text-xs md:text-sm font-bold text-brand-gold uppercase tracking-widest hover:underline flex items-center gap-1">
                                 View All <ArrowRight className="w-4 h-4" />
                             </Link>
@@ -205,7 +205,7 @@ export default function HomePage() {
                             {/* LEFT: LATEST VIDEO (Takes 2 Cols on Desktop) */}
                             <div className="lg:col-span-2 flex flex-col">
                                 <div className="flex justify-between items-end mb-6">
-                                    <h2 className="font-agency text-3xl md:text-5xl text-brand-brown-dark">Latest Video</h2>
+                                    <h2 className="font-agency text-2xl md:text-5xl text-brand-brown-dark">Latest Video</h2>
                                 </div>
 
                                 <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex-grow flex flex-col">
@@ -265,7 +265,7 @@ export default function HomePage() {
                             {/* RIGHT: LATEST AUDIOS (Takes 1 Col on Desktop) */}
                             <div className="lg:col-span-1">
                                 <div className="flex justify-between items-end mb-6 mt-8 lg:mt-0">
-                                    <h2 className="font-agency text-3xl md:text-4xl text-brand-brown-dark">Latest Audios</h2>
+                                    <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark">Latest Audios</h2>
                                     <Link href="/media/audios" className="text-xs md:text-sm font-bold text-brand-gold uppercase tracking-widest hover:underline">View Library</Link>
                                 </div>
 
@@ -323,7 +323,7 @@ export default function HomePage() {
                         {/* UPCOMING EVENTS */}
                         <div className="mt-16 md:mt-24">
                             <div className="flex justify-between items-end mb-8">
-                                <h2 className="font-agency text-3xl md:text-5xl text-brand-brown-dark">Upcoming Events</h2>
+                                <h2 className="font-agency text-2xl md:text-5xl text-brand-brown-dark">Upcoming Events</h2>
                             </div>
 
                             {/* Mobile: Scroll | Desktop: Grid */}
