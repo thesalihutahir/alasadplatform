@@ -2,7 +2,17 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Lock } from "lucide-react";
+import { 
+    Lock, 
+    Facebook, 
+    Youtube, 
+    Instagram, 
+    Twitter, 
+    Send, 
+    Phone, 
+    Music, 
+    MessageCircle 
+} from "lucide-react";
 
 export default function Footer() {
 
@@ -23,15 +33,19 @@ export default function Footer() {
         { name: "FAQ", href: "/faq" },
     ];
 
-    // Social Media Data
+    // Social Media Data with Lucide Icons
     const socialLinks = [
-        { name: "Facebook", icon: "/fbicon.svg", href: "https://www.facebook.com/share/1D438MVXpQ/" },
-        { name: "YouTube", icon: "/yticon.svg", href: "https://youtube.com/@alasadeducation" },
-        { name: "Instagram", icon: "/igicon.svg", href: "https://www.instagram.com/alasad_education_foundation" },
-        { name: "TikTok", icon: "/tticon.svg", href: "https://www.tiktok.com/@alasad_tv" },
-        { name: "Telegram", icon: "/tgicon.svg", href: "https://t.me/alasadeducation" },
-        { name: "X", icon: "/xicon.svg", href: "https://x.com/AsadEducation" },
-        { name: "WhatsApp", icon: "/waicon.svg", href: "https://whatsapp.com/channel/0029VawdL4n6xCSHyUsMzc2V" },
+        { name: "Facebook", icon: Facebook, href: "https://www.facebook.com/share/1D438MVXpQ/" },
+        { name: "YouTube", icon: Youtube, href: "https://youtube.com/@alasadeducation" },
+        { name: "Instagram", icon: Instagram, href: "https://www.instagram.com/alasad_education_foundation" },
+        // TikTok doesn't exist in Lucide, 'Music' is the standard semantic fallback
+        { name: "TikTok", icon: Music, href: "https://www.tiktok.com/@alasad_tv" }, 
+        // Telegram uses the 'Send' (Paper Plane) icon
+        { name: "Telegram", icon: Send, href: "https://t.me/alasadeducation" }, 
+        // X uses 'Twitter' in Lucide library
+        { name: "X", icon: Twitter, href: "https://x.com/AsadEducation" }, 
+        // WhatsApp uses 'Phone' or 'MessageCircle'
+        { name: "WhatsApp", icon: Phone, href: "https://whatsapp.com/channel/0029VawdL4n6xCSHyUsMzc2V" }, 
     ];
 
     return (
@@ -43,7 +57,6 @@ export default function Footer() {
                 <div className="grid grid-cols-2 md:grid-cols-12 gap-8 mb-12">
 
                     {/* COLUMN 1: BRAND LOGO & MISSION (DESKTOP ONLY) */}
-                    {/* Hidden on mobile to match your screenshot */}
                     <div className="hidden md:block md:col-span-5 space-y-6">
                         {/* Larger Grey Logo for Desktop */}
                         <div className="relative w-60 h-24">
@@ -54,7 +67,7 @@ export default function Footer() {
                                 className="object-contain brightness-0 invert-[0.6]" 
                             />
                         </div>
-                        
+
                         <p className="text-sm text-gray-400 leading-relaxed max-w-sm">
                             Empowering communities through Qur'an-centered education, sustainable development, and social innovation. Bridging the gap between traditional values and modern excellence.
                         </p>
@@ -99,31 +112,35 @@ export default function Footer() {
                         </ul>
                     </div>
                 </div>
-                
+
                 {/* --- 2. DIVIDER LINE --- */}
                 <hr className="border-t border-white/10 my-8" />
 
                 {/* --- 3. BOTTOM BAR --- */}
                 <div className="flex flex-col md:flex-row-reverse md:justify-between md:items-center w-full gap-6">
-                    
+
                     {/* Social Icons (Centered on Mobile, Right on Desktop) */}
                     <div className="flex justify-center md:justify-end flex-wrap items-center gap-2"> 
-                        {socialLinks.map((social) => (
-                            <Link key={social.name} href={social.href} target="_blank" rel="noopener noreferrer" className="group p-2 bg-white/5 rounded-full hover:bg-brand-gold transition-all duration-300">
-                                <Image 
-                                    src={social.icon} 
-                                    alt={social.name} 
-                                    width={20} 
-                                    height={20} 
-                                    className="w-5 h-5 object-contain opacity-70 group-hover:opacity-100 group-hover:brightness-0 group-hover:invert transition-all"
-                                />
-                            </Link>
-                        ))}
+                        {socialLinks.map((social) => {
+                            const Icon = social.icon;
+                            return (
+                                <Link 
+                                    key={social.name} 
+                                    href={social.href} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="group p-2.5 bg-white/5 rounded-full hover:bg-brand-gold transition-all duration-300 flex items-center justify-center border border-white/5 hover:border-brand-gold"
+                                    title={social.name}
+                                >
+                                    <Icon className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" strokeWidth={1.5} />
+                                </Link>
+                            );
+                        })}
                     </div>
 
                     {/* Copyright & Legal (Centered on Mobile, Left on Desktop) */}
                     <div className="text-center md:text-left">
-                        
+
                         {/* Mobile Company Name (Since Logo is hidden) */}
                         <p className="md:hidden text-white/90 text-sm font-agency mb-2">
                             Al-Asad Education Foundation
@@ -132,12 +149,11 @@ export default function Footer() {
                         <p className="text-gray-500 text-xs">
                             © {new Date().getFullYear()} All rights reserved <span className="hidden md:inline">| Al-Asad Education Foundation</span> | CAC/IT/8168079
                         </p>
-                        
+
                         <div className="mt-3 text-xs text-gray-600 flex flex-wrap gap-4 justify-center md:justify-start items-center">
                              <Link href="/terms-and-policies" className="hover:text-gray-300 transition-colors">Terms & Policies</Link>
                              <span></span>
-                             
-                             
+
                              {/* --- HIDDEN ADMIN LINK (Desktop Only) --- */}
                              <div className="hidden md:flex items-center gap-4">
                                 <span>•</span>
@@ -153,7 +169,7 @@ export default function Footer() {
                         </div>
                     </div>
                 </div>
-                
+
             </div>
         </footer>
     );
