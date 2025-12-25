@@ -54,7 +54,7 @@ export default function ProgramsPage() {
                             priority
                         />
                         {/* Gradient Overlay - FIXED NESTING */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-white via-white/30 to-transparent "></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-white via-black/30 to-transparent "></div>
                     </div>
 
                     {/* Text Content - Pulled up into the fade area */}
