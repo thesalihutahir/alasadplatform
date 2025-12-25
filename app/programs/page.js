@@ -5,34 +5,39 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { 
+    GraduationCap, 
+    HandHeart, 
+    Lightbulb 
+} from 'lucide-react';
 
 export default function ProgramsPage() {
 
-    // Program Data configuration for easy management
+    // Program Data configuration with Lucide Icons
     const programs = [
         {
             id: 'education',
             title: 'Educational Support',
             description: 'Nurturing minds through Qur’anic values, scholarships, and academic excellence initiatives.',
             link: '/programs/educational-support',
-            image: '/hero.jpg', // Placeholder for a real classroom/teaching image
-            icon: '/educationalsupporticon_brown.svg'
+            image: '/images/heroes/programs-educational-support-hero.webp', 
+            icon: GraduationCap // Passing the component directly
         },
         {
             id: 'community',
             title: 'Community Development',
             description: 'Empowering society through welfare, hunger relief, and sustainable aid projects.',
             link: '/programs/community-development',
-            image: '/hero.jpg', // Placeholder for community gathering/aid image
-            icon: '/communitydevelopmenticon_brown.svg'
+            image: '/images/heroes/programs-community-development-hero.webp', 
+            icon: HandHeart
         },
         {
             id: 'training',
             title: 'Training & Innovation',
             description: 'Equipping the future generation with digital skills, workshops, and modern vocational training.',
             link: '/programs/training-and-innovation',
-            image: '/hero.jpg', // Placeholder for computer/workshop image
-            icon: '/trainingandinnovationicon_brown.svg'
+            image: '/images/heroes/programs-training-innovation-hero.webp', 
+            icon: Lightbulb
         }
     ];
 
@@ -53,7 +58,7 @@ export default function ProgramsPage() {
                             className="object-cover object-center"
                             priority
                         />
-                        {/* Gradient Overlay - FIXED NESTING */}
+                        {/* Gradient Overlay */}
                         <div className="absolute inset-0 bg-gradient-to-t from-white via-brand-gold/40 to-transparent "></div>
                     </div>
 
@@ -72,54 +77,53 @@ export default function ProgramsPage() {
                 {/* 2. PROGRAM CARDS LIST (Mobile: Stack / Desktop: Grid) */}
                 <section className="px-6 md:px-12 lg:px-24 max-w-7xl mx-auto">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
-                        {programs.map((program) => (
-                            <Link 
-                                key={program.id} 
-                                href={program.link}
-                                className="block group relative bg-brand-sand rounded-3xl overflow-hidden shadow-lg transition-all hover:-translate-y-2 hover:shadow-2xl flex flex-col h-full"
-                            >
-                                {/* Card Image Area */}
-                                <div className="relative w-full h-48 md:h-56">
-                                    <Image
-                                        src={program.image}
-                                        alt={program.title}
-                                        fill
-                                        className="object-cover transition-transform duration-700 group-hover:scale-110"
-                                    />
-                                    {/* Overlay gradient */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        {programs.map((program) => {
+                            const IconComponent = program.icon; // Get icon component
+                            return (
+                                <Link 
+                                    key={program.id} 
+                                    href={program.link}
+                                    className="block group relative bg-brand-sand rounded-3xl overflow-hidden shadow-lg transition-all hover:-translate-y-2 hover:shadow-2xl flex flex-col h-full"
+                                >
+                                    {/* Card Image Area */}
+                                    <div className="relative w-full h-48 md:h-56">
+                                        <Image
+                                            src={program.image}
+                                            alt={program.title}
+                                            fill
+                                            className="object-cover transition-transform duration-700 group-hover:scale-110"
+                                        />
+                                        {/* Overlay gradient */}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
 
-                                    {/* Floating Icon Badge */}
-                                    <div className="absolute -bottom-6 right-6 w-14 h-14 md:w-16 md:h-16 bg-white rounded-full p-3 md:p-4 shadow-md border-2 border-brand-brown-dark z-10 group-hover:scale-110 transition-transform duration-300">
-                                        <div className="relative w-full h-full">
-                                            <Image 
-                                                src={program.icon} 
-                                                alt="Icon" 
-                                                fill 
-                                                className="object-contain"
+                                        {/* Floating Icon Badge (Updated to Lucide) */}
+                                        <div className="absolute -bottom-6 right-6 w-14 h-14 md:w-16 md:h-16 bg-white rounded-full flex items-center justify-center shadow-md border-2 border-brand-brown-dark z-10 group-hover:scale-110 transition-transform duration-300">
+                                            <IconComponent 
+                                                className="w-7 h-7 md:w-8 md:h-8 text-brand-brown-dark" 
+                                                strokeWidth={1.5} 
                                             />
                                         </div>
                                     </div>
-                                </div>
 
-                                {/* Card Content Area */}
-                                <div className="pt-10 pb-6 px-6 md:pt-12 md:px-8 flex-grow flex flex-col">
-                                    <h2 className="font-agency text-2xl md:text-3xl text-brand-brown-dark mb-3 group-hover:text-brand-gold transition-colors">
-                                        {program.title}
-                                    </h2>
-                                    <p className="font-lato text-sm md:text-base text-brand-brown leading-relaxed mb-6 line-clamp-3 md:line-clamp-4 flex-grow">
-                                        {program.description}
-                                    </p>
+                                    {/* Card Content Area */}
+                                    <div className="pt-10 pb-6 px-6 md:pt-12 md:px-8 flex-grow flex flex-col">
+                                        <h2 className="font-agency text-2xl md:text-3xl text-brand-brown-dark mb-3 group-hover:text-brand-gold transition-colors">
+                                            {program.title}
+                                        </h2>
+                                        <p className="font-lato text-sm md:text-base text-brand-brown leading-relaxed mb-6 line-clamp-3 md:line-clamp-4 flex-grow">
+                                            {program.description}
+                                        </p>
 
-                                    <div className="flex items-center text-brand-gold font-bold text-xs md:text-sm uppercase tracking-widest mt-auto">
-                                        <span>Explore Program</span>
-                                        <svg className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                                        </svg>
+                                        <div className="flex items-center text-brand-gold font-bold text-xs md:text-sm uppercase tracking-widest mt-auto">
+                                            <span>Explore Program</span>
+                                            <svg className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                            </svg>
+                                        </div>
                                     </div>
-                                </div>
-                            </Link>
-                        ))}
+                                </Link>
+                            );
+                        })}
                     </div>
                 </section>
 
