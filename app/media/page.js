@@ -18,7 +18,7 @@ export default function MediaPage() {
             title: 'Videos',
             subtitle: 'Lectures & Events',
             link: '/media/videos',
-            image: '/hero.jpg', // Placeholder
+            image: '/images/heroes/media-videos-hero.webp', // Placeholder
             icon: Video
         },
         {
@@ -26,7 +26,7 @@ export default function MediaPage() {
             title: 'Audios',
             subtitle: 'Sermons & Tafsir',
             link: '/media/audios',
-            image: '/hero.jpg', // Placeholder
+            image: '/images/heroes/media-audios-hero.webp', // Placeholder
             icon: Mic 
         },
         {
@@ -34,7 +34,7 @@ export default function MediaPage() {
             title: 'Podcasts',
             subtitle: 'Discussions',
             link: '/media/podcasts',
-            image: '/hero.jpg', // Placeholder
+            image: '/images/heroes/media-podcasts-hero.webp', // Placeholder
             icon: Headphones
         },
         {
@@ -42,7 +42,7 @@ export default function MediaPage() {
             title: 'eBooks',
             subtitle: 'Publications',
             link: '/media/ebooks',
-            image: '/hero.jpg', // Placeholder
+            image: '/images/heroes/media-ebooks-hero.webp', // Placeholder
             icon: BookOpen
         },
         {
@@ -50,7 +50,7 @@ export default function MediaPage() {
             title: 'Gallery',
             subtitle: 'Photos & Moments',
             link: '/media/gallery',
-            image: '/hero.jpg', // Placeholder
+            image: '/images/heroes/media-gallery-hero.webp', // Placeholder
             icon: Camera
         }
     ];
