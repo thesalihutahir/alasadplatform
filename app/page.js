@@ -5,7 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import LogoReveal from '@/components/logo-reveal'; // Import the new animation
+// Import the new animation component
+import LogoReveal from '@/components/logo-reveal';
 import { 
     Play, 
     ArrowRight, 
@@ -34,21 +35,22 @@ export default function HomePage() {
 
     // Handle Splash Screen Timer
     useEffect(() => {
-        // Start fading out after 2.5 seconds (adjust based on LogoReveal duration)
+        // Start fading out after the animation finishes (approx 3.5s based on typical svg draws)
         const timer1 = setTimeout(() => {
             setFadeOut(true);
-        }, 2500);
+        }, 3500);
 
-        // Remove from DOM after 3.2 seconds (allowing for fade out transition)
+        // Remove from DOM shortly after fade starts
         const timer2 = setTimeout(() => {
             setShowSplash(false);
-        }, 3200);
+        }, 4200);
 
         return () => {
             clearTimeout(timer1);
             clearTimeout(timer2);
         };
     }, []);
+
 
     // Mock Data for Updates
     const updates = [1, 2, 3]; 
@@ -76,12 +78,14 @@ export default function HomePage() {
     return (
         <div className="min-h-screen flex flex-col bg-white font-lato text-brand-brown-dark">
             
-            {/* --- 0. SPLASH SCREEN (Updated with LogoReveal) --- */}
+            {/* --- 0. SPLASH SCREEN --- */}
             {showSplash && (
+                // Background is set to bg-white as requested
                 <div 
-                    className={`fixed inset-0 z-[100] bg-brand-brown-dark flex items-center justify-center transition-opacity duration-700 ease-out ${fadeOut ? 'opacity-0' : 'opacity-100'}`}
+                    className={`fixed inset-0 z-[100] bg-white flex items-center justify-center transition-opacity duration-700 ease-out ${fadeOut ? 'opacity-0' : 'opacity-100'}`}
                 >
-                    <div className="w-full max-w-md px-6">
+                    {/* Container for the SVG Animation - adjustments might be needed based on svg size */}
+                    <div className="w-full max-w-md p-8">
                         <LogoReveal />
                     </div>
                 </div>
@@ -132,7 +136,9 @@ export default function HomePage() {
                             </div>
                         </div>
                     </div>
-                </section>{/* 2. ICON NAVIGATION MENU (Lucide Icons) */}
+                </section>
+
+                {/* 2. ICON NAVIGATION MENU (Lucide Icons) */}
                 <section className="py-8 md:py-16 px-6 bg-white relative z-20 -mt-6 md:-mt-0 rounded-t-3xl md:rounded-none">
                     <div className="max-w-5xl mx-auto">
                         <div className="grid grid-cols-4 gap-3 md:gap-12 justify-items-center">
@@ -171,7 +177,6 @@ export default function HomePage() {
                         </div>
                     </div>
                 </section>
-
                 {/* 3. ACTION BUTTONS (Mobile Only - Desktop has them in Hero) */}
                 <section className="md:hidden py-2 px-8 flex justify-center pb-8">
                     <Link
@@ -303,7 +308,7 @@ export default function HomePage() {
                             {/* RIGHT: LATEST AUDIOS (Takes 1 Col on Desktop) */}
                             <div className="lg:col-span-1">
                                 <div className="flex justify-between items-end mb-6 mt-8 lg:mt-0">
-                                    <h2 className="font-agency text-3xl md:text-4xl text-brand-brown-dark">Latest Audios</h2>
+                                    <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark">Latest Audios</h2>
                                     <Link href="/media/audios" className="text-xs md:text-sm font-bold text-brand-gold uppercase tracking-widest hover:underline">View Library</Link>
                                 </div>
 
@@ -481,18 +486,29 @@ export default function HomePage() {
                     </div>
                 </section>
 
-                {/* 7. ARABIC QUOTE */}
+                {/* 7. ARABIC QUOTE (UPDATED with Text) */}
                 <section className="py-20 px-6 text-center bg-white">
-                    <div className="max-w-3xl mx-auto">
-                        <div className="relative w-full h-24 md:h-32 mb-8 opacity-80">
-                            <Image
-                                src="/ilmquote.svg"
-                                alt="Arabic Quote about Knowledge"
-                                fill
-                                className="object-contain"
-                            />
+                    <div className="max-w-4xl mx-auto">
+                        
+                        {/* Quote Block */}
+                        <div className="mb-12">
+                             {/* Arabic Text using Tajawal font */}
+                            <h2 className="font-tajawal text-3xl md:text-5xl text-brand-gold leading-relaxed mb-6 drop-shadow-sm relative inline-block">
+                                <span className="text-6xl absolute -top-4 -left-4 text-brand-sand/40">“</span>
+                                قُلْ هَلْ يَسْتَوِي الَّذِينَ يَعْلَمُونَ وَالَّذِينَ لَا يَعْلَمُونَ
+                                <span className="text-6xl absolute -bottom-8 -right-4 text-brand-sand/40 leading-none">”</span>
+                            </h2>
+                            {/* English Translation */}
+                            <p className="font-agency text-xl md:text-3xl text-brand-brown-dark/90 uppercase tracking-wider mb-2">
+                                "Say, 'Are those who know equal to those who do not know?'"
+                            </p>
+                            {/* Reference */}
+                            <p className="font-lato text-brand-brown/70 text-sm md:text-base italic">— The Holy Qur'an, Surah Az-Zumar (39:9)</p>
                         </div>
-                        <h2 className="font-agency text-2xl md:text-4xl text-brand-gold leading-tight">
+
+                        <div className="w-24 h-1 bg-brand-gold/30 mx-auto mb-8 rounded-full"></div>
+
+                        <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark leading-tight max-w-3xl mx-auto">
                             Join us in building a future shaped by knowledge and faith.
                         </h2>
                     </div>
