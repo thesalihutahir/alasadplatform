@@ -22,7 +22,7 @@ const lionPaths = [
 // 4. Undraw / Unfill
 // 5. Repeat Forever
 const transitionSettings = {
-    duration: 2, // Seconds for one full draw
+    duration: 1.5, // Seconds for one full draw
     ease: "easeInOut",
     repeat: Infinity, // Loop forever
     repeatType: "reverse", // Draw then Undraw
