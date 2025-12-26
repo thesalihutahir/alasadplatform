@@ -19,11 +19,11 @@ import {
     PlayCircle, 
     ListVideo, 
     LayoutList, 
-    MoreVertical,
-    Loader2,
-    X,
-    Image as ImageIcon,
-    UploadCloud
+    MoreVertical, 
+    Loader2, 
+    X, 
+    Image as ImageIcon, 
+    UploadCloud 
 } from 'lucide-react';
 
 export default function ManageVideosPage() {
@@ -240,7 +240,7 @@ export default function ManageVideosPage() {
                                         {playlists.map((list) => (
                                             <div key={list.id} className="group border border-gray-100 rounded-2xl overflow-hidden hover:shadow-lg transition-all hover:border-brand-gold/30">
                                                 <div className="relative w-full aspect-video bg-gray-100">
-                                                    <Image src={list.cover} alt={list.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                                                    <Image src={list.cover || "/hero.jpg"} alt={list.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
                                                     <div className="absolute bottom-3 right-3 bg-black/80 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1">
                                                         <ListVideo className="w-3 h-3" /> {list.count || 0}
                                                     </div>
