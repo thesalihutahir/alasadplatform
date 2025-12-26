@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import LogoReveal from '@/components/logo-reveal'; // Import the new animation
 import { 
     Play, 
     ArrowRight, 
@@ -24,8 +25,30 @@ import {
 } from 'lucide-react'; 
 
 export default function HomePage() {
+    // State to handle Splash Screen
+    const [showSplash, setShowSplash] = useState(true);
+    const [fadeOut, setFadeOut] = useState(false);
+
     // State to handle Video Facade
     const [playVideo, setPlayVideo] = useState(false);
+
+    // Handle Splash Screen Timer
+    useEffect(() => {
+        // Start fading out after 2.5 seconds (allowing animation to play)
+        const timer1 = setTimeout(() => {
+            setFadeOut(true);
+        }, 2500);
+
+        // Remove from DOM after 3 seconds
+        const timer2 = setTimeout(() => {
+            setShowSplash(false);
+        }, 3000);
+
+        return () => {
+            clearTimeout(timer1);
+            clearTimeout(timer2);
+        };
+    }, []);
 
     // Mock Data for Updates
     const updates = [1, 2, 3]; 
@@ -52,6 +75,18 @@ export default function HomePage() {
 
     return (
         <div className="min-h-screen flex flex-col bg-white font-lato text-brand-brown-dark">
+            
+            {/* --- 0. SPLASH SCREEN (With LogoReveal) --- */}
+            {showSplash && (
+                <div 
+                    className={`fixed inset-0 z-[100] bg-brand-brown-dark flex flex-col items-center justify-center transition-opacity duration-700 ease-out ${fadeOut ? 'opacity-0' : 'opacity-100'}`}
+                >
+                    <div className="w-64 md:w-96">
+                        <LogoReveal />
+                    </div>
+                </div>
+            )}
+
             <Header />
 
             <main className="flex-grow">
@@ -99,7 +134,7 @@ export default function HomePage() {
                     </div>
                 </section>
 
-                {/* 2. ICON NAVIGATION MENU (Lucide Icons) */}
+{/* 2. ICON NAVIGATION MENU (Lucide Icons) */}
                 <section className="py-8 md:py-16 px-6 bg-white relative z-20 -mt-6 md:-mt-0 rounded-t-3xl md:rounded-none">
                     <div className="max-w-5xl mx-auto">
                         <div className="grid grid-cols-4 gap-3 md:gap-12 justify-items-center">
@@ -138,6 +173,7 @@ export default function HomePage() {
                         </div>
                     </div>
                 </section>
+
                 {/* 3. ACTION BUTTONS (Mobile Only - Desktop has them in Hero) */}
                 <section className="md:hidden py-2 px-8 flex justify-center pb-8">
                     <Link
@@ -324,7 +360,8 @@ export default function HomePage() {
                                 </div>
                             </div>
                         </div>
-                        {/* UPCOMING EVENTS */}
+
+{/* UPCOMING EVENTS */}
                         <div className="mt-16 md:mt-24">
                             <div className="flex justify-between items-end mb-8">
                                 <h2 className="font-agency text-2xl md:text-5xl text-brand-brown-dark">Upcoming Events</h2>
