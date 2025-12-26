@@ -12,11 +12,11 @@ const nextConfig = {
             }
         ],
     },
-    // --- ADD THIS BLOCK TO FIX THE BUILD ERROR ---
+    
+    // 1. Fix for UploadThing dependency resolution
     webpack: (config) => {
         config.resolve.alias = {
             ...config.resolve.alias,
-            // Mock these modules to empty objects so webpack doesn't crash
             "solid-js": false,
             "solid-js/store": false,
             "svelte": false,
@@ -25,6 +25,10 @@ const nextConfig = {
         };
         return config;
     },
+
+    // 2. Fix for Next.js 16 Turbopack conflict
+    // This tells Next.js we are aware of the webpack config and it's okay.
+    turbopack: {} 
 };
 
 export default nextConfig;
