@@ -3,31 +3,36 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+// Firebase
+import { db } from '@/lib/firebase';
+import { collection, addDoc, getDocs, serverTimestamp, query, orderBy } from 'firebase/firestore';
+
 import { 
     ArrowLeft, 
     Save, 
     Youtube, 
-    PlayCircle,
-    CheckCircle,
-    AlertCircle,
-    ListVideo
+    PlayCircle, 
+    CheckCircle, 
+    AlertCircle, 
+    ListVideo,
+    Loader2
 } from 'lucide-react';
 
 export default function AddVideoPage() {
+    const router = useRouter();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isLoadingPlaylists, setIsLoadingPlaylists] = useState(true);
 
-    // Mock Playlists (In real app, fetch from API)
-    const availablePlaylists = [
-        { id: 1, title: "Tafsir Surah Al-Baqarah (2024)" },
-        { id: 2, title: "Ramadan Spiritual Guide" },
-        { id: 3, title: "Seerah Series" }
-    ];
+    // Dynamic Playlists State
+    const [availablePlaylists, setAvailablePlaylists] = useState([]);
 
     // Form State
     const [formData, setFormData] = useState({
         title: '',
         url: '',
         category: 'Lecture',
-        playlist: '', // New Field
+        playlist: '', 
         date: new Date().toISOString().split('T')[0],
         description: ''
     });
@@ -35,6 +40,27 @@ export default function AddVideoPage() {
     const [videoId, setVideoId] = useState(null);
     const [thumbnail, setThumbnail] = useState(null);
     const [isValid, setIsValid] = useState(false);
+
+    // 1. Fetch Playlists on Mount
+    useEffect(() => {
+        const fetchPlaylists = async () => {
+            try {
+                const q = query(collection(db, "video_playlists"), orderBy("createdAt", "desc"));
+                const snapshot = await getDocs(q);
+                const playlists = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                setAvailablePlaylists(playlists);
+            } catch (error) {
+                console.error("Error fetching playlists:", error);
+            } finally {
+                setIsLoadingPlaylists(false);
+            }
+        };
+
+        fetchPlaylists();
+    }, []);
 
     // Helper: Extract YouTube ID
     const extractVideoId = (url) => {
@@ -53,6 +79,8 @@ export default function AddVideoPage() {
             setVideoId(id);
             setThumbnail(`https://img.youtube.com/vi/${id}/maxresdefault.jpg`);
             setIsValid(true);
+            
+            // Optional: Auto-fill title if empty (requires YouTube API key, skipping for now to keep it simple/free)
         } else {
             setVideoId(null);
             setThumbnail(null);
@@ -65,13 +93,38 @@ export default function AddVideoPage() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!isValid) {
+        
+        if (!isValid || !videoId) {
             alert("Please enter a valid YouTube URL first.");
             return;
         }
-        alert(`Video "${formData.title}" ready for upload! \nPlaylist: ${formData.playlist || 'None'}`);
+
+        setIsSubmitting(true);
+
+        try {
+            // Prepare Data
+            const videoData = {
+                ...formData,
+                videoId: videoId, // Important for embedding
+                thumbnail: thumbnail,
+                createdAt: serverTimestamp(),
+                views: 0
+            };
+
+            // Save to Firestore
+            await addDoc(collection(db, "videos"), videoData);
+
+            alert("Video published successfully!");
+            router.push('/admin/videos');
+
+        } catch (error) {
+            console.error("Error saving video:", error);
+            alert("Failed to save video. Check console.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -89,20 +142,22 @@ export default function AddVideoPage() {
                     </div>
                 </div>
                 <div className="flex gap-3">
-                    <button type="button" className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-100 transition-colors">
-                        Cancel
-                    </button>
+                    <Link href="/admin/videos">
+                        <button type="button" className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-100 transition-colors">
+                            Cancel
+                        </button>
+                    </Link>
                     <button 
                         type="submit" 
-                        disabled={!isValid}
+                        disabled={!isValid || isSubmitting}
                         className={`flex items-center gap-2 px-6 py-2.5 font-bold rounded-xl transition-colors shadow-md ${
                             isValid 
                             ? 'bg-brand-gold text-white hover:bg-brand-brown-dark' 
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         }`}
                     >
-                        <Save className="w-4 h-4" />
-                        Publish Video
+                        {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        {isSubmitting ? 'Publishing...' : 'Publish Video'}
                     </button>
                 </div>
             </div>
@@ -138,7 +193,7 @@ export default function AddVideoPage() {
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
                         <h3 className="font-agency text-xl text-brand-brown-dark border-b border-gray-100 pb-2">Video Details</h3>
 
-                        {/* Playlist Selection (NEW) */}
+                        {/* Playlist Selection */}
                         <div className="bg-brand-sand/20 p-4 rounded-xl border border-brand-gold/20">
                             <label className="flex items-center gap-2 text-xs font-bold text-brand-brown-dark uppercase tracking-wider mb-2">
                                 <ListVideo className="w-4 h-4" /> Add to Series / Playlist
@@ -150,9 +205,13 @@ export default function AddVideoPage() {
                                 className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer"
                             >
                                 <option value="">Select a Playlist (Optional)</option>
-                                {availablePlaylists.map(pl => (
-                                    <option key={pl.id} value={pl.title}>{pl.title}</option>
-                                ))}
+                                {isLoadingPlaylists ? (
+                                    <option disabled>Loading playlists...</option>
+                                ) : (
+                                    availablePlaylists.map(pl => (
+                                        <option key={pl.id} value={pl.title}>{pl.title}</option>
+                                    ))
+                                )}
                             </select>
                             <p className="text-[10px] text-gray-500 mt-1">
                                 Selecting a playlist will group this video with others in the series.
@@ -166,7 +225,7 @@ export default function AddVideoPage() {
                                 name="title"
                                 value={formData.title}
                                 onChange={handleChange}
-                                placeholder="Enter video title"
+                                placeholder="Enter video title" 
                                 className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
                             />
                         </div>
