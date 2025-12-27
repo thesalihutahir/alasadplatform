@@ -21,12 +21,10 @@ import {
     Menu, 
     X,
     BookOpen,
-    UserCircle,
-    ChevronRight,
-    Radio,  // For Podcasts
-    Image as ImageIcon, // For Gallery
-    Book,   // For eBooks
-    Heart   // NEW: For Donations
+    Radio,  
+    Image as ImageIcon, 
+    Book,   
+    Heart   
 } from 'lucide-react';
 
 export default function AdminLayout({ children }) {
@@ -34,15 +32,13 @@ export default function AdminLayout({ children }) {
     const pathname = usePathname();
     const router = useRouter();
 
-    // Get user, logout AND loading from AuthContext
+    // Get user with ROLE
     const { user, logout, loading } = useAuth(); 
 
-    // Skip the layout for the login page specifically
     if (pathname === '/admin/login') {
         return <>{children}</>;
     }
 
-    // --- Loading State with LogoReveal ---
     if (loading) {
         return (
             <div className="h-screen w-full flex items-center justify-center bg-white">
@@ -53,26 +49,32 @@ export default function AdminLayout({ children }) {
         );
     }
 
-    const menuItems = [
-        { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/dashboard' },
-        { name: 'Manage Blogs', icon: FileText, href: '/admin/blogs' },
-        { name: 'Manage Programs', icon: BookOpen, href: '/admin/programs' },
+    // Define Menu Items with Access Control
+    const allMenuItems = [
+        { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/dashboard', restricted: false },
+        { name: 'Manage Blogs', icon: FileText, href: '/admin/blogs', restricted: false },
+        { name: 'Manage Programs', icon: BookOpen, href: '/admin/programs', restricted: false },
 
         // --- MEDIA SECTION ---
-        { name: 'Video Library', icon: Video, href: '/admin/videos' },
-        { name: 'Audio Library', icon: Mic, href: '/admin/audios' },
-        { name: 'Podcasts', icon: Radio, href: '/admin/podcasts' },
-        { name: 'Photo Gallery', icon: ImageIcon, href: '/admin/gallery' },
-        { name: 'eBooks', icon: Book, href: '/admin/ebooks' },
+        { name: 'Video Library', icon: Video, href: '/admin/videos', restricted: false },
+        { name: 'Audio Library', icon: Mic, href: '/admin/audios', restricted: false },
+        { name: 'Podcasts', icon: Radio, href: '/admin/podcasts', restricted: false },
+        { name: 'Photo Gallery', icon: ImageIcon, href: '/admin/gallery', restricted: false },
+        { name: 'eBooks', icon: Book, href: '/admin/ebooks', restricted: false },
 
-        // --- INVOLVEMENT SECTION ---
-        { name: 'Donations', icon: Heart, href: '/admin/donations' }, // NEW
-        { name: 'Volunteers', icon: Users, href: '/admin/volunteers' },
-        { name: 'Partnerships', icon: Handshake, href: '/admin/partners' },
-        
-        // --- SYSTEM ---
-        { name: 'Settings', icon: Settings, href: '/admin/settings' },
+        // --- SENSITIVE SECTIONS (Super Admin Only) ---
+        { name: 'Donations', icon: Heart, href: '/admin/donations', restricted: true }, 
+        { name: 'Volunteers', icon: Users, href: '/admin/volunteers', restricted: true },
+        { name: 'Partnerships', icon: Handshake, href: '/admin/partners', restricted: true },
+        { name: 'Settings', icon: Settings, href: '/admin/settings', restricted: true },
     ];
+
+    // Filter Menu based on Role
+    // If role is 'super_admin', show everything. If not, hide restricted items.
+    const menuItems = allMenuItems.filter(item => {
+        if (user?.role === 'super_admin') return true; 
+        return !item.restricted;
+    });
 
     const handleLogout = async () => {
         try {
@@ -83,7 +85,6 @@ export default function AdminLayout({ children }) {
         }
     };
 
-    // Helper: Get Initials if no image
     const getInitials = (name) => {
         return name ? name.charAt(0).toUpperCase() : 'A';
     };
@@ -109,7 +110,6 @@ export default function AdminLayout({ children }) {
                         </div>
                         <span className="font-agency text-2xl tracking-wide pt-1">Admin Panel</span>
                     </div>
-                    {/* Mobile Close Button */}
                     <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-white/70 hover:text-white">
                         <X className="w-6 h-6" />
                     </button>
@@ -142,8 +142,6 @@ export default function AdminLayout({ children }) {
 
                 {/* --- USER PROFILE SECTION --- */}
                 <div className="p-4 border-t border-white/10 bg-[#3a2813]">
-
-                    {/* Profile Card -> Links to Settings */}
                     <Link href="/admin/settings" onClick={() => setIsSidebarOpen(false)}>
                         <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group mb-3">
                             <div className="relative w-10 h-10 rounded-full bg-[#d17600] flex items-center justify-center text-white font-bold border-2 border-white/20 overflow-hidden">
@@ -157,15 +155,17 @@ export default function AdminLayout({ children }) {
                                 <p className="text-sm font-bold text-white truncate">
                                     {user?.displayName || 'Admin User'}
                                 </p>
-                                <p className="text-[10px] text-white/50 truncate">
-                                    {user?.email || 'admin@alasad.org'}
+                                <p className="text-[10px] text-white/50 truncate capitalize">
+                                    {user?.role?.replace('_', ' ') || 'Admin'}
                                 </p>
                             </div>
-                            <Settings className="w-4 h-4 text-white/30 group-hover:text-white transition-colors" />
+                            {/* Only show Settings icon if Super Admin, though clicking the card still goes there (protected by page logic) */}
+                            {user?.role === 'super_admin' && (
+                                <Settings className="w-4 h-4 text-white/30 group-hover:text-white transition-colors" />
+                            )}
                         </div>
                     </Link>
 
-                    {/* Logout Button */}
                     <button 
                         onClick={handleLogout}
                         className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-red-500/10 text-red-300 hover:bg-red-500 hover:text-white transition-all text-xs font-bold uppercase tracking-wider border border-red-500/20"
@@ -178,8 +178,6 @@ export default function AdminLayout({ children }) {
 
             {/* 3. MAIN CONTENT AREA */}
             <div className="flex-grow flex flex-col min-w-0 h-screen overflow-y-auto bg-gray-50">
-
-                {/* Top Mobile Header (Only visible on small screens) */}
                 <header className="lg:hidden bg-white border-b border-gray-200 p-4 flex items-center justify-between sticky top-0 z-30 shadow-sm">
                     <div className="flex items-center gap-3">
                         <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200">
@@ -187,19 +185,15 @@ export default function AdminLayout({ children }) {
                         </button>
                         <span className="font-agency text-xl text-[#432e16] pt-1">Dashboard</span>
                     </div>
-                    {/* Mobile User Icon */}
                     <div className="w-8 h-8 rounded-full bg-[#432e16] text-white flex items-center justify-center text-sm font-bold">
                         {getInitials(user?.displayName || 'A')}
                     </div>
                 </header>
 
-                {/* Page Content */}
                 <main className="flex-grow p-6 md:p-10 max-w-7xl mx-auto w-full">
                     {children}
                 </main>
-
             </div>
-
         </div>
     );
 }
