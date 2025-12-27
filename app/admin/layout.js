@@ -53,9 +53,11 @@ export default function AdminLayout({ children }) {
     const allMenuItems = [
         { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/dashboard', restricted: false },
         { name: 'Manage Blogs', icon: FileText, href: '/admin/blogs', restricted: false },
-        { name: 'Manage Programs', icon: BookOpen, href: '/admin/programs', restricted: false },
+        
+        // --- RESTRICTED PROGRAMS ---
+        { name: 'Manage Programs', icon: BookOpen, href: '/admin/programs', restricted: true }, // Updated to True
 
-        // --- MEDIA SECTION ---
+        // --- MEDIA SECTION (Unrestricted) ---
         { name: 'Video Library', icon: Video, href: '/admin/videos', restricted: false },
         { name: 'Audio Library', icon: Mic, href: '/admin/audios', restricted: false },
         { name: 'Podcasts', icon: Radio, href: '/admin/podcasts', restricted: false },
@@ -70,9 +72,10 @@ export default function AdminLayout({ children }) {
     ];
 
     // Filter Menu based on Role
-    // If role is 'super_admin', show everything. If not, hide restricted items.
     const menuItems = allMenuItems.filter(item => {
+        // If role is 'super_admin', show everything
         if (user?.role === 'super_admin') return true; 
+        // If role is 'admin', hide restricted items
         return !item.restricted;
     });
 
@@ -142,9 +145,32 @@ export default function AdminLayout({ children }) {
 
                 {/* --- USER PROFILE SECTION --- */}
                 <div className="p-4 border-t border-white/10 bg-[#3a2813]">
-                    <Link href="/admin/settings" onClick={() => setIsSidebarOpen(false)}>
-                        <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group mb-3">
-                            <div className="relative w-10 h-10 rounded-full bg-[#d17600] flex items-center justify-center text-white font-bold border-2 border-white/20 overflow-hidden">
+                    
+                    {/* Settings Link (Only visible/clickable if Super Admin) */}
+                    {user?.role === 'super_admin' ? (
+                        <Link href="/admin/settings" onClick={() => setIsSidebarOpen(false)}>
+                            <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group mb-3">
+                                <div className="relative w-10 h-10 rounded-full bg-[#d17600] flex items-center justify-center text-white font-bold border-2 border-white/20 overflow-hidden">
+                                    {user?.photoURL ? (
+                                        <Image src={user.photoURL} alt="Profile" fill className="object-cover" />
+                                    ) : (
+                                        <span>{getInitials(user?.displayName || 'Admin')}</span>
+                                    )}
+                                </div>
+                                <div className="flex-grow min-w-0">
+                                    <p className="text-sm font-bold text-white truncate">
+                                        {user?.displayName || 'Admin User'}
+                                    </p>
+                                    <p className="text-[10px] text-white/50 truncate capitalize">
+                                        {user?.role?.replace('_', ' ') || 'Admin'}
+                                    </p>
+                                </div>
+                                <Settings className="w-4 h-4 text-white/30 group-hover:text-white transition-colors" />
+                            </div>
+                        </Link>
+                    ) : (
+                        <div className="flex items-center gap-3 p-2 rounded-lg mb-3 opacity-70">
+                             <div className="relative w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center text-white font-bold border-2 border-white/20 overflow-hidden">
                                 {user?.photoURL ? (
                                     <Image src={user.photoURL} alt="Profile" fill className="object-cover" />
                                 ) : (
@@ -155,16 +181,12 @@ export default function AdminLayout({ children }) {
                                 <p className="text-sm font-bold text-white truncate">
                                     {user?.displayName || 'Admin User'}
                                 </p>
-                                <p className="text-[10px] text-white/50 truncate capitalize">
-                                    {user?.role?.replace('_', ' ') || 'Admin'}
+                                <p className="text-[10px] text-white/50 truncate">
+                                    {user?.role || 'Admin'}
                                 </p>
                             </div>
-                            {/* Only show Settings icon if Super Admin, though clicking the card still goes there (protected by page logic) */}
-                            {user?.role === 'super_admin' && (
-                                <Settings className="w-4 h-4 text-white/30 group-hover:text-white transition-colors" />
-                            )}
                         </div>
-                    </Link>
+                    )}
 
                     <button 
                         onClick={handleLogout}
