@@ -24,8 +24,9 @@ import {
     UserCircle,
     ChevronRight,
     Radio,  // For Podcasts
-    Image as ImageIcon, // For Gallery (Renamed to avoid conflict with next/image)
-    Book    // For eBooks
+    Image as ImageIcon, // For Gallery
+    Book,   // For eBooks
+    Heart   // NEW: For Donations
 } from 'lucide-react';
 
 export default function AdminLayout({ children }) {
@@ -41,8 +42,7 @@ export default function AdminLayout({ children }) {
         return <>{children}</>;
     }
 
-    // --- NEW: Loading State with LogoReveal ---
-    // This shows the animation while checking if the admin is logged in
+    // --- Loading State with LogoReveal ---
     if (loading) {
         return (
             <div className="h-screen w-full flex items-center justify-center bg-white">
@@ -57,17 +57,20 @@ export default function AdminLayout({ children }) {
         { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/dashboard' },
         { name: 'Manage Blogs', icon: FileText, href: '/admin/blogs' },
         { name: 'Manage Programs', icon: BookOpen, href: '/admin/programs' },
-        
+
         // --- MEDIA SECTION ---
         { name: 'Video Library', icon: Video, href: '/admin/videos' },
         { name: 'Audio Library', icon: Mic, href: '/admin/audios' },
-        { name: 'Podcasts', icon: Radio, href: '/admin/podcasts' }, // NEW
-        { name: 'Photo Gallery', icon: ImageIcon, href: '/admin/gallery' }, // NEW
-        { name: 'eBooks', icon: Book, href: '/admin/ebooks' }, // NEW
-        
-        // --- PEOPLE SECTION ---
+        { name: 'Podcasts', icon: Radio, href: '/admin/podcasts' },
+        { name: 'Photo Gallery', icon: ImageIcon, href: '/admin/gallery' },
+        { name: 'eBooks', icon: Book, href: '/admin/ebooks' },
+
+        // --- INVOLVEMENT SECTION ---
+        { name: 'Donations', icon: Heart, href: '/admin/donations' }, // NEW
         { name: 'Volunteers', icon: Users, href: '/admin/volunteers' },
         { name: 'Partnerships', icon: Handshake, href: '/admin/partners' },
+        
+        // --- SYSTEM ---
         { name: 'Settings', icon: Settings, href: '/admin/settings' },
     ];
 
@@ -137,7 +140,7 @@ export default function AdminLayout({ children }) {
                     })}
                 </nav>
 
-                {/* --- USER PROFILE SECTION (New) --- */}
+                {/* --- USER PROFILE SECTION --- */}
                 <div className="p-4 border-t border-white/10 bg-[#3a2813]">
 
                     {/* Profile Card -> Links to Settings */}
