@@ -6,8 +6,11 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 // Firebase
 import { db, storage } from '@/lib/firebase';
-import { collection, addDoc, getDocs, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, getDocs, serverTimestamp, query, orderBy, where } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+// Utilities
+import { compressImage } from '@/utils/compressImage'; 
+import Loader from '@/components/Loader';
 
 import { 
     ArrowLeft, 
@@ -15,19 +18,21 @@ import {
     X, 
     FileText,
     LayoutList,
-    Loader2,
     Image as ImageIcon,
-    UploadCloud
+    UploadCloud,
+    Globe
 } from 'lucide-react';
 
 export default function CreateBlogPage() {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSavingDraft, setIsSavingDraft] = useState(false); // Distinct loader for draft
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isLoadingSeries, setIsLoadingSeries] = useState(true);
 
     // Dynamic Series State
-    const [availableSeries, setAvailableSeries] = useState([]);
+    const [allSeries, setAllSeries] = useState([]); // Stores ALL series fetched
+    const [filteredSeries, setFilteredSeries] = useState([]); // Stores series filtered by category/language
 
     // Form State
     const [formData, setFormData] = useState({
@@ -35,6 +40,7 @@ export default function CreateBlogPage() {
         excerpt: '',
         content: '', 
         category: 'Article',
+        language: 'English', // New Field
         series: '', 
         author: 'Sheikh Goni Dr. Muneer Ja\'afar', 
         readTime: '',
@@ -57,7 +63,7 @@ export default function CreateBlogPage() {
                     id: doc.id,
                     ...doc.data()
                 }));
-                setAvailableSeries(seriesList);
+                setAllSeries(seriesList);
             } catch (error) {
                 console.error("Error fetching series:", error);
             } finally {
@@ -68,21 +74,42 @@ export default function CreateBlogPage() {
         fetchSeries();
     }, []);
 
+    // 2. Filter Series when Category or Language changes
+    useEffect(() => {
+        const filtered = allSeries.filter(series => {
+            // Filter logic: Match category AND language
+            // Note: If your series don't have language yet, this might hide them. 
+            // For now, let's filter just by Category strictly, and Language if available.
+            const catMatch = series.category === formData.category;
+            const langMatch = series.language ? series.language === formData.language : true; 
+            return catMatch && langMatch;
+        });
+        setFilteredSeries(filtered);
+    }, [formData.category, formData.language, allSeries]);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    // Handle Cover Image
-    const handleCoverChange = (e) => {
+    // Handle Cover Image (With Compression)
+    const handleCoverChange = async (e) => {
         const file = e.target.files[0];
         if (file) {
             if (!file.type.startsWith('image/')) {
                 alert("Please upload a valid image file.");
                 return;
             }
-            setCoverFile(file);
-            setCoverPreview(URL.createObjectURL(file));
+            try {
+                const compressed = await compressImage(file);
+                setCoverFile(compressed);
+                setCoverPreview(URL.createObjectURL(compressed));
+            } catch (error) {
+                console.error("Compression failed", error);
+                // Fallback to original
+                setCoverFile(file);
+                setCoverPreview(URL.createObjectURL(file));
+            }
         }
     };
 
@@ -111,29 +138,30 @@ export default function CreateBlogPage() {
         setPdfFile(null);
     };
 
-    // Handle Form Submission
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setIsSubmitting(true);
+    // Handle Form Submission (Publish or Draft)
+    const handleSubmit = async (e, status = 'Published') => {
+        if(e) e.preventDefault();
+        
+        if (status === 'Published') setIsSubmitting(true);
+        else setIsSavingDraft(true);
 
         try {
-            // 1. Validation
-            if (!formData.title || !formData.content) {
-                alert("Please fill in the title and content.");
+            // Validation (Only for published)
+            if (status === 'Published' && (!formData.title || !formData.content)) {
+                alert("Please fill in the title and content to publish.");
                 setIsSubmitting(false);
                 return;
             }
 
-            let coverUrl = "/fallback.webp"; // Default
+            let coverUrl = ""; 
             let pdfUrl = "";
             let pdfName = "";
 
-            // 2. Upload Cover Image (if selected)
+            // 1. Upload Cover Image (if selected)
             if (coverFile) {
                 const coverRef = ref(storage, `blog_covers/${Date.now()}_${coverFile.name}`);
                 const coverTask = uploadBytesResumable(coverRef, coverFile);
-                
-                // Track progress
+
                 coverTask.on('state_changed', (snapshot) => {
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
                     setUploadProgress(progress);
@@ -143,7 +171,7 @@ export default function CreateBlogPage() {
                 coverUrl = await getDownloadURL(coverTask.snapshot.ref);
             }
 
-            // 3. Upload PDF (if selected & category is Research)
+            // 2. Upload PDF (if selected & category is Research)
             if (pdfFile && formData.category === 'Research') {
                 const pdfRef = ref(storage, `blog_pdfs/${Date.now()}_${pdfFile.name}`);
                 const pdfTask = uploadBytesResumable(pdfRef, pdfFile);
@@ -152,17 +180,18 @@ export default function CreateBlogPage() {
                 pdfName = pdfFile.name;
             }
 
-            // 4. Save to Firestore
+            // 3. Save to Firestore
             await addDoc(collection(db, "posts"), {
                 ...formData,
-                coverImage: coverUrl,
+                status: status, // 'Published' or 'Draft'
+                coverImage: coverUrl || "/fallback.webp",
                 pdfUrl: pdfUrl,
                 pdfName: pdfName,
                 createdAt: serverTimestamp(),
                 tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag !== '') 
             });
 
-            alert("Post published successfully!");
+            alert(`Post ${status === 'Draft' ? 'saved to drafts' : 'published'} successfully!`);
             router.push('/admin/blogs');
 
         } catch (error) {
@@ -170,11 +199,12 @@ export default function CreateBlogPage() {
             alert("Failed to create post. Check console for details.");
         } finally {
             setIsSubmitting(false);
+            setIsSavingDraft(false);
         }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6 max-w-6xl mx-auto pb-12">
+        <form className="space-y-6 max-w-6xl mx-auto pb-12">
 
             {/* 1. HEADER & ACTIONS */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-0 bg-gray-50 z-20 py-4 border-b border-gray-200">
@@ -188,15 +218,21 @@ export default function CreateBlogPage() {
                     </div>
                 </div>
                 <div className="flex gap-3">
-                    <button type="button" className="px-6 py-2.5 bg-white border border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-100 transition-colors">
-                        Save Draft
+                    <button 
+                        type="button" 
+                        onClick={(e) => handleSubmit(e, 'Draft')}
+                        disabled={isSavingDraft || isSubmitting}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-100 transition-colors disabled:opacity-50"
+                    >
+                        {isSavingDraft && <Loader size="xs" />} Save Draft
                     </button>
                     <button 
-                        type="submit" 
-                        disabled={isSubmitting}
+                        type="button"
+                        onClick={(e) => handleSubmit(e, 'Published')}
+                        disabled={isSubmitting || isSavingDraft}
                         className="flex items-center gap-2 px-6 py-2.5 bg-brand-gold text-white font-bold rounded-xl hover:bg-brand-brown-dark transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        {isSubmitting ? <Loader size="xs" /> : <Save className="w-4 h-4" />}
                         {isSubmitting ? `Publishing ${Math.round(uploadProgress)}%` : 'Publish Post'}
                     </button>
                 </div>
@@ -298,7 +334,39 @@ export default function CreateBlogPage() {
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
                         <h3 className="font-agency text-xl text-brand-brown-dark border-b border-gray-100 pb-2">Publishing</h3>
 
-                        {/* Series Selection */}
+                        {/* Language Selection (New) */}
+                        <div>
+                            <label className="block text-xs font-bold text-brand-brown mb-1">Language</label>
+                            <div className="relative">
+                                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <select 
+                                    name="language"
+                                    value={formData.language}
+                                    onChange={handleChange}
+                                    className="w-full bg-white border border-gray-200 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer"
+                                >
+                                    <option value="English">English</option>
+                                    <option value="Hausa">Hausa</option>
+                                    <option value="Arabic">Arabic</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold text-brand-brown mb-1">Category</label>
+                            <select 
+                                name="category"
+                                value={formData.category}
+                                onChange={handleChange}
+                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
+                            >
+                                <option value="Article">Article</option>
+                                <option value="News">News & Updates</option>
+                                <option value="Research">Research & Publications</option>
+                            </select>
+                        </div>
+
+                        {/* Series Selection (Filtered) */}
                         <div className="bg-brand-sand/20 p-4 rounded-xl border border-brand-gold/20 mb-4">
                             <label className="flex items-center gap-2 text-xs font-bold text-brand-brown-dark uppercase tracking-wider mb-2">
                                 <LayoutList className="w-4 h-4" /> Add to Series
@@ -313,24 +381,14 @@ export default function CreateBlogPage() {
                                 {isLoadingSeries ? (
                                     <option disabled>Loading...</option>
                                 ) : (
-                                    availableSeries.map(s => (
-                                        <option key={s.id} value={s.title}>{s.title}</option>
-                                    ))
+                                    filteredSeries.length > 0 ? (
+                                        filteredSeries.map(s => (
+                                            <option key={s.id} value={s.title}>{s.title}</option>
+                                        ))
+                                    ) : (
+                                        <option disabled>No series found for this category/language</option>
+                                    )
                                 )}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-xs font-bold text-brand-brown mb-1">Category</label>
-                            <select 
-                                name="category"
-                                value={formData.category}
-                                onChange={handleChange}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                            >
-                                <option value="Article">Article</option>
-                                <option value="News">News & Updates</option>
-                                <option value="Research">Research & Publications</option>
                             </select>
                         </div>
 
