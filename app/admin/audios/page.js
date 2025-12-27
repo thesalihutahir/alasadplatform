@@ -17,31 +17,25 @@ import {
     ListMusic,
     MoreVertical,
     Mic,
-    Loader2,
-    Edit
+    Loader2
 } from 'lucide-react';
 
 export default function ManageAudiosPage() {
 
-    // State for Tabs
-    const [activeTab, setActiveTab] = useState('audios'); // 'audios' or 'series'
+    const [activeTab, setActiveTab] = useState('audios'); 
     const [isLoading, setIsLoading] = useState(true);
 
-    // Data State
     const [audios, setAudios] = useState([]);
     const [audioSeries, setAudioSeries] = useState([]);
 
-    // 1. FETCH AUDIOS & SERIES
     useEffect(() => {
         setIsLoading(true);
 
-        // Fetch Audios
         const qAudios = query(collection(db, "audios"), orderBy("createdAt", "desc"));
         const unsubAudios = onSnapshot(qAudios, (snapshot) => {
             setAudios(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         });
 
-        // Fetch Series
         const qSeries = query(collection(db, "audio_series"), orderBy("createdAt", "desc"));
         const unsubSeries = onSnapshot(qSeries, (snapshot) => {
             setAudioSeries(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -54,7 +48,6 @@ export default function ManageAudiosPage() {
         };
     }, []);
 
-    // 2. HANDLE DELETE
     const handleDelete = async (id, type) => {
         if (!confirm(`Are you sure you want to delete this ${type}? This cannot be undone.`)) return;
 
@@ -70,7 +63,6 @@ export default function ManageAudiosPage() {
         }
     };
 
-    // Helper to count tracks in a series
     const getSeriesCount = (seriesTitle) => {
         return audios.filter(a => a.series === seriesTitle).length;
     };
@@ -94,7 +86,6 @@ export default function ManageAudiosPage() {
                             Upload Audio
                         </Link>
                     ) : (
-                        // CHANGED: Link to new page
                         <Link 
                             href="/admin/audios/series/new"
                             className="flex items-center gap-2 px-5 py-2.5 bg-brand-brown-dark text-white rounded-xl text-sm font-bold hover:bg-brand-gold transition-colors shadow-md"
@@ -202,7 +193,7 @@ export default function ManageAudiosPage() {
                                         {audioSeries.map((series) => (
                                             <div key={series.id} className="group border border-gray-100 rounded-2xl overflow-hidden hover:shadow-lg transition-all hover:border-brand-gold/30">
                                                 <div className="relative w-full aspect-square bg-gray-100">
-                                                    <Image src={series.cover || "/hero.jpg"} alt={series.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                                                    <Image src={series.cover || "/fallback.webp"} alt={series.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
                                                     <div className="absolute bottom-3 right-3 bg-black/80 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1">
                                                         <Mic className="w-3 h-3" /> {getSeriesCount(series.title)}
                                                     </div>
