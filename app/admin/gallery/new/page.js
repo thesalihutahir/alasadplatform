@@ -5,10 +5,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 // Firebase
-import { db } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase';
 import { collection, addDoc, getDocs, serverTimestamp, query, orderBy } from 'firebase/firestore';
-// UploadThing
-import { UploadDropzone } from '@/lib/uploadthing';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 import { 
     ArrowLeft, 
@@ -17,21 +16,22 @@ import {
     X, 
     Image as ImageIcon,
     Loader2,
-    CheckCircle
+    CheckCircle,
+    UploadCloud
 } from 'lucide-react';
 
 export default function UploadPhotosPage() {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingAlbums, setIsLoadingAlbums] = useState(true);
+    const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
 
     // Data State
     const [availableAlbums, setAvailableAlbums] = useState([]);
     const [selectedAlbum, setSelectedAlbum] = useState("");
-    
-    // This holds the successful uploads from UploadThing before we save to DB
-    // Structure: { url: string, key: string, name: string }
-    const [uploadedFiles, setUploadedFiles] = useState([]);
+
+    // Selected Files State (Local Previews)
+    const [selectedFiles, setSelectedFiles] = useState([]);
 
     // 1. Fetch Albums on Mount
     useEffect(() => {
@@ -54,42 +54,82 @@ export default function UploadPhotosPage() {
         fetchAlbums();
     }, []);
 
-    // Remove file from the "To Be Published" list
+    // Handle File Selection (Multiple)
+    const handleFileSelect = (e) => {
+        const files = Array.from(e.target.files);
+        
+        // Filter valid images (max 5MB)
+        const validFiles = files.filter(file => {
+            if (!file.type.startsWith('image/')) return false;
+            if (file.size > 5 * 1024 * 1024) return false;
+            return true;
+        });
+
+        if (validFiles.length < files.length) {
+            alert("Some files were skipped (Must be image & under 5MB).");
+        }
+
+        // Create previews
+        const newFileObjects = validFiles.map(file => ({
+            file: file,
+            preview: URL.createObjectURL(file),
+            name: file.name
+        }));
+
+        setSelectedFiles(prev => [...prev, ...newFileObjects]);
+    };
+
+    // Remove file from list
     const removeFile = (index) => {
-        setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+        setSelectedFiles(prev => prev.filter((_, i) => i !== index));
     };
 
     // 2. Handle Final Save to Firebase
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
-        if (uploadedFiles.length === 0) {
-            alert("Please upload at least one photo first.");
+
+        if (selectedFiles.length === 0) {
+            alert("Please select at least one photo first.");
             return;
         }
 
         setIsSubmitting(true);
+        setUploadProgress({ current: 0, total: selectedFiles.length });
 
         try {
-            // We save each photo as a separate document
-            const uploadPromises = uploadedFiles.map(file => {
+            // Upload Loop
+            const uploadPromises = selectedFiles.map(async (fileObj, index) => {
+                const file = fileObj.file;
+                
+                // 1. Upload to Storage
+                const storageRef = ref(storage, `gallery/${Date.now()}_${index}_${file.name}`);
+                const uploadTask = uploadBytesResumable(storageRef, file);
+
+                // Wait for upload
+                await uploadTask; 
+                const url = await getDownloadURL(uploadTask.snapshot.ref);
+
+                // Update Progress
+                setUploadProgress(prev => ({ ...prev, current: prev.current + 1 }));
+
+                // 2. Save Metadata to Firestore
                 return addDoc(collection(db, "gallery_photos"), {
-                    url: file.url,
-                    fileKey: file.key, // Good for future deletion via API
+                    url: url,
                     name: file.name,
                     albumId: selectedAlbum || "uncategorized",
                     createdAt: serverTimestamp()
                 });
             });
 
+            // Wait for ALL uploads to finish
             await Promise.all(uploadPromises);
 
-            alert(`Successfully published ${uploadedFiles.length} photos!`);
+            alert(`Successfully published ${selectedFiles.length} photos!`);
             router.push('/admin/gallery');
 
         } catch (error) {
             console.error("Error saving photos:", error);
-            alert("Failed to save photos to database.");
+            alert("Failed to save photos. Check console.");
         } finally {
             setIsSubmitting(false);
         }
@@ -117,15 +157,15 @@ export default function UploadPhotosPage() {
                     </Link>
                     <button 
                         type="submit" 
-                        disabled={uploadedFiles.length === 0 || isSubmitting} 
+                        disabled={selectedFiles.length === 0 || isSubmitting} 
                         className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 font-bold rounded-xl shadow-md text-white transition-colors ${
-                            uploadedFiles.length > 0 
+                            selectedFiles.length > 0 
                             ? 'bg-brand-gold hover:bg-brand-brown-dark' 
                             : 'bg-gray-300 cursor-not-allowed'
                         }`}
                     >
                         {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        {isSubmitting ? 'Saving...' : `Publish (${uploadedFiles.length})`}
+                        {isSubmitting ? `Uploading ${uploadProgress.current}/${uploadProgress.total}` : `Publish (${selectedFiles.length})`}
                     </button>
                 </div>
             </div>
@@ -159,36 +199,23 @@ export default function UploadPhotosPage() {
                         </p>
                     </div>
 
-                    {/* UploadThing Dropzone */}
+                    {/* Simple Upload Box */}
                     <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
                         <h3 className="font-bold text-brand-brown-dark text-sm mb-3 px-2">Add Photos</h3>
-                        
-                        <UploadDropzone
-                            endpoint="imageUploader"
-                            onClientUploadComplete={(res) => {
-                                if (res) {
-                                    // Append new files to existing state
-                                    const newFiles = res.map(file => ({
-                                        url: file.url,
-                                        key: file.key,
-                                        name: file.name
-                                    }));
-                                    setUploadedFiles(prev => [...prev, ...newFiles]);
-                                    alert(`${res.length} photo(s) uploaded! Review them on the right.`);
-                                }
-                            }}
-                            onUploadError={(error) => {
-                                alert(`Error: ${error.message}`);
-                            }}
-                            appearance={{
-                                container: "border-2 border-dashed border-brand-gold/30 bg-brand-sand/10 rounded-xl h-64 hover:bg-brand-sand/20 transition-colors",
-                                label: "text-brand-brown-dark hover:text-brand-gold",
-                                button: "bg-brand-brown-dark text-white text-xs px-4 py-2 rounded-lg font-bold"
-                            }}
-                        />
-                        <p className="text-[10px] text-gray-400 text-center mt-2">
-                            Max 4MB per file. You can upload multiple files at once.
-                        </p>
+
+                        <div className="border-2 border-dashed border-brand-gold/30 bg-brand-sand/10 rounded-xl h-64 hover:bg-brand-sand/20 transition-colors relative flex flex-col items-center justify-center text-center p-4">
+                            <UploadCloud className="w-10 h-10 text-brand-brown-dark mb-2" />
+                            <p className="text-sm font-bold text-brand-brown-dark">Click to Select Photos</p>
+                            <p className="text-xs text-gray-400 mt-1">Max 5MB per file</p>
+                            
+                            <input 
+                                type="file" 
+                                multiple
+                                accept="image/*"
+                                onChange={handleFileSelect}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -197,36 +224,32 @@ export default function UploadPhotosPage() {
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 min-h-[400px]">
                         <h3 className="font-agency text-xl text-brand-brown-dark border-b border-gray-100 pb-2 mb-4 flex justify-between items-center">
                             <span>Ready to Publish</span>
-                            <span className="text-xs font-lato text-gray-400">{uploadedFiles.length} items</span>
+                            <span className="text-xs font-lato text-gray-400">{selectedFiles.length} items</span>
                         </h3>
 
-                        {uploadedFiles.length === 0 ? (
+                        {selectedFiles.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-64 text-gray-300">
                                 <ImageIcon className="w-12 h-12 mb-2 opacity-50" />
-                                <p className="text-sm">No photos uploaded yet</p>
+                                <p className="text-sm">No photos selected yet</p>
                                 <p className="text-xs mt-1">Use the box on the left to add photos</p>
                             </div>
                         ) : (
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                {uploadedFiles.map((file, index) => (
-                                    <div key={file.key || index} className="relative aspect-square rounded-lg overflow-hidden group bg-gray-100 shadow-sm border border-gray-200">
+                                {selectedFiles.map((fileObj, index) => (
+                                    <div key={index} className="relative aspect-square rounded-lg overflow-hidden group bg-gray-100 shadow-sm border border-gray-200">
                                         <Image 
-                                            src={file.url} 
+                                            src={fileObj.preview} 
                                             alt="Preview" 
                                             fill 
                                             className="object-cover" 
                                         />
-                                        
-                                        {/* Success Checkmark overlay */}
-                                        <div className="absolute top-2 left-2 bg-white rounded-full text-green-500 p-0.5 shadow-sm">
-                                            <CheckCircle className="w-4 h-4" />
-                                        </div>
 
                                         {/* Remove Button */}
                                         <button 
                                             type="button" 
                                             onClick={() => removeFile(index)} 
-                                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                                            disabled={isSubmitting}
+                                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 disabled:hidden"
                                             title="Remove from list"
                                         >
                                             <X className="w-3 h-3" />
@@ -234,7 +257,7 @@ export default function UploadPhotosPage() {
 
                                         {/* Filename caption */}
                                         <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-1.5 backdrop-blur-sm">
-                                            <p className="text-[10px] text-white truncate text-center">{file.name}</p>
+                                            <p className="text-[10px] text-white truncate text-center">{fileObj.name}</p>
                                         </div>
                                     </div>
                                 ))}
