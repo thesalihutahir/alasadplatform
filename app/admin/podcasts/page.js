@@ -5,23 +5,17 @@ import Link from 'next/link';
 import Image from 'next/image';
 // Firebase
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, onSnapshot, deleteDoc, doc, addDoc, serverTimestamp } from 'firebase/firestore';
-// UploadThing
-import { UploadButton } from '@/lib/uploadthing';
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 
 import { 
     PlusCircle, 
     Search, 
     Edit, 
     Trash2, 
-    Play, 
-    Headphones, 
     Mic, 
     LayoutGrid, 
     List,
-    Loader2,
-    X,
-    Image as ImageIcon
+    Loader2
 } from 'lucide-react';
 
 export default function ManagePodcastsPage() {
@@ -32,15 +26,6 @@ export default function ManagePodcastsPage() {
     // Data State
     const [episodes, setEpisodes] = useState([]);
     const [shows, setShows] = useState([]);
-
-    // --- CREATE SHOW MODAL STATE ---
-    const [isShowModalOpen, setIsShowModalOpen] = useState(false);
-    const [isCreatingShow, setIsCreatingShow] = useState(false);
-    const [newShow, setNewShow] = useState({
-        title: '',
-        host: 'Sheikh Muneer',
-        cover: ''
-    });
 
     // 1. FETCH DATA (Real-time)
     useEffect(() => {
@@ -65,38 +50,7 @@ export default function ManagePodcastsPage() {
         };
     }, []);
 
-    // 2. HANDLE CREATE SHOW
-    const handleSaveShow = async (e) => {
-        e.preventDefault();
-        setIsCreatingShow(true);
-
-        try {
-            if (!newShow.title) {
-                alert("Please enter a show title.");
-                setIsCreatingShow(false);
-                return;
-            }
-
-            await addDoc(collection(db, "podcast_shows"), {
-                ...newShow,
-                count: 0, // Initial episode count
-                cover: newShow.cover || "/hero.jpg",
-                createdAt: serverTimestamp()
-            });
-
-            alert("Show created successfully!");
-            setIsShowModalOpen(false);
-            setNewShow({ title: '', host: 'Sheikh Muneer', cover: '' });
-
-        } catch (error) {
-            console.error("Error creating show:", error);
-            alert("Failed to create show.");
-        } finally {
-            setIsCreatingShow(false);
-        }
-    };
-
-    // 3. HANDLE DELETE
+    // 2. HANDLE DELETE
     const handleDelete = async (id, type) => {
         if (!confirm(`Are you sure you want to delete this ${type}? This cannot be undone.`)) return;
 
@@ -131,13 +85,13 @@ export default function ManagePodcastsPage() {
                             New Episode
                         </Link>
                     ) : (
-                        <button 
-                            onClick={() => setIsShowModalOpen(true)}
+                        <Link 
+                            href="/admin/podcasts/shows/new"
                             className="flex items-center gap-2 px-5 py-2.5 bg-brand-brown-dark text-white rounded-xl text-sm font-bold hover:bg-brand-gold transition-colors shadow-md"
                         >
                             <Mic className="w-4 h-4" />
                             Create Show
-                        </button>
+                        </Link>
                     )}
                 </div>
             </div>
@@ -174,7 +128,7 @@ export default function ManagePodcastsPage() {
 
             {/* 3. CONTENT */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[300px]">
-                
+
                 {isLoading ? (
                     <div className="flex items-center justify-center h-64">
                         <Loader2 className="w-8 h-8 text-brand-gold animate-spin" />
@@ -203,7 +157,7 @@ export default function ManagePodcastsPage() {
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-4">
                                                             <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-                                                                <Image src={ep.thumbnail || "/hero.jpg"} alt={ep.title} fill className="object-cover" />
+                                                                <Image src={ep.thumbnail || "/fallback.webp"} alt={ep.title} fill className="object-cover" />
                                                             </div>
                                                             <div>
                                                                 <h3 className="font-bold text-brand-brown-dark text-sm line-clamp-1">{ep.title}</h3>
@@ -249,17 +203,16 @@ export default function ManagePodcastsPage() {
                                         {shows.map((show) => (
                                             <div key={show.id} className="group border border-gray-100 rounded-2xl overflow-hidden hover:shadow-lg transition-all hover:border-brand-gold/30 flex gap-4 p-4 items-center bg-brand-sand/10">
                                                 <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 shadow-md">
-                                                    <Image src={show.cover || "/hero.jpg"} alt={show.title} fill className="object-cover" />
+                                                    <Image src={show.cover || "/fallback.webp"} alt={show.title} fill className="object-cover" />
                                                 </div>
                                                 <div className="flex-grow">
                                                     <h3 className="font-agency text-lg text-brand-brown-dark leading-none mb-1">{show.title}</h3>
                                                     <p className="text-xs text-gray-500 mb-2">{show.host}</p>
                                                     <span className="text-[10px] bg-white border border-gray-200 px-2 py-0.5 rounded-full font-bold text-brand-gold">
-                                                        {show.count} Episodes
+                                                        {show.count || 0} Episodes
                                                     </span>
                                                 </div>
                                                 <div className="flex flex-col gap-2">
-                                                    <button className="p-1.5 text-gray-400 hover:text-blue-600 rounded"><Edit className="w-3 h-3" /></button>
                                                     <button onClick={() => handleDelete(show.id, 'show')} className="p-1.5 text-gray-400 hover:text-red-600 rounded"><Trash2 className="w-3 h-3" /></button>
                                                 </div>
                                             </div>
@@ -271,73 +224,6 @@ export default function ManagePodcastsPage() {
                     </>
                 )}
             </div>
-
-            {/* --- CREATE SHOW MODAL --- */}
-            {isShowModalOpen && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50">
-                            <h3 className="font-agency text-xl text-brand-brown-dark">Create New Show</h3>
-                            <button onClick={() => setIsShowModalOpen(false)} className="text-gray-400 hover:text-red-500 transition-colors">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                        <form onSubmit={handleSaveShow} className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-brand-brown mb-1">Show Title</label>
-                                <input 
-                                    type="text" 
-                                    value={newShow.title}
-                                    onChange={(e) => setNewShow({...newShow, title: e.target.value})}
-                                    placeholder="e.g. The Young Believer" 
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-brand-brown mb-1">Host Name</label>
-                                <input 
-                                    type="text" 
-                                    value={newShow.host}
-                                    onChange={(e) => setNewShow({...newShow, host: e.target.value})}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-brand-brown mb-2">Cover Art</label>
-                                <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center text-center bg-gray-50 hover:bg-white hover:border-brand-gold transition-colors">
-                                    {newShow.cover ? (
-                                        <div className="relative w-20 h-20 rounded-lg overflow-hidden">
-                                            <Image src={newShow.cover} alt="Cover" fill className="object-cover" />
-                                            <button type="button" onClick={() => setNewShow({...newShow, cover: ''})} className="absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl"><X className="w-3 h-3" /></button>
-                                        </div>
-                                    ) : (
-                                        <UploadButton
-                                            endpoint="imageUploader"
-                                            onClientUploadComplete={(res) => {
-                                                if (res && res[0]) setNewShow(prev => ({ ...prev, cover: res[0].url }));
-                                            }}
-                                            onUploadError={(error) => alert(`Error! ${error.message}`)}
-                                            appearance={{ button: "bg-brand-brown-dark text-white text-xs px-3 py-2 rounded-lg" }}
-                                            content={{ button({ ready }) { return ready ? 'Upload Image' : '...' } }}
-                                        />
-                                    )}
-                                </div>
-                            </div>
-                            <div className="pt-2">
-                                <button 
-                                    type="submit" 
-                                    disabled={isCreatingShow}
-                                    className="w-full flex items-center justify-center gap-2 py-3 bg-brand-gold text-white font-bold rounded-xl hover:bg-brand-brown-dark transition-colors shadow-md disabled:opacity-50"
-                                >
-                                    {isCreatingShow ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                    {isCreatingShow ? 'Creating...' : 'Create Show'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
         </div>
     );
 }
