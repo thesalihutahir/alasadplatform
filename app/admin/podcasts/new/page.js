@@ -30,7 +30,7 @@ export default function AddPodcastPage() {
         url: '', // YouTube URL
         show: '',
         episodeNumber: '',
-        season: '1',
+        season: '',
         description: '',
         date: new Date().toISOString().split('T')[0]
     });
@@ -91,7 +91,7 @@ export default function AddPodcastPage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!isValid || !videoId) {
             alert("Please enter a valid YouTube URL first.");
             return;
@@ -166,7 +166,7 @@ export default function AddPodcastPage() {
 
                 {/* LEFT: YouTube Input & Preview */}
                 <div className="space-y-6">
-                    
+
                     {/* URL Input */}
                     <div className={`p-6 rounded-2xl shadow-sm border transition-colors ${isValid ? 'bg-green-50 border-green-200' : 'bg-white border-gray-100'}`}>
                         <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
@@ -246,7 +246,7 @@ export default function AddPodcastPage() {
                             name="title" 
                             value={formData.title} 
                             onChange={handleChange} 
-                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50" 
+                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50" 
                         />
                     </div>
 
@@ -259,7 +259,7 @@ export default function AddPodcastPage() {
                                 value={formData.episodeNumber} 
                                 onChange={handleChange} 
                                 placeholder="e.g. 05" 
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50" 
+                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50" 
                             />
                         </div>
                         <div>
@@ -269,7 +269,7 @@ export default function AddPodcastPage() {
                                 name="season" 
                                 value={formData.season} 
                                 onChange={handleChange} 
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50" 
+                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50" 
                             />
                         </div>
                     </div>
@@ -281,7 +281,7 @@ export default function AddPodcastPage() {
                             name="date" 
                             value={formData.date} 
                             onChange={handleChange} 
-                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50" 
+                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50" 
                         />
                     </div>
 
@@ -292,7 +292,7 @@ export default function AddPodcastPage() {
                             value={formData.description} 
                             onChange={handleChange} 
                             rows="3" 
-                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
                         ></textarea>
                     </div>
                 </div>
