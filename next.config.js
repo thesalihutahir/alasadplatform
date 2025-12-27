@@ -4,15 +4,18 @@ const nextConfig = {
         remotePatterns: [
             {
                 protocol: "https",
-                hostname: "firebasestorage.googleapis.com", // Added for Firebase Storage
+                hostname: "firebasestorage.googleapis.com", 
             },
             {
                 protocol: "https",
                 hostname: "img.clerk.com", 
+            },
+            {
+                protocol: "https",
+                hostname: "img.youtube.com",
             }
         ],
     },
-
     typescript: {
         ignoreBuildErrors: true,
     }
