@@ -5,33 +5,53 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 // Firebase
-import { db } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-// UploadThing
-import { UploadButton } from '@/lib/uploadthing';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 import { 
     ArrowLeft, 
     Save, 
-    LayoutList, 
-    X,
-    Image as ImageIcon,
+    X, 
+    Image as ImageIcon, 
     Loader2
 } from 'lucide-react';
 
 export default function CreatePlaylistPage() {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
 
     const [formData, setFormData] = useState({
         title: '',
         category: 'General',
-        cover: '' // UploadThing URL
+        cover: '' // Will store Firebase Storage URL
     });
+
+    // Image File State
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) { // 5MB Limit
+                alert("Image size must be less than 5MB");
+                return;
+            }
+            setImageFile(file);
+            setImagePreview(URL.createObjectURL(file));
+        }
+    };
+
+    const removeImage = () => {
+        setImageFile(null);
+        setImagePreview(null);
     };
 
     const handleSubmit = async (e) => {
@@ -45,11 +65,35 @@ export default function CreatePlaylistPage() {
         setIsSubmitting(true);
 
         try {
+            let coverUrl = "/hero.jpg"; // Default fallback
+
+            // 1. Upload Cover Image (if selected)
+            if (imageFile) {
+                const storageRef = ref(storage, `playlist_covers/${Date.now()}_${imageFile.name}`);
+                const uploadTask = uploadBytesResumable(storageRef, imageFile);
+
+                // Wait for upload to complete
+                await new Promise((resolve, reject) => {
+                    uploadTask.on('state_changed',
+                        (snapshot) => {
+                            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                            setUploadProgress(progress);
+                        },
+                        (error) => reject(error),
+                        async () => {
+                            coverUrl = await getDownloadURL(uploadTask.snapshot.ref);
+                            resolve();
+                        }
+                    );
+                });
+            }
+
+            // 2. Save Playlist Metadata
             await addDoc(collection(db, "video_playlists"), {
                 ...formData,
+                cover: coverUrl,
                 count: 0, 
                 status: "Active",
-                cover: formData.cover || "/hero.jpg", 
                 createdAt: serverTimestamp()
             });
 
@@ -110,40 +154,41 @@ export default function CreatePlaylistPage() {
                     </select>
                 </div>
 
-                {/* Cover Image Upload */}
+                {/* Cover Image Upload (Firebase) */}
                 <div>
                     <label className="block text-xs font-bold text-brand-brown mb-2">Cover Image</label>
-                    <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center bg-gray-50 hover:bg-white hover:border-brand-gold transition-colors">
-                        {formData.cover ? (
+                    <div className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-colors ${
+                        imagePreview ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200 hover:bg-white hover:border-brand-gold'
+                    }`}>
+                        {imagePreview ? (
                             <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-md">
-                                <Image src={formData.cover} alt="Cover Preview" fill className="object-cover" />
+                                <Image src={imagePreview} alt="Cover Preview" fill className="object-cover" />
                                 <button 
                                     type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, cover: '' }))}
+                                    onClick={removeImage}
                                     className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full shadow-md hover:bg-red-600"
                                 >
                                     <X className="w-4 h-4" />
                                 </button>
+                                {isSubmitting && (
+                                    <div className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[10px] text-center py-1">
+                                        Uploading: {Math.round(uploadProgress)}%
+                                    </div>
+                                )}
                             </div>
                         ) : (
-                            <div className="py-4">
+                            <div className="py-4 relative w-full">
                                 <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm text-gray-400">
                                     <ImageIcon className="w-6 h-6" />
                                 </div>
-                                <UploadButton
-                                    endpoint="imageUploader"
-                                    onClientUploadComplete={(res) => {
-                                        if (res && res[0]) {
-                                            setFormData(prev => ({ ...prev, cover: res[0].url }));
-                                        }
-                                    }}
-                                    onUploadError={(error) => alert(`Error! ${error.message}`)}
-                                    appearance={{
-                                        button: "bg-brand-brown-dark text-white text-xs px-4 py-2 rounded-lg font-bold"
-                                    }}
-                                    content={{ button({ ready }) { return ready ? 'Upload Cover Image' : 'Loading...' } }}
+                                <p className="text-sm text-gray-500 font-bold">Click to Upload Cover</p>
+                                <p className="text-[10px] text-gray-400 mt-1">Recommended: 16:9 Aspect Ratio</p>
+                                <input 
+                                    type="file" 
+                                    accept="image/*"
+                                    onChange={handleImageChange}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                 />
-                                <p className="text-[10px] text-gray-400 mt-3">Recommended: 16:9 Aspect Ratio (e.g. 1280x720)</p>
                             </div>
                         )}
                     </div>
