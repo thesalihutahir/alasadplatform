@@ -123,8 +123,9 @@ export default function VideosPage() {
                                             className="snap-center min-w-[260px] md:min-w-0 bg-brand-sand/30 rounded-2xl overflow-hidden cursor-pointer group hover:shadow-lg transition-all"
                                         >
                                             <div className="relative w-full aspect-[16/10] bg-gray-200">
+                                                {/* Fallback to fallback.webp */}
                                                 <Image 
-                                                    src={playlist.cover || "/hero.jpg"} 
+                                                    src={playlist.cover || "/fallback.webp"} 
                                                     alt={playlist.title} 
                                                     fill 
                                                     className="object-cover transition-transform duration-700 group-hover:scale-105"
@@ -138,7 +139,7 @@ export default function VideosPage() {
                                                     <ListVideo className="w-3 h-3" /> {playlist.count || 0} Videos
                                                 </div>
                                             </div>
-                                            
+
                                             <div className="p-4">
                                                 <h3 className="font-agency text-lg md:text-xl text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors line-clamp-1">
                                                     {playlist.title}
@@ -196,8 +197,9 @@ export default function VideosPage() {
                                         >
                                             {/* Thumbnail Container */}
                                             <div className="relative w-full aspect-video bg-gray-900">
+                                                {/* Fallback to fallback.webp */}
                                                 <Image
-                                                    src={video.thumbnail || "/hero.jpg"}
+                                                    src={video.thumbnail || "/fallback.webp"}
                                                     alt={video.title}
                                                     fill
                                                     className="object-cover opacity-90 group-hover:opacity-100 transition-opacity"
@@ -207,7 +209,6 @@ export default function VideosPage() {
                                                         <Play className="w-5 h-5 md:w-7 md:h-7 text-white fill-current ml-1" />
                                                     </div>
                                                 </div>
-                                                {/* Generic duration since we don't have exact length from simple link */}
                                                 <div className="absolute bottom-3 right-3 bg-black/70 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1">
                                                     <Clock className="w-3 h-3" /> Watch
                                                 </div>
