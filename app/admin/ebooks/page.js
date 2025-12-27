@@ -22,50 +22,33 @@ import {
 
 export default function ManageEbooksPage() {
 
-    const [activeTab, setActiveTab] = useState('books'); // 'books' or 'collections'
+    const [activeTab, setActiveTab] = useState('books'); 
     const [isLoading, setIsLoading] = useState(true);
 
-    // Data State
     const [books, setBooks] = useState([]);
-    
-    // Mock Data: Collections (Backend logic coming later)
-    const [collections, setCollections] = useState([
-        {
-            id: 1,
-            title: "Tafsir Volumes (1-10)",
-            count: 10,
-            category: "Tafsir",
-            status: "Completed",
-            cover: "/hero.jpg"
-        },
-        {
-            id: 2,
-            title: "Ramadan Essentials",
-            count: 5,
-            category: "Fiqh",
-            status: "Active",
-            cover: "/hero.jpg"
-        }
-    ]);
+    const [collections, setCollections] = useState([]);
 
-    // 1. FETCH BOOKS FROM FIREBASE (Real-time)
+    // 1. FETCH BOOKS & COLLECTIONS
     useEffect(() => {
         setIsLoading(true);
-        const q = query(collection(db, "ebooks"), orderBy("createdAt", "desc"));
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const booksData = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-            setBooks(booksData);
-            setIsLoading(false);
-        }, (error) => {
-            console.error("Error fetching books:", error);
+        // Fetch Books
+        const qBooks = query(collection(db, "ebooks"), orderBy("createdAt", "desc"));
+        const unsubBooks = onSnapshot(qBooks, (snapshot) => {
+            setBooks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        });
+
+        // Fetch Collections
+        const qCollections = query(collection(db, "ebook_collections"), orderBy("createdAt", "desc"));
+        const unsubCollections = onSnapshot(qCollections, (snapshot) => {
+            setCollections(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
             setIsLoading(false);
         });
 
-        return () => unsubscribe();
+        return () => {
+            unsubBooks();
+            unsubCollections();
+        };
     }, []);
 
     // 2. HANDLE DELETE
@@ -76,12 +59,17 @@ export default function ManageEbooksPage() {
             if (type === 'book') {
                 await deleteDoc(doc(db, "ebooks", id));
             } else {
-                setCollections(prev => prev.filter(c => c.id !== id));
+                await deleteDoc(doc(db, "ebook_collections", id));
             }
         } catch (error) {
             console.error("Error deleting:", error);
             alert("Failed to delete. Check console.");
         }
+    };
+
+    // Helper to count books in a collection
+    const getCollectionCount = (collectionTitle) => {
+        return books.filter(b => b.collection === collectionTitle).length;
     };
 
     return (
@@ -103,13 +91,13 @@ export default function ManageEbooksPage() {
                             Upload Book
                         </Link>
                     ) : (
-                        <button 
-                            onClick={() => alert("Open Create Collection Modal (Coming Soon)")}
+                        <Link 
+                            href="/admin/ebooks/collections/new"
                             className="flex items-center gap-2 px-5 py-2.5 bg-brand-brown-dark text-white rounded-xl text-sm font-bold hover:bg-brand-gold transition-colors shadow-md"
                         >
                             <Library className="w-4 h-4" />
                             Create Collection
-                        </button>
+                        </Link>
                     )}
                 </div>
             </div>
@@ -150,7 +138,7 @@ export default function ManageEbooksPage() {
 
             {/* 3. CONTENT */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[300px]">
-                
+
                 {isLoading ? (
                     <div className="flex items-center justify-center h-64">
                         <Loader2 className="w-8 h-8 text-brand-gold animate-spin" />
@@ -183,13 +171,7 @@ export default function ManageEbooksPage() {
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-4">
                                                             <div className="relative w-10 h-14 rounded overflow-hidden flex-shrink-0 bg-gray-100 shadow-sm border border-gray-200">
-                                                                {book.coverUrl ? (
-                                                                    <Image src={book.coverUrl} alt={book.title} fill className="object-cover" />
-                                                                ) : (
-                                                                    <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                                                                        <Book className="w-4 h-4 text-gray-400" />
-                                                                    </div>
-                                                                )}
+                                                                <Image src={book.coverUrl || "/fallback.webp"} alt={book.title} fill className="object-cover" />
                                                             </div>
                                                             <div>
                                                                 <h3 className="font-bold text-brand-brown-dark text-sm line-clamp-1 max-w-[200px]">{book.title}</h3>
@@ -229,9 +211,6 @@ export default function ManageEbooksPage() {
                                                             >
                                                                 <Download className="w-4 h-4" />
                                                             </a>
-                                                            <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="Edit (Coming Soon)">
-                                                                <Edit className="w-4 h-4" />
-                                                            </button>
                                                             <button 
                                                                 onClick={() => handleDelete(book.id, 'book')} 
                                                                 className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
@@ -251,25 +230,34 @@ export default function ManageEbooksPage() {
 
                         {/* --- COLLECTIONS VIEW --- */}
                         {activeTab === 'collections' && (
-                            <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                                {collections.map((col) => (
-                                    <div key={col.id} className="group border border-gray-100 rounded-2xl p-4 flex gap-4 hover:shadow-lg transition-all bg-white relative">
-                                        <div className="relative w-20 h-28 flex-shrink-0 shadow-md transform group-hover:-rotate-2 transition-transform">
-                                            <Image src={col.cover} alt={col.title} fill className="object-cover rounded" />
-                                            <div className="absolute top-1 -right-1 w-full h-full bg-gray-200 rounded -z-10 border border-gray-300"></div>
-                                        </div>
-                                        <div className="flex-grow">
-                                            <div className="flex justify-between items-start">
-                                                <span className="text-[10px] font-bold text-brand-gold uppercase tracking-wider mb-1 block">{col.category}</span>
-                                                <button className="text-gray-400 hover:text-brand-brown-dark"><MoreVertical className="w-4 h-4" /></button>
-                                            </div>
-                                            <h3 className="font-agency text-lg text-brand-brown-dark leading-tight mb-2">{col.title}</h3>
-                                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full font-bold flex items-center gap-1 w-fit">
-                                                <Book className="w-3 h-3" /> {col.count} Books
-                                            </span>
-                                        </div>
+                            <div className="p-6">
+                                {collections.length === 0 ? (
+                                    <div className="text-center py-12 text-gray-400">
+                                        <Library className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                        <p>No collections created yet.</p>
                                     </div>
-                                ))}
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        {collections.map((col) => (
+                                            <div key={col.id} className="group border border-gray-100 rounded-2xl p-4 flex gap-4 hover:shadow-lg transition-all bg-white relative">
+                                                <div className="relative w-20 h-28 flex-shrink-0 shadow-md transform group-hover:-rotate-2 transition-transform">
+                                                    <Image src={col.cover || "/fallback.webp"} alt={col.title} fill className="object-cover rounded" />
+                                                    <div className="absolute top-1 -right-1 w-full h-full bg-gray-200 rounded -z-10 border border-gray-300"></div>
+                                                </div>
+                                                <div className="flex-grow">
+                                                    <div className="flex justify-between items-start">
+                                                        <span className="text-[10px] font-bold text-brand-gold uppercase tracking-wider mb-1 block">{col.category}</span>
+                                                        <button onClick={() => handleDelete(col.id, 'collection')} className="text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                                                    </div>
+                                                    <h3 className="font-agency text-lg text-brand-brown-dark leading-tight mb-2 line-clamp-2">{col.title}</h3>
+                                                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full font-bold flex items-center gap-1 w-fit">
+                                                        <Book className="w-3 h-3" /> {getCollectionCount(col.title)} Books
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </>
