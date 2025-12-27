@@ -1,7 +1,5 @@
-const { withUt } = require("uploadthing/tw");
-
 /** @type {import('tailwindcss').Config} */
-module.exports = withUt({
+module.exports = {
   content: [
     './app/**/*.{js,ts,jsx,tsx,mdx}',
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
@@ -20,7 +18,6 @@ module.exports = withUt({
         // Define custom font families
         'agency': ['AgencyRegular', 'sans-serif'], // For headings
         'lato': ['LatoRegular', 'sans-serif'],     // For body text
-        // I added this one back so the Arabic Quote we just built doesn't break
         'tajawal': ['Tajawal', 'sans-serif'],      
       },
       backgroundImage: {
@@ -30,4 +27,4 @@ module.exports = withUt({
     },
   },
   plugins: [],
-});
+};
