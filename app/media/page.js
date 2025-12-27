@@ -1,24 +1,29 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { Play, Mic, Video, BookOpen, Camera, Headphones, ArrowRight } from 'lucide-react';
+// Firebase
+import { db } from '@/lib/firebase';
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { Play, Mic, Video, BookOpen, Camera, Headphones, ArrowRight, Loader2 } from 'lucide-react';
 
 export default function MediaPage() {
-    // State to handle Video Facade
+    // State to handle Video Facade & Data
     const [playVideo, setPlayVideo] = useState(false);
+    const [latestVideo, setLatestVideo] = useState(null);
+    const [loading, setLoading] = useState(true);
 
-    // Media Categories Configuration
+    // Media Categories Configuration (Static Navigation)
     const categories = [
         {
             id: 'videos',
             title: 'Videos',
             subtitle: 'Lectures & Events',
             link: '/media/videos',
-            image: '/images/heroes/media-videos-hero.webp', // Placeholder
+            image: '/images/heroes/media-videos-hero.webp',
             icon: Video
         },
         {
@@ -26,7 +31,7 @@ export default function MediaPage() {
             title: 'Audios',
             subtitle: 'Sermons & Tafsir',
             link: '/media/audios',
-            image: '/images/heroes/media-audios-hero.webp', // Placeholder
+            image: '/images/heroes/media-audios-hero.webp',
             icon: Mic 
         },
         {
@@ -34,7 +39,7 @@ export default function MediaPage() {
             title: 'Podcasts',
             subtitle: 'Discussions',
             link: '/media/podcasts',
-            image: '/images/heroes/media-podcasts-hero.webp', // Placeholder
+            image: '/images/heroes/media-podcasts-hero.webp',
             icon: Headphones
         },
         {
@@ -42,7 +47,7 @@ export default function MediaPage() {
             title: 'eBooks',
             subtitle: 'Publications',
             link: '/media/ebooks',
-            image: '/images/heroes/media-ebooks-hero.webp', // Placeholder
+            image: '/images/heroes/media-ebooks-hero.webp',
             icon: BookOpen
         },
         {
@@ -50,10 +55,34 @@ export default function MediaPage() {
             title: 'Gallery',
             subtitle: 'Photos & Moments',
             link: '/media/gallery',
-            image: '/images/heroes/media-gallery-hero.webp', // Placeholder
+            image: '/images/heroes/media-gallery-hero.webp',
             icon: Camera
         }
     ];
+
+    // --- FETCH LATEST VIDEO ---
+    useEffect(() => {
+        const fetchLatestVideo = async () => {
+            try {
+                const q = query(
+                    collection(db, "videos"), 
+                    orderBy("createdAt", "desc"), 
+                    limit(1)
+                );
+                const snapshot = await getDocs(q);
+                if (!snapshot.empty) {
+                    const docData = snapshot.docs[0].data();
+                    setLatestVideo({ id: snapshot.docs[0].id, ...docData });
+                }
+            } catch (error) {
+                console.error("Error fetching latest video:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchLatestVideo();
+    }, []);
 
     return (
         <div className="min-h-screen flex flex-col bg-white font-lato">
@@ -65,13 +94,12 @@ export default function MediaPage() {
                 <section className="w-full relative bg-white mb-12 md:mb-16">
                     <div className="relative w-full aspect-[2.5/1] md:aspect-[3.5/1] lg:aspect-[4/1]">
                         <Image
-                            src="/images/heroes/media-overview-hero.webp" // Placeholder: Library or Recording studio image
+                            src="/images/heroes/media-overview-hero.webp" 
                             alt="Media Library Hero"
                             fill
                             className="object-cover object-center"
                             priority
                         />
-                        {/* Gradient Overlay - FIXED NESTING */}
                         <div className="absolute inset-0 bg-gradient-to-t from-white via-brand-gold/40 to-transparent "></div>
                     </div>
 
@@ -86,7 +114,7 @@ export default function MediaPage() {
                     </div>
                 </section>
 
-                {/* 2. CATEGORY GRID (Mobile: Grid / Desktop: Horizontal Flex) */}
+                {/* 2. CATEGORY GRID */}
                 <section className="px-6 md:px-12 lg:px-24 mb-16 md:mb-24 max-w-7xl mx-auto">
                     <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark mb-8 text-left border-b border-gray-100 pb-4">
                         Browse Archive
@@ -131,65 +159,71 @@ export default function MediaPage() {
                 </section>
 
                 {/* 3. FEATURED / LATEST UPLOAD */}
-                <section className="px-6 md:px-12 lg:px-24 max-w-7xl mx-auto">
-                    <div className="flex justify-between items-end mb-6 md:mb-8">
-                        <h2 className="font-agency text-3xl md:text-5xl text-brand-brown-dark">
-                            Latest Release
-                        </h2>
+                {loading ? (
+                    <div className="flex justify-center items-center py-20">
+                        <Loader2 className="w-10 h-10 text-brand-gold animate-spin" />
                     </div>
+                ) : latestVideo && (
+                    <section className="px-6 md:px-12 lg:px-24 max-w-7xl mx-auto">
+                        <div className="flex justify-between items-end mb-6 md:mb-8">
+                            <h2 className="font-agency text-3xl md:text-5xl text-brand-brown-dark">
+                                Latest Release
+                            </h2>
+                        </div>
 
-                    <div className="bg-brand-sand rounded-3xl overflow-hidden shadow-xl border border-brand-gold/20 flex flex-col md:flex-row">
-                        {/* Video Preview Area (Left on Desktop) */}
-                        <div className="relative w-full md:w-2/3 aspect-video bg-black group">
-                            {!playVideo ? (
-                                <button 
-                                    onClick={() => setPlayVideo(true)}
-                                    className="absolute inset-0 w-full h-full relative"
-                                >
-                                    <Image 
-                                        src="/images/heroes/media-videos-hero.webp" // Video Thumbnail
-                                        alt="Video Thumbnail" 
-                                        fill 
-                                        className="object-cover opacity-90 group-hover:opacity-100 transition-opacity" 
-                                    />
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <div className="w-16 h-16 md:w-24 md:h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:bg-brand-gold group-hover:scale-110 transition-all duration-300 shadow-lg border border-white/50">
-                                            <Play className="w-6 h-6 md:w-10 md:h-10 text-white fill-current ml-1" />
+                        <div className="bg-brand-sand rounded-3xl overflow-hidden shadow-xl border border-brand-gold/20 flex flex-col md:flex-row">
+                            {/* Video Preview Area (Left on Desktop) */}
+                            <div className="relative w-full md:w-2/3 aspect-video bg-black group">
+                                {!playVideo ? (
+                                    <button 
+                                        onClick={() => setPlayVideo(true)}
+                                        className="absolute inset-0 w-full h-full relative"
+                                    >
+                                        <Image 
+                                            src={latestVideo.thumbnail || "/fallback.webp"} 
+                                            alt={latestVideo.title} 
+                                            fill 
+                                            className="object-cover opacity-90 group-hover:opacity-100 transition-opacity" 
+                                        />
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <div className="w-16 h-16 md:w-24 md:h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:bg-brand-gold group-hover:scale-110 transition-all duration-300 shadow-lg border border-white/50">
+                                                <Play className="w-6 h-6 md:w-10 md:h-10 text-white fill-current ml-1" />
+                                            </div>
                                         </div>
-                                    </div>
-                                </button>
-                            ) : (
-                                <iframe
-                                    className="absolute inset-0 w-full h-full"
-                                    src="https://www.youtube.com/embed/BYdCnmAgvhs?rel=0&modestbranding=1&autoplay=1"
-                                    title="Featured Lecture"
-                                    frameBorder="0"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowFullScreen
-                                ></iframe>
-                            )}
-                        </div>
+                                    </button>
+                                ) : (
+                                    <iframe
+                                        className="absolute inset-0 w-full h-full"
+                                        src={`https://www.youtube.com/embed/${latestVideo.videoId}?rel=0&modestbranding=1&autoplay=1`}
+                                        title={latestVideo.title}
+                                        frameBorder="0"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowFullScreen
+                                    ></iframe>
+                                )}
+                            </div>
 
-                        {/* Info Area (Right on Desktop) */}
-                        <div className="p-6 md:p-10 md:w-1/3 flex flex-col justify-center bg-white md:bg-brand-sand">
-                            <span className="inline-block px-3 py-1 bg-brand-gold text-white text-[10px] md:text-xs font-bold uppercase rounded-md shadow-sm w-fit mb-4">
-                                New Video
-                            </span>
-                            <h3 className="font-agency text-2xl md:text-4xl text-brand-brown-dark mb-4 leading-tight">
-                                Understanding the Rights of Neighbors
-                            </h3>
-                            <p className="font-lato text-sm md:text-base text-brand-brown line-clamp-3 md:line-clamp-none mb-8 leading-relaxed">
-                                A profound discussion by Sheikh Muneer Ja'afar on the importance of community cohesion and social welfare in Islam.
-                            </p>
-                            <Link 
-                                href="/media/videos" 
-                                className="inline-flex items-center text-brand-gold font-bold text-xs md:text-sm uppercase tracking-widest hover:underline group"
-                            >
-                                Watch Full Series <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
-                            </Link>
+                            {/* Info Area (Right on Desktop) */}
+                            <div className="p-6 md:p-10 md:w-1/3 flex flex-col justify-center bg-white md:bg-brand-sand">
+                                <span className="inline-block px-3 py-1 bg-brand-gold text-white text-[10px] md:text-xs font-bold uppercase rounded-md shadow-sm w-fit mb-4">
+                                    {latestVideo.category || "New Video"}
+                                </span>
+                                <h3 className="font-agency text-2xl md:text-4xl text-brand-brown-dark mb-4 leading-tight">
+                                    {latestVideo.title}
+                                </h3>
+                                <p className="font-lato text-sm md:text-base text-brand-brown line-clamp-3 md:line-clamp-none mb-8 leading-relaxed">
+                                    {latestVideo.description || "Watch our latest lecture."}
+                                </p>
+                                <Link 
+                                    href="/media/videos" 
+                                    className="inline-flex items-center text-brand-gold font-bold text-xs md:text-sm uppercase tracking-widest hover:underline group"
+                                >
+                                    Watch Full Series <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
+                                </Link>
+                            </div>
                         </div>
-                    </div>
-                </section>
+                    </section>
+                )}
 
             </main>
 
