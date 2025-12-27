@@ -8,67 +8,60 @@ import Footer from '@/components/Footer';
 // Firebase Imports
 import { db } from '@/lib/firebase';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
-import { Clock, User, Tag, ChevronRight, Search, Mail, Loader2 } from 'lucide-react';
+import { Clock, User, Tag, ChevronRight, Search, Mail, Loader2, BookOpen } from 'lucide-react';
 
 export default function ArticlesPage() {
 
     // --- STATE MANAGEMENT ---
     const [articles, setArticles] = useState([]);
+    const [series, setSeries] = useState([]); // Dynamic Series
     const [loading, setLoading] = useState(true);
-    const [visibleCount, setVisibleCount] = useState(5); // Show 5 initially
+    const [visibleCount, setVisibleCount] = useState(5);
     const [searchTerm, setSearchTerm] = useState('');
-
-    // --- STATIC DATA (Series Backend Coming Soon) ---
-    // Keeping this static for layout stability until we build the full Series relationship logic
-    const articleSeries = [
-        {
-            id: 1,
-            title: "The Fiqh of Prayer (Salat)",
-            parts: 4,
-            image: "/fallback.webp",
-        },
-        {
-            id: 2,
-            title: "Ramadan Preparation Guide",
-            parts: 6,
-            image: "/fallback.webp",
-        },
-        {
-            id: 3,
-            title: "Islamic Finance Basics",
-            parts: 3,
-            image: "/fallback.webp",
-        }
-    ];
 
     const sidebarTags = ["Spirituality", "Fiqh", "History", "Community", "Lifestyle", "Family"];
 
     // --- FETCH DATA ---
     useEffect(() => {
-        const fetchArticles = async () => {
+        const fetchData = async () => {
             try {
-                // Query: Get all posts where category is 'Article', ordered by newest
-                const q = query(
+                // 1. Fetch Articles
+                const qArticles = query(
                     collection(db, "posts"),
                     where("category", "==", "Article"),
                     orderBy("createdAt", "desc")
                 );
-
-                const querySnapshot = await getDocs(q);
-                const fetchedArticles = querySnapshot.docs.map(doc => ({
+                const articlesSnapshot = await getDocs(qArticles);
+                const fetchedArticles = articlesSnapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
                 }));
-
                 setArticles(fetchedArticles);
+
+                // 2. Fetch Series (Only Article Series)
+                // Note: In admin, we saved category as 'Article' or 'Research'
+                // We fetch all and filter in JS if needed, or query specifically.
+                // Let's try querying specifically if you indexed it, otherwise client filter is safe for small datasets.
+                const qSeries = query(
+                    collection(db, "blog_series"),
+                    where("category", "==", "Article"), 
+                    orderBy("createdAt", "desc")
+                );
+                const seriesSnapshot = await getDocs(qSeries);
+                const fetchedSeries = seriesSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                setSeries(fetchedSeries);
+
             } catch (error) {
-                console.error("Error fetching articles:", error);
+                console.error("Error fetching data:", error);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchArticles();
+        fetchData();
     }, []);
 
     // --- HELPER FUNCTIONS ---
@@ -76,6 +69,11 @@ export default function ArticlesPage() {
         if (!dateString) return '';
         const date = new Date(dateString);
         return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    };
+
+    // Count how many articles belong to this series title
+    const getSeriesCount = (seriesTitle) => {
+        return articles.filter(a => a.series === seriesTitle).length;
     };
 
     // Filter articles based on search
@@ -101,7 +99,6 @@ export default function ArticlesPage() {
                             className="object-cover object-center" 
                             priority 
                         />
-                        {/* Gradient Overlay */}
                         <div className="absolute inset-0 bg-gradient-to-t from-white via-brand-gold/40 to-transparent "></div>
                     </div>
                     <div className="relative -mt-16 md:-mt-32 text-center px-6 z-10 max-w-4xl mx-auto">
@@ -115,41 +112,48 @@ export default function ArticlesPage() {
                     </div>
                 </section>
 
-                {/* 2. FEATURED SERIES (Static for now) */}
-                <section className="px-6 md:px-12 lg:px-24 mb-12 md:mb-20 max-w-7xl mx-auto">
-                    <div className="flex justify-between items-end mb-6 border-b border-gray-100 pb-2">
-                        <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark">
-                            Article Series
-                        </h2>
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest hidden md:block">
-                            Curated Collections
-                        </span>
-                    </div>
+                {/* 2. DYNAMIC SERIES SECTION */}
+                {series.length > 0 && (
+                    <section className="px-6 md:px-12 lg:px-24 mb-12 md:mb-20 max-w-7xl mx-auto">
+                        <div className="flex justify-between items-end mb-6 border-b border-gray-100 pb-2">
+                            <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark">
+                                Article Series
+                            </h2>
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest hidden md:block">
+                                Curated Collections
+                            </span>
+                        </div>
 
-                    <div className="flex overflow-x-auto gap-4 pb-4 md:grid md:grid-cols-3 md:gap-8 scrollbar-hide snap-x">
-                        {articleSeries.map((item) => (
-                            <div key={item.id} className="snap-center min-w-[220px] md:min-w-0 group cursor-pointer">
-                                <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden mb-3">
-                                    <Image src={item.image} alt={item.title} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
-                                    <div className="absolute inset-0 bg-brand-brown-dark/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <span className="text-white text-xs font-bold border border-white px-3 py-1 rounded uppercase tracking-wider">View Series</span>
+                        <div className="flex overflow-x-auto gap-4 pb-4 md:grid md:grid-cols-3 md:gap-8 scrollbar-hide snap-x">
+                            {series.map((item) => (
+                                <div key={item.id} className="snap-center min-w-[220px] md:min-w-0 group cursor-pointer">
+                                    <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden mb-3 bg-gray-100">
+                                        <Image 
+                                            src={item.cover || "/fallback.webp"} 
+                                            alt={item.title} 
+                                            fill 
+                                            className="object-cover transition-transform duration-700 group-hover:scale-110" 
+                                        />
+                                        <div className="absolute inset-0 bg-brand-brown-dark/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <span className="text-white text-xs font-bold border border-white px-3 py-1 rounded uppercase tracking-wider">View Series</span>
+                                        </div>
+                                        <div className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1">
+                                            <BookOpen className="w-3 h-3" /> {getSeriesCount(item.title)} Parts
+                                        </div>
                                     </div>
-                                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] font-bold px-2 py-1 rounded">
-                                        {item.parts} Parts
-                                    </div>
+                                    <h3 className="font-agency text-lg md:text-xl text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors">
+                                        {item.title}
+                                    </h3>
                                 </div>
-                                <h3 className="font-agency text-lg md:text-xl text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors">
-                                    {item.title}
-                                </h3>
-                            </div>
-                        ))}
-                    </div>
-                </section>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
                 {/* 3. MAIN CONTENT AREA */}
                 <section className="px-6 md:px-12 lg:px-24 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12">
 
-                    {/* LEFT COLUMN: ARTICLE LIST (Spans 8 cols) */}
+                    {/* LEFT COLUMN: ARTICLE LIST */}
                     <div className="lg:col-span-8 space-y-8 md:space-y-12">
                         <div className="flex items-center justify-between mb-4 md:mb-0">
                             <h3 className="font-agency text-2xl md:text-3xl text-brand-brown-dark">
@@ -210,7 +214,7 @@ export default function ArticlesPage() {
                                             {/* Footer Meta */}
                                             <div className="mt-auto flex items-center justify-between">
                                                 <div className="flex items-center gap-2 text-xs text-gray-500 font-bold">
-                                                    <User className="w-3 h-3 text-brand-gold" /> {item.author || "Sheikh Muneer"}
+                                                    <User className="w-3 h-3 text-brand-gold" /> {item.author}
                                                 </div>
                                                 <Link href={`/blogs/read/${item.id}`}>
                                                     <div className="flex items-center text-brand-gold font-bold text-xs uppercase tracking-widest cursor-pointer group-hover:underline underline-offset-4">
@@ -222,7 +226,7 @@ export default function ArticlesPage() {
                                     </article>
                                 ))}
 
-                                {/* Load More Button */}
+                                {/* Load More */}
                                 {visibleCount < filteredArticles.length && (
                                     <div className="pt-8 text-center">
                                         <button 
@@ -270,8 +274,8 @@ export default function ArticlesPage() {
                                     <li key={idx}>
                                         <Link href="#" className="flex items-center justify-between group">
                                             <span className="text-sm text-gray-600 group-hover:text-brand-gold transition-colors">{cat}</span>
+                                            {/* Count is mock for tags as we aren't fetching by tag yet */}
                                             <span className="text-xs bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full group-hover:bg-brand-gold/10 group-hover:text-brand-gold transition-colors">
-                                                {/* Mock Count */}
                                                 {Math.floor(Math.random() * 20)} 
                                             </span>
                                         </Link>
