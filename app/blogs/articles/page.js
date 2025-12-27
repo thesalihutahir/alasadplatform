@@ -14,7 +14,7 @@ export default function ArticlesPage() {
 
     // --- STATE MANAGEMENT ---
     const [articles, setArticles] = useState([]);
-    const [series, setSeries] = useState([]); // Dynamic Series
+    const [series, setSeries] = useState([]);
     const [loading, setLoading] = useState(true);
     const [visibleCount, setVisibleCount] = useState(5);
     const [searchTerm, setSearchTerm] = useState('');
@@ -25,10 +25,11 @@ export default function ArticlesPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // 1. Fetch Articles
+                // 1. Fetch Articles (Category: Article, Status: Published)
                 const qArticles = query(
                     collection(db, "posts"),
                     where("category", "==", "Article"),
+                    where("status", "==", "Published"),
                     orderBy("createdAt", "desc")
                 );
                 const articlesSnapshot = await getDocs(qArticles);
@@ -38,13 +39,11 @@ export default function ArticlesPage() {
                 }));
                 setArticles(fetchedArticles);
 
-                // 2. Fetch Series (Only Article Series)
-                // Note: In admin, we saved category as 'Article' or 'Research'
-                // We fetch all and filter in JS if needed, or query specifically.
-                // Let's try querying specifically if you indexed it, otherwise client filter is safe for small datasets.
+                // 2. Fetch Series (Category: Article or Article Series)
+                // Note: Ensure your admin panel saves the series category consistently
                 const qSeries = query(
                     collection(db, "blog_series"),
-                    where("category", "==", "Article"), 
+                    where("category", "in", ["Article", "Article Series"]), 
                     orderBy("createdAt", "desc")
                 );
                 const seriesSnapshot = await getDocs(qSeries);
@@ -71,12 +70,12 @@ export default function ArticlesPage() {
         return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     };
 
-    // Count how many articles belong to this series title
+    // Count articles in a series
     const getSeriesCount = (seriesTitle) => {
         return articles.filter(a => a.series === seriesTitle).length;
     };
 
-    // Filter articles based on search
+    // Filter Logic
     const filteredArticles = articles.filter(article => 
         article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         article.excerpt?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -144,6 +143,9 @@ export default function ArticlesPage() {
                                     <h3 className="font-agency text-lg md:text-xl text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors">
                                         {item.title}
                                     </h3>
+                                    {item.language && (
+                                        <span className="text-[10px] text-gray-400 uppercase tracking-wider block mt-1">{item.language} Series</span>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -159,7 +161,6 @@ export default function ArticlesPage() {
                             <h3 className="font-agency text-2xl md:text-3xl text-brand-brown-dark">
                                 Latest Reads
                             </h3>
-                            {/* Mobile Search Icon */}
                             <button className="lg:hidden p-2 text-gray-400">
                                 <Search className="w-5 h-5" />
                             </button>
@@ -175,7 +176,7 @@ export default function ArticlesPage() {
                                     <article key={item.id} className="group flex flex-col md:flex-row gap-6 md:gap-8 border-b border-gray-100 pb-8 last:border-0">
 
                                         {/* Image Thumbnail */}
-                                        <div className="relative w-full md:w-1/3 aspect-video md:aspect-[4/3] rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
+                                        <div className="relative w-full md:w-1/3 aspect-video md:aspect-[4/3] rounded-xl overflow-hidden flex-shrink-0 bg-gray-100 border border-gray-100">
                                             <Image 
                                                 src={item.coverImage || "/fallback.webp"} 
                                                 alt={item.title} 
@@ -191,11 +192,13 @@ export default function ArticlesPage() {
                                                 <span className="text-[10px] md:text-xs font-bold text-white bg-brand-brown px-2 py-0.5 rounded-full uppercase tracking-wider">
                                                     {item.category}
                                                 </span>
-                                                <span className="text-[10px] md:text-xs text-gray-400 flex items-center gap-1">
+                                                {item.language && (
+                                                    <span className="text-[10px] md:text-xs font-bold text-brand-brown-dark bg-brand-sand/50 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                                        {item.language}
+                                                    </span>
+                                                )}
+                                                <span className="text-[10px] md:text-xs text-gray-400 flex items-center gap-1 ml-auto md:ml-0">
                                                     <Clock className="w-3 h-3" /> {item.readTime || '5 min read'}
-                                                </span>
-                                                <span className="text-[10px] md:text-xs text-gray-400 md:hidden">
-                                                    {formatDate(item.date)}
                                                 </span>
                                             </div>
 
@@ -214,7 +217,7 @@ export default function ArticlesPage() {
                                             {/* Footer Meta */}
                                             <div className="mt-auto flex items-center justify-between">
                                                 <div className="flex items-center gap-2 text-xs text-gray-500 font-bold">
-                                                    <User className="w-3 h-3 text-brand-gold" /> {item.author}
+                                                    <User className="w-3 h-3 text-brand-gold" /> {item.author || "Admin"}
                                                 </div>
                                                 <Link href={`/blogs/read/${item.id}`}>
                                                     <div className="flex items-center text-brand-gold font-bold text-xs uppercase tracking-widest cursor-pointer group-hover:underline underline-offset-4">
@@ -267,16 +270,16 @@ export default function ArticlesPage() {
                         {/* Categories Widget */}
                         <div>
                             <h4 className="font-agency text-xl text-brand-brown-dark mb-4 border-b border-gray-200 pb-2">
-                                Categories
+                                Topics
                             </h4>
                             <ul className="space-y-3">
                                 {sidebarTags.map((cat, idx) => (
                                     <li key={idx}>
                                         <Link href="#" className="flex items-center justify-between group">
                                             <span className="text-sm text-gray-600 group-hover:text-brand-gold transition-colors">{cat}</span>
-                                            {/* Count is mock for tags as we aren't fetching by tag yet */}
-                                            <span className="text-xs bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full group-hover:bg-brand-gold/10 group-hover:text-brand-gold transition-colors">
-                                                {Math.floor(Math.random() * 20)} 
+                                            <span className="text-xs bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">
+                                                {/* Mock count for visual consistency */}
+                                                {Math.floor(Math.random() * 20) + 1}
                                             </span>
                                         </Link>
                                     </li>
