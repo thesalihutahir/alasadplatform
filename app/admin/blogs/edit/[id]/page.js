@@ -42,10 +42,10 @@ export default function EditBlogPage() {
         excerpt: '',
         content: '', 
         category: 'Article',
-        language: 'English', // New Field
+        language: 'English', 
         series: '', 
         author: '', 
-        readTime: '',
+        readTime: '', // Will be number
         date: '', 
         tags: '',
         status: 'Published',
@@ -79,7 +79,7 @@ export default function EditBlogPage() {
                         setFormData({
                             ...data,
                             tags: Array.isArray(data.tags) ? data.tags.join(', ') : data.tags || '',
-                            language: data.language || 'English' // Default fallback
+                            language: data.language || 'English'
                         });
                         if (data.coverImage) setCoverPreview(data.coverImage);
                     } else {
@@ -101,7 +101,6 @@ export default function EditBlogPage() {
     useEffect(() => {
         const filtered = allSeries.filter(series => {
             const catMatch = series.category === formData.category;
-            // Strict language filter if series has language field, else loose match
             const langMatch = series.language ? series.language === formData.language : true;
             return catMatch && langMatch;
         });
@@ -113,7 +112,7 @@ export default function EditBlogPage() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    // Handle New Cover Image (With Compression)
+    // Handle New Cover Image
     const handleCoverChange = async (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -164,7 +163,7 @@ export default function EditBlogPage() {
             let finalPdfUrl = formData.pdfUrl;
             let finalPdfName = formData.pdfName;
 
-            // 1. Upload New Cover (if changed)
+            // 1. Upload New Cover
             if (newCoverFile) {
                 const coverRef = ref(storage, `blog_covers/${Date.now()}_${newCoverFile.name}`);
                 const coverTask = uploadBytesResumable(coverRef, newCoverFile);
@@ -178,7 +177,7 @@ export default function EditBlogPage() {
                 finalCoverUrl = await getDownloadURL(coverTask.snapshot.ref);
             }
 
-            // 2. Upload New PDF (if changed)
+            // 2. Upload New PDF
             if (newPdfFile) {
                 const pdfRef = ref(storage, `blog_pdfs/${Date.now()}_${newPdfFile.name}`);
                 await uploadBytesResumable(pdfRef, newPdfFile);
@@ -248,7 +247,8 @@ export default function EditBlogPage() {
                     </button>
                 </div>
             </div>
-<div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
                 {/* LEFT: CONTENT */}
                 <div className="lg:col-span-2 space-y-6">
@@ -366,8 +366,16 @@ export default function EditBlogPage() {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-brand-brown mb-1">Read Time</label>
-                            <input type="text" name="readTime" value={formData.readTime} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+                            <label className="block text-xs font-bold text-brand-brown mb-1">Read Time (Minutes)</label>
+                            <input 
+                                type="number" 
+                                min="1"
+                                name="readTime" 
+                                value={formData.readTime} 
+                                onChange={handleChange} 
+                                placeholder="e.g. 5"
+                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50" 
+                            />
                         </div>
 
                         <div>
