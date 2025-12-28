@@ -166,7 +166,11 @@ export default function ResearchPage() {
 
                                 <div className="flex overflow-x-auto gap-4 pb-4 md:grid md:grid-cols-3 md:gap-8 scrollbar-hide snap-x">
                                     {series.map((item) => (
-                                        <div key={item.id} className="snap-center min-w-[240px] md:min-w-0 group cursor-pointer relative rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all">
+                                        <Link 
+                                            href={`/blogs/series/${item.id}`} // Clickable Link
+                                            key={item.id} 
+                                            className="snap-center min-w-[240px] md:min-w-0 group cursor-pointer relative rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all"
+                                        >
                                             <div className="relative w-full aspect-[16/9]">
                                                 <Image 
                                                     src={item.cover || "/fallback.webp"} 
@@ -184,7 +188,7 @@ export default function ResearchPage() {
                                                     </span>
                                                 </div>
                                             </div>
-                                        </div>
+                                        </Link>
                                     ))}
                                 </div>
                             </section>
