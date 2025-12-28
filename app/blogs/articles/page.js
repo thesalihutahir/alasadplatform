@@ -155,7 +155,7 @@ export default function ArticlesPage() {
                             <>
                                 {visibleArticles.map((item) => (
                                     <Link key={item.id} href={`/blogs/read/${item.id}`} className="block group">
-                                        <article className="flex flex-col md:flex-row gap-6 bg-white p-5 rounded-2xl shadow-sm border border-transparent hover:border-brand-gold/30 hover:shadow-md transition-all">
+                                        <article className="flex flex-col md:flex-row gap-6 bg-brand-sand p-5 rounded-2xl shadow-sm border border-transparent hover:border-brand-gold/30 hover:shadow-md transition-all">
                                             <div className="relative w-full md:w-48 aspect-video md:aspect-square rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
                                                 <Image src={item.coverImage || "/fallback.webp"} alt={item.title} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
                                             </div>
