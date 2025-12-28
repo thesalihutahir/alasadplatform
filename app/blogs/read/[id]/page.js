@@ -15,10 +15,10 @@ import { doc, getDoc, updateDoc, increment, collection, query, where, orderBy, l
 import { 
     Calendar, User, Clock, Tag, Download, 
     ArrowLeft, Share2, Facebook, Twitter, Linkedin, Link as LinkIcon,
-    Quote, FileText, Layers, Heart, ThumbsUp, Eye
+    Quote, FileText, Layers, Heart, Eye
 } from 'lucide-react';
 
-// --- HELPER: Date Formatter (Crash Proof) ---
+// --- HELPER: Date Formatter ---
 const formatDate = (dateString) => {
     try {
         if (!dateString) return '';
@@ -54,10 +54,10 @@ const LikeButton = ({ postId, initialLikes }) => {
         <button 
             onClick={handleLike}
             disabled={liked}
-            className={`group flex items-center gap-2 px-5 py-2.5 rounded-full transition-all transform active:scale-95 shadow-sm ${
+            className={`group flex items-center gap-2 px-5 py-2.5 rounded-xl transition-all transform active:scale-95 shadow-sm border ${
                 liked 
-                ? 'bg-red-50 text-red-500 border border-red-200' 
-                : 'bg-white text-gray-500 border border-gray-200 hover:border-red-200 hover:text-red-500'
+                ? 'bg-red-50 text-red-500 border-red-200' 
+                : 'bg-gray-50 text-gray-500 border-gray-200 hover:border-brand-gold hover:text-brand-gold'
             }`}
         >
             <Heart className={`w-5 h-5 transition-transform group-hover:scale-110 ${liked ? 'fill-current' : ''}`} />
@@ -67,126 +67,156 @@ const LikeButton = ({ postId, initialLikes }) => {
 };
 
 // ==========================================
-// LAYOUT 1: ARTICLE (Medium.com / Story Style)
+// LAYOUT 1: ARTICLE (The "Card" Look)
 // ==========================================
 const ArticleLayout = ({ post }) => (
-    <div className="bg-white font-lato">
-        {/* Minimalist Centered Header */}
-        <div className="max-w-3xl mx-auto px-6 pt-12 md:pt-20 pb-8 text-center">
-            <div className="flex flex-wrap items-center justify-center gap-3 mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <span className="px-3 py-1 bg-brand-gold text-white text-[10px] md:text-xs font-bold uppercase tracking-widest rounded-full">
-                    {post.category}
-                </span>
-                {post.language && (
-                    <span className="px-3 py-1 bg-gray-100 text-gray-500 text-[10px] md:text-xs font-bold uppercase tracking-widest rounded-full border border-gray-200">
-                        {post.language}
-                    </span>
-                )}
-            </div>
-            <h1 className="font-agency text-4xl md:text-6xl text-brand-brown-dark leading-[1.1] mb-8 drop-shadow-sm">
-                {post.title}
-            </h1>
+    <div className="bg-brand-sand min-h-screen py-12 md:py-20 font-lato">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
             
-            {/* Author Meta */}
-            <div className="flex flex-wrap items-center justify-center gap-4 text-xs md:text-sm text-gray-500 border-t border-b border-gray-100 py-4">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-gray-200 rounded-full overflow-hidden relative border border-gray-100">
-                        <Image src="/fallback.webp" alt="Author" fill className="object-cover" />
-                    </div>
-                    <span className="font-bold text-brand-brown-dark">{post.author || "Al-Asad Foundation"}</span>
-                </div>
-                <span className="text-gray-300">•</span>
-                <span>{formatDate(post.date)}</span>
-                <span className="text-gray-300">•</span>
-                <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-md"><Clock className="w-3 h-3" /> {post.readTime}</span>
-            </div>
-        </div>
+            {/* Back Link */}
+            <Link href="/blogs/articles" className="inline-flex items-center text-brand-brown-dark font-bold text-sm mb-6 hover:text-brand-gold transition-colors">
+                <ArrowLeft className="w-4 h-4 mr-2" /> Back to Articles
+            </Link>
 
-        {/* Main Content */}
-        <div className="max-w-3xl mx-auto px-6 pb-24">
-            <div className="relative w-full aspect-video md:aspect-[21/9] rounded-2xl overflow-hidden mb-12 shadow-xl bg-gray-100">
-                <Image src={post.coverImage || "/fallback.webp"} alt={post.title} fill className="object-cover" />
-            </div>
-            
-            <article className="prose prose-lg md:prose-xl prose-stone max-w-none font-lato leading-relaxed text-gray-700 
-                prose-headings:font-agency prose-headings:text-brand-brown-dark prose-headings:font-bold
-                prose-a:text-brand-gold hover:prose-a:text-brand-brown-dark 
-                prose-img:rounded-xl prose-img:shadow-lg prose-blockquote:border-brand-gold prose-blockquote:bg-brand-sand/30 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-lg">
-                <ReactMarkdown>{post.content}</ReactMarkdown>
-            </article>
-
-            {/* Footer Actions */}
-            <div className="mt-16 pt-8 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6">
-                <LikeButton postId={post.id} initialLikes={post.likes || 0} />
-                <div className="flex gap-2">
-                    {post.tags && (typeof post.tags === 'string' ? post.tags.split(',') : post.tags).map((tag, idx) => (
-                        <span key={idx} className="bg-gray-50 text-gray-500 px-3 py-1 rounded-full text-xs hover:bg-brand-gold hover:text-white transition-colors cursor-pointer">
-                            #{tag.trim()}
+            {/* THE CARD CONTAINER */}
+            <div className="bg-white rounded-[2rem] shadow-xl overflow-hidden border border-gray-100">
+                
+                {/* 1. Hero Image Area */}
+                <div className="relative w-full aspect-video md:aspect-[2.5/1]">
+                    <Image 
+                        src={post.coverImage || "/fallback.webp"} 
+                        alt={post.title} 
+                        fill 
+                        className="object-cover" 
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                    
+                    {/* Floating Badges on Image */}
+                    <div className="absolute bottom-6 left-6 flex flex-wrap gap-2">
+                        <span className="px-3 py-1 bg-brand-gold text-white text-[10px] font-bold uppercase tracking-widest rounded-lg shadow-sm">
+                            {post.category}
                         </span>
-                    ))}
+                        {post.language && (
+                            <span className="px-3 py-1 bg-white/90 text-brand-brown-dark text-[10px] font-bold uppercase tracking-widest rounded-lg shadow-sm backdrop-blur-sm">
+                                {post.language}
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                {/* 2. Content Area */}
+                <div className="px-6 py-8 md:px-12 md:py-12">
+                    
+                    {/* Header Info */}
+                    <div className="flex flex-wrap items-center gap-4 text-xs md:text-sm text-gray-500 mb-6">
+                        <div className="flex items-center gap-2">
+                            <User className="w-4 h-4 text-brand-gold" />
+                            <span className="font-bold text-brand-brown-dark">{post.author || "Al-Asad Foundation"}</span>
+                        </div>
+                        <span className="text-gray-300">|</span>
+                        <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-brand-gold" />
+                            <span>{formatDate(post.date)}</span>
+                        </div>
+                        <span className="text-gray-300">|</span>
+                        <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-brand-gold" />
+                            <span>{post.readTime}</span>
+                        </div>
+                    </div>
+
+                    {/* Title */}
+                    <h1 className="font-agency text-4xl md:text-5xl lg:text-6xl text-brand-brown-dark leading-[1.1] mb-6">
+                        {post.title}
+                    </h1>
+                    
+                    {/* Brand Divider */}
+                    <div className="w-24 h-1.5 bg-brand-gold rounded-full mb-8"></div>
+
+                    {/* Markdown Content */}
+                    <article className="prose prose-lg md:prose-xl prose-stone max-w-none font-lato leading-loose text-gray-700
+                        prose-headings:font-agency prose-headings:text-brand-brown-dark prose-headings:font-bold
+                        prose-a:text-brand-gold hover:prose-a:text-brand-brown-dark 
+                        prose-img:rounded-2xl prose-img:shadow-md 
+                        prose-blockquote:border-l-4 prose-blockquote:border-brand-gold prose-blockquote:bg-brand-sand/50 prose-blockquote:py-4 prose-blockquote:px-6 prose-blockquote:rounded-r-xl prose-blockquote:not-italic">
+                        <ReactMarkdown>{post.content}</ReactMarkdown>
+                    </article>
+
+                    {/* 3. Footer: Reactions & Tags */}
+                    <div className="mt-16 pt-8 border-t border-gray-100">
+                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                            
+                            <LikeButton postId={post.id} initialLikes={post.likes || 0} />
+                            
+                            {/* Tags - Fixed Wrapping */}
+                            <div className="flex flex-wrap gap-2 w-full md:w-auto">
+                                {post.tags && (typeof post.tags === 'string' ? post.tags.split(',') : post.tags).map((tag, idx) => (
+                                    <span key={idx} className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-brand-brown-dark hover:text-white transition-colors cursor-pointer border border-gray-200">
+                                        #{tag.trim()}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
     </div>
 );
 // ==========================================
-// LAYOUT 2: NEWS (Bold, Magazine Style)
+// LAYOUT 2: NEWS (Magazine Card Style)
 // ==========================================
 const NewsLayout = ({ post, relatedPosts }) => (
-    <div className="bg-white min-h-screen font-lato">
-        {/* Split Header Design */}
-        <div className="relative bg-brand-brown-dark text-white">
-            <div className="absolute top-0 right-0 w-full h-full overflow-hidden opacity-20">
-                <div className="absolute -top-24 -right-24 w-96 h-96 bg-brand-gold rounded-full blur-[100px]"></div>
-            </div>
+    <div className="bg-brand-sand min-h-screen py-8 md:py-16 font-lato">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
             
-            <div className="max-w-7xl mx-auto px-6 py-16 md:py-24 grid grid-cols-1 md:grid-cols-2 gap-12 items-center relative z-10">
-                <div className="order-2 md:order-1">
-                    <div className="flex items-center gap-3 mb-6 text-brand-gold font-bold uppercase tracking-widest text-xs">
-                        <span className="flex items-center gap-1"><Tag className="w-3 h-3" /> News</span>
-                        <span className="w-1 h-1 bg-brand-gold rounded-full"></span>
-                        <span>{formatDate(post.date)}</span>
-                    </div>
-                    <h1 className="font-agency text-4xl md:text-7xl leading-[0.95] mb-8">
-                        {post.title}
-                    </h1>
-                    <div className="flex items-center gap-4 text-sm text-white/70">
-                        <span>By {post.author}</span>
-                        <span className="w-px h-4 bg-white/20"></span>
-                        <span className="text-brand-gold">{post.language} Edition</span>
-                    </div>
-                </div>
-                {/* Hero Image overlapping bottom */}
-                <div className="order-1 md:order-2 relative h-64 md:h-96 w-full rounded-2xl overflow-hidden shadow-2xl border-4 border-white/10">
-                    <Image src={post.coverImage || "/fallback.webp"} alt={post.title} fill className="object-cover" />
-                </div>
-            </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto px-6 py-12 md:py-20 grid grid-cols-1 lg:grid-cols-12 gap-12">
+            {/* LEFT: Main News Card */}
             <div className="lg:col-span-8">
-                <div className="flex justify-between items-center mb-8 border-b border-gray-100 pb-4">
-                     <LikeButton postId={post.id} initialLikes={post.likes || 0} />
-                     <ShareButton />
+                <div className="bg-white rounded-[2rem] shadow-xl overflow-hidden border border-gray-100">
+                    <div className="relative h-64 md:h-96 w-full">
+                        <Image src={post.coverImage || "/fallback.webp"} alt={post.title} fill className="object-cover" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+                        <div className="absolute bottom-6 left-6 right-6">
+                            <span className="bg-brand-gold text-white text-xs font-bold px-3 py-1 rounded uppercase tracking-widest mb-3 inline-block">
+                                News Update
+                            </span>
+                            <h1 className="font-agency text-3xl md:text-5xl text-white leading-tight drop-shadow-md">
+                                {post.title}
+                            </h1>
+                        </div>
+                    </div>
+
+                    <div className="p-8 md:p-10">
+                        <div className="flex justify-between items-center mb-8 border-b border-gray-100 pb-4">
+                             <div className="flex items-center gap-2 text-sm font-bold text-gray-500">
+                                <Calendar className="w-4 h-4 text-brand-gold" /> {formatDate(post.date)}
+                             </div>
+                             <LikeButton postId={post.id} initialLikes={post.likes || 0} />
+                        </div>
+
+                        <article className="prose prose-lg max-w-none font-lato prose-headings:font-agency prose-headings:text-brand-brown-dark">
+                            <ReactMarkdown>{post.content}</ReactMarkdown>
+                        </article>
+                    </div>
                 </div>
-                <article className="prose prose-lg max-w-none font-lato prose-p:text-gray-600 prose-headings:font-agency prose-headings:text-brand-brown-dark">
-                    <ReactMarkdown>{post.content}</ReactMarkdown>
-                </article>
             </div>
 
-            {/* Sidebar */}
-            <div className="lg:col-span-4 space-y-8">
-                <div className="bg-brand-sand/30 p-6 rounded-xl border border-brand-gold/10">
-                    <h3 className="font-agency text-2xl text-brand-brown-dark mb-4">Latest Updates</h3>
-                    <div className="space-y-4">
+            {/* RIGHT: Sidebar Cards */}
+            <div className="lg:col-span-4 space-y-6">
+                {/* Related Widget */}
+                <div className="bg-brand-brown-dark rounded-3xl p-8 text-white shadow-lg relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-brand-gold opacity-10 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                    <h3 className="font-agency text-2xl mb-6 relative z-10">Latest Updates</h3>
+                    <div className="space-y-6 relative z-10">
                         {relatedPosts.map(item => (
-                            <Link key={item.id} href={`/blogs/read/${item.id}`} className="flex gap-4 group">
-                                <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
+                            <Link key={item.id} href={`/blogs/read/${item.id}`} className="flex gap-4 group items-start">
+                                <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-white/10">
                                     <Image src={item.coverImage || "/fallback.webp"} alt={item.title} fill className="object-cover" />
                                 </div>
                                 <div>
-                                    <span className="text-[10px] text-brand-gold font-bold uppercase">{formatDate(item.date)}</span>
-                                    <h4 className="font-bold text-sm leading-tight text-brand-brown-dark group-hover:text-brand-gold transition-colors line-clamp-2">{item.title}</h4>
+                                    <span className="text-[10px] text-brand-gold font-bold uppercase block mb-1">{formatDate(item.date)}</span>
+                                    <h4 className="font-bold text-sm leading-tight text-white/90 group-hover:text-brand-gold transition-colors line-clamp-2">{item.title}</h4>
                                 </div>
                             </Link>
                         ))}
@@ -198,99 +228,80 @@ const NewsLayout = ({ post, relatedPosts }) => (
 );
 
 // ==========================================
-// LAYOUT 3: RESEARCH (Academic & Formal)
+// LAYOUT 3: RESEARCH (Formal Document Card)
 // ==========================================
 const ResearchLayout = ({ post }) => (
-    <div className="bg-[#F9FAFB] min-h-screen font-lato">
-        {/* Academic Header Bar */}
-        <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
-            <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                <Link href="/blogs/research-and-publications" className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-brand-gold">
-                    <ArrowLeft className="w-4 h-4" /> Back to Research
-                </Link>
-                <div className="flex items-center gap-3">
-                    <LikeButton postId={post.id} initialLikes={post.likes || 0} />
-                    {post.pdfUrl && (
-                        <a href={post.pdfUrl} target="_blank" className="bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded shadow hover:bg-blue-700 flex items-center gap-2">
-                            <Download className="w-4 h-4" /> Download PDF
-                        </a>
-                    )}
-                </div>
-            </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-12 gap-10">
-            {/* Left: Metadata Sidebar */}
+    <div className="bg-[#f0f2f5] min-h-screen py-12 px-4 md:px-8 font-lato">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            {/* LEFT: Metadata Card */}
             <div className="lg:col-span-3 order-2 lg:order-1 space-y-6">
-                <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-                    <h4 className="font-bold text-gray-900 text-sm uppercase tracking-wider mb-4 flex items-center gap-2">
-                        <Layers className="w-4 h-4" /> Paper Details
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <h4 className="font-agency text-xl text-gray-900 mb-4 flex items-center gap-2">
+                        <Layers className="w-5 h-5 text-blue-600" /> Details
                     </h4>
-                    <div className="space-y-3 text-sm text-gray-600">
-                        <div><span className="block text-xs text-gray-400">Published</span> {formatDate(post.date)}</div>
-                        <div><span className="block text-xs text-gray-400">Author</span> {post.author}</div>
-                        <div><span className="block text-xs text-gray-400">Language</span> {post.language}</div>
-                        <div><span className="block text-xs text-gray-400">Topics</span> 
-                            <div className="flex flex-wrap gap-1 mt-1">
+                    <div className="space-y-4 text-sm">
+                        <div className="pb-3 border-b border-gray-100">
+                            <span className="block text-xs text-gray-400 uppercase font-bold">Published</span> 
+                            <span className="font-bold text-gray-700">{formatDate(post.date)}</span>
+                        </div>
+                        <div className="pb-3 border-b border-gray-100">
+                            <span className="block text-xs text-gray-400 uppercase font-bold">Author</span> 
+                            <span className="font-bold text-gray-700">{post.author}</span>
+                        </div>
+                        <div>
+                            <span className="block text-xs text-gray-400 uppercase font-bold mb-2">Topics</span> 
+                            <div className="flex flex-wrap gap-2">
                                 {post.tags && (typeof post.tags === 'string' ? post.tags.split(',') : post.tags).map((tag, idx) => (
-                                    <span key={idx} className="bg-gray-100 px-2 py-0.5 rounded text-xs">{tag.trim()}</span>
+                                    <span key={idx} className="bg-gray-100 px-2 py-1 rounded-md text-xs font-bold text-gray-600">{tag.trim()}</span>
                                 ))}
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <div className="bg-blue-50 p-5 rounded-lg border border-blue-100">
-                    <h4 className="font-bold text-blue-900 text-sm mb-2">Citation</h4>
-                    <p className="text-xs text-blue-800 font-mono break-words leading-relaxed select-all">
-                        {post.author}. ({new Date(post.date).getFullYear()}). "{post.title}". Al-Asad Education Foundation Research.
-                    </p>
-                </div>
+                {post.pdfUrl && (
+                    <a href={post.pdfUrl} target="_blank" className="block w-full py-4 bg-blue-600 text-white font-bold text-center rounded-xl shadow-lg hover:bg-blue-700 transition-colors flex justify-center items-center gap-2">
+                        <Download className="w-5 h-5" /> Download PDF
+                    </a>
+                )}
             </div>
 
-            {/* Right: Main Content */}
+            {/* RIGHT: Paper Content Card */}
             <div className="lg:col-span-9 order-1 lg:order-2">
-                <div className="bg-white p-8 md:p-12 rounded-xl border border-gray-200 shadow-sm">
-                    <span className="text-blue-600 font-bold text-xs uppercase tracking-widest mb-4 block">Original Research</span>
+                <div className="bg-white p-8 md:p-12 rounded-[2rem] shadow-xl border border-gray-200">
+                    <div className="flex gap-3 mb-6">
+                        <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider border border-blue-100">
+                            Research Paper
+                        </span>
+                        <span className="bg-gray-50 text-gray-600 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider border border-gray-200">
+                            {post.language}
+                        </span>
+                    </div>
+
                     <h1 className="font-serif text-3xl md:text-5xl text-gray-900 leading-tight mb-8">
                         {post.title}
                     </h1>
 
                     {/* Abstract Box */}
                     {post.excerpt && (
-                        <div className="bg-gray-50 p-6 rounded-lg border-l-4 border-blue-600 mb-10">
+                        <div className="bg-gray-50 p-6 rounded-2xl border-l-4 border-blue-600 mb-10">
                             <h3 className="font-bold text-gray-900 text-sm uppercase tracking-widest mb-2">Abstract</h3>
                             <p className="text-gray-700 italic text-sm leading-relaxed">{post.excerpt}</p>
                         </div>
                     )}
 
-                    {/* Image */}
-                    <div className="relative w-full aspect-[21/9] bg-gray-100 mb-10 rounded-lg overflow-hidden border border-gray-200">
-                        <Image src={post.coverImage || "/fallback.webp"} alt="Figure 1" fill className="object-cover" />
-                    </div>
-
-                    <article className="prose prose-slate max-w-none prose-headings:font-bold prose-a:text-blue-600">
+                    <article className="prose prose-slate max-w-none prose-h2:text-blue-800 prose-a:text-blue-600 prose-img:rounded-xl">
                         <ReactMarkdown>{post.content}</ReactMarkdown>
                     </article>
+                    
+                    <div className="mt-12 pt-8 border-t border-gray-100 flex justify-end">
+                         <LikeButton postId={post.id} initialLikes={post.likes || 0} />
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-);
-
-// --- HELPER: Share Button ---
-const ShareButton = () => (
-    <button 
-        onClick={() => {
-            if (typeof window !== 'undefined') {
-                navigator.clipboard.writeText(window.location.href);
-                alert("Link copied to clipboard!");
-            }
-        }}
-        className="flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-brand-brown-dark transition-colors"
-    >
-        <Share2 className="w-4 h-4" /> Share
-    </button>
 );
 
 // ==========================================
@@ -298,7 +309,6 @@ const ShareButton = () => (
 // ==========================================
 export default function BlogPostPage() {
     const params = useParams();
-    // Safely access ID using Optional Chaining to prevent "Client Side Exception"
     const id = params?.id; 
     
     const [post, setPost] = useState(null);
@@ -311,6 +321,7 @@ export default function BlogPostPage() {
             setLoading(true);
 
             try {
+                // A. Fetch Main Post
                 const docRef = doc(db, "posts", id);
                 const docSnap = await getDoc(docRef);
 
@@ -318,6 +329,7 @@ export default function BlogPostPage() {
                     const postData = { id: docSnap.id, ...docSnap.data() };
                     setPost(postData);
 
+                    // B. Fetch Related
                     if (postData.category) {
                         const qRelated = query(
                             collection(db, "posts"),
@@ -346,18 +358,20 @@ export default function BlogPostPage() {
         fetchPostData();
     }, [id]);
 
-    if (loading) return <Loader size="lg" className="h-screen" />;
+    if (loading) return <Loader size="lg" className="h-screen bg-brand-sand" />;
 
     if (!post) {
         return (
-            <div className="min-h-screen bg-white flex flex-col font-lato">
+            <div className="min-h-screen bg-brand-sand flex flex-col font-lato">
                 <Header />
                 <div className="flex-grow flex flex-col items-center justify-center text-center px-4">
-                    <h1 className="font-agency text-4xl text-brand-brown-dark mb-4">Post Not Found</h1>
-                    <p className="text-gray-500 mb-8">The content may have been moved or deleted.</p>
-                    <Link href="/blogs/articles" className="px-8 py-3 bg-brand-gold text-white rounded-full font-bold">
-                        Back to Library
-                    </Link>
+                    <div className="bg-white p-12 rounded-3xl shadow-lg">
+                        <h1 className="font-agency text-4xl text-brand-brown-dark mb-4">Post Not Found</h1>
+                        <p className="text-gray-500 mb-8">The content may have been moved or deleted.</p>
+                        <Link href="/blogs/articles" className="px-8 py-3 bg-brand-gold text-white rounded-full font-bold hover:bg-brand-brown-dark transition-colors">
+                            Back to Library
+                        </Link>
+                    </div>
                 </div>
                 <Footer />
             </div>
