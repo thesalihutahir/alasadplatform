@@ -5,14 +5,15 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import Loader from '@/components/Loader';
 // Firebase Imports
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
-import { PenTool, Newspaper, ScrollText, ArrowRight, Calendar, User, Loader2 } from 'lucide-react';
+import { collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
+import { PenTool, Newspaper, ScrollText, ArrowRight, Calendar, User, Clock } from 'lucide-react';
 
 export default function BlogsPage() {
 
-    // State for Real Data
+    // --- STATE ---
     const [featuredPost, setFeaturedPost] = useState(null);
     const [recentPostsList, setRecentPostsList] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -48,13 +49,14 @@ export default function BlogsPage() {
         }
     ];
 
-    // 1. Fetch Real Posts
+    // --- FETCH DATA ---
     useEffect(() => {
         const fetchPosts = async () => {
             try {
-                // Get the 4 latest posts
+                // Get the 4 latest PUBLISHED posts
                 const q = query(
                     collection(db, "posts"), 
+                    where("status", "==", "Published"), // Only show published
                     orderBy("createdAt", "desc"), 
                     limit(4)
                 );
@@ -79,11 +81,15 @@ export default function BlogsPage() {
         fetchPosts();
     }, []);
 
-    // Helper: Format Date
-    const formatDate = (dateString) => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    // --- HELPER: Format Date ---
+    const formatDate = (dateInput) => {
+        try {
+            if (!dateInput) return '';
+            const date = dateInput.toDate ? dateInput.toDate() : new Date(dateInput);
+            return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        } catch (e) {
+            return '';
+        }
     };
 
     return (
@@ -151,7 +157,7 @@ export default function BlogsPage() {
                 {/* LOADING STATE */}
                 {loading ? (
                     <div className="flex justify-center items-center py-20">
-                        <Loader2 className="w-10 h-10 text-brand-gold animate-spin" />
+                        <Loader size="md" />
                     </div>
                 ) : (
                     <>
@@ -241,7 +247,7 @@ export default function BlogsPage() {
                         )}
 
                         {/* Fallback if no posts exist yet */}
-                        {!loading && !featuredPost && (
+                        {!featuredPost && (
                             <div className="text-center py-12">
                                 <p className="text-gray-400 font-lato">No posts published yet.</p>
                             </div>
