@@ -5,10 +5,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import Loader from '@/components/Loader';
 // Firebase Imports
 import { db } from '@/lib/firebase';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
-import { FileText, Download, Search, User, Calendar, BookOpen, Filter, Loader2, Layers } from 'lucide-react';
+import { FileText, Download, Search, User, Calendar, BookOpen, Layers, Globe } from 'lucide-react';
 
 export default function ResearchPage() {
 
@@ -21,9 +22,9 @@ export default function ResearchPage() {
 
     // Search & Filter State
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeFilter, setActiveFilter] = useState('All Papers');
+    const [activeLang, setActiveLang] = useState('All'); 
 
-    const filters = ["All Papers", "Jurisprudence", "Economy", "History", "Education", "Sociology"];
+    const languages = ["All", "English", "Hausa", "Arabic"];
 
     // --- FETCH DATA ---
     useEffect(() => {
@@ -44,7 +45,7 @@ export default function ResearchPage() {
 
                 setPapers(fetchedPapers);
 
-                // Set Featured & List
+                // Set Featured & List based on initial fetch
                 if (fetchedPapers.length > 0) {
                     setFeaturedPaper(fetchedPapers[0]); 
                     setListPapers(fetchedPapers.slice(1)); 
@@ -74,10 +75,12 @@ export default function ResearchPage() {
     }, []);
 
     // --- HELPER: Format Date ---
-    const formatDate = (dateString) => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }); 
+    const formatDate = (dateInput) => {
+        try {
+            if (!dateInput) return '';
+            const date = dateInput.toDate ? dateInput.toDate() : new Date(dateInput);
+            return date.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }); 
+        } catch (e) { return ''; }
     };
 
     // --- HELPER: Count Papers in Series ---
@@ -86,19 +89,37 @@ export default function ResearchPage() {
     };
 
     // --- FILTER LOGIC ---
-    const filteredList = listPapers.filter(item => {
-        const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                              item.excerpt?.toLowerCase().includes(searchTerm.toLowerCase());
+    // We filter the *entire* list of papers, then decide what is featured vs list
+    useEffect(() => {
+        let filtered = papers;
 
-        // Simple tag matching logic (case insensitive)
-        const matchesFilter = activeFilter === 'All Papers' || 
-                              (item.tags && item.tags.some(tag => tag.toLowerCase().includes(activeFilter.toLowerCase())));
+        // Language Filter
+        if (activeLang !== 'All') {
+            filtered = filtered.filter(item => item.language === activeLang);
+        }
 
-        return matchesSearch && matchesFilter;
-    });
+        // Search Filter
+        if (searchTerm) {
+            filtered = filtered.filter(item => 
+                item.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                item.excerpt?.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
+
+        // Update View
+        if (filtered.length > 0) {
+            setFeaturedPaper(filtered[0]);
+            setListPapers(filtered.slice(1));
+        } else {
+            setFeaturedPaper(null);
+            setListPapers([]);
+        }
+
+    }, [activeLang, searchTerm, papers]);
+
 
     return (
-        <div className="min-h-screen flex flex-col bg-white font-lato">
+        <div className="min-h-screen flex flex-col bg-brand-sand font-lato">
             <Header />
             <main className="flex-grow pb-16">
 
@@ -127,7 +148,7 @@ export default function ResearchPage() {
 
                 {loading ? (
                     <div className="flex justify-center items-center py-20">
-                        <Loader2 className="w-10 h-10 text-brand-gold animate-spin" />
+                        <Loader size="md" />
                     </div>
                 ) : (
                     <>
@@ -145,39 +166,67 @@ export default function ResearchPage() {
 
                                 <div className="flex overflow-x-auto gap-4 pb-4 md:grid md:grid-cols-3 md:gap-8 scrollbar-hide snap-x">
                                     {series.map((item) => (
-                                        <div key={item.id} className="snap-center min-w-[220px] md:min-w-0 group cursor-pointer">
-                                            <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden mb-3 bg-gray-100 border border-gray-200">
+                                        <div key={item.id} className="snap-center min-w-[240px] md:min-w-0 group cursor-pointer relative rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all">
+                                            <div className="relative w-full aspect-[16/9]">
                                                 <Image 
                                                     src={item.cover || "/fallback.webp"} 
                                                     alt={item.title} 
                                                     fill 
-                                                    className="object-cover transition-transform duration-700 group-hover:scale-110" 
+                                                    className="object-cover" 
                                                 />
                                                 <div className="absolute inset-0 bg-brand-brown-dark/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <span className="text-white text-xs font-bold border border-white px-3 py-1 rounded uppercase tracking-wider">Browse Collection</span>
                                                 </div>
-                                                <div className="absolute bottom-2 right-2 bg-white/90 text-brand-brown-dark text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1 shadow-sm">
-                                                    <Layers className="w-3 h-3" /> {getSeriesCount(item.title)} Papers
+                                                <div className="absolute bottom-2 left-2 right-2 flex justify-between items-end">
+                                                    <span className="text-white font-agency text-lg drop-shadow-md truncate">{item.title}</span>
+                                                    <span className="text-white/80 text-[10px] bg-black/50 px-2 py-1 rounded flex items-center gap-1">
+                                                        <Layers className="w-3 h-3" /> {getSeriesCount(item.title)}
+                                                    </span>
                                                 </div>
                                             </div>
-                                            <h3 className="font-agency text-lg md:text-xl text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors">
-                                                {item.title}
-                                            </h3>
                                         </div>
                                     ))}
                                 </div>
                             </section>
                         )}
 
-{/* 3. FEATURED PAPER (Banner) */}
-                        {featuredPaper && (
-                            <section className="px-6 md:px-12 lg:px-24 mb-16 md:mb-20 max-w-7xl mx-auto">
-                                <div className="flex justify-between items-end mb-6 border-b border-gray-100 pb-2">
-                                    <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark">
-                                        Spotlight Paper
-                                    </h2>
+                        {/* 3. FILTER & SEARCH BAR */}
+                        <section className="px-6 md:px-12 lg:px-24 mb-8 max-w-7xl mx-auto">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                                {/* Horizontal Language Loop */}
+                                <div className="flex overflow-x-auto gap-2 pb-2 md:pb-0 scrollbar-hide w-full md:w-auto">
+                                    {languages.map((lang) => (
+                                        <button 
+                                            key={lang} 
+                                            onClick={() => setActiveLang(lang)}
+                                            className={`px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-colors border ${
+                                                activeLang === lang 
+                                                ? 'bg-brand-brown-dark text-white border-brand-brown-dark shadow-md' 
+                                                : 'bg-brand-sand text-gray-500 border-transparent hover:border-brand-gold hover:text-brand-gold'
+                                            }`}
+                                        >
+                                            {lang}
+                                        </button>
+                                    ))}
                                 </div>
 
+                                {/* Search Bar */}
+                                <div className="relative w-full md:w-80">
+                                    <input 
+                                        type="text" 
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        placeholder="Search papers..." 
+                                        className="w-full pl-4 pr-10 py-2.5 rounded-full border border-gray-200 focus:outline-none focus:ring-1 focus:ring-brand-gold text-sm bg-gray-50"
+                                    />
+                                    <Search className="absolute right-3 top-3 text-gray-400 w-4 h-4" />
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* 4. FEATURED PAPER (Banner) */}
+                        {featuredPaper && (
+                            <section className="px-6 md:px-12 lg:px-24 mb-16 max-w-7xl mx-auto">
                                 <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-gray-100 flex flex-col lg:flex-row group">
                                     {/* Visual Side */}
                                     <div className="relative w-full lg:w-2/5 min-h-[250px] bg-brand-sand/30 flex items-center justify-center p-8">
@@ -186,40 +235,39 @@ export default function ResearchPage() {
                                                 src={featuredPaper.coverImage || "/fallback.webp"} 
                                                 alt="Paper Cover" 
                                                 fill 
-                                                className="object-cover opacity-80" 
+                                                className="object-cover opacity-90" 
                                             />
                                             <div className="absolute inset-0 bg-brand-brown-dark/10"></div>
-                                            {/* Icon Overlay */}
                                             <div className="absolute inset-0 flex items-center justify-center">
-                                                <FileText className="w-16 h-16 text-brand-brown-dark/50" />
+                                                <FileText className="w-16 h-16 text-white/80 drop-shadow-lg" />
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Content Side */}
-                                    <div className="p-8 md:p-12 lg:w-3/5 flex flex-col justify-center">
+                                    <div className="p-8 md:p-12 lg:w-3/5 flex flex-col justify-center" dir={featuredPaper.language === 'Arabic' ? 'rtl' : 'ltr'}>
                                         <div className="flex items-center gap-3 mb-4">
                                             <span className="text-[10px] md:text-xs font-bold text-white bg-brand-gold px-3 py-1 rounded-full uppercase tracking-wider">
                                                 {featuredPaper.category}
                                             </span>
-                                            <span className="text-xs text-gray-400 font-bold flex items-center gap-1">
+                                            <span className="text-xs text-gray-400 font-bold flex items-center gap-1" dir="ltr">
                                                 <Calendar className="w-3 h-3" /> {formatDate(featuredPaper.date)}
                                             </span>
                                         </div>
 
-                                        <h3 className="font-agency text-2xl md:text-4xl text-brand-brown-dark leading-tight mb-4 group-hover:text-brand-gold transition-colors">
+                                        <h3 className={`font-agency text-2xl md:text-4xl text-brand-brown-dark leading-tight mb-4 group-hover:text-brand-gold transition-colors ${featuredPaper.language === 'Arabic' ? 'font-tajawal font-bold' : ''}`}>
                                             {featuredPaper.title}
                                         </h3>
 
-                                        <div className="bg-gray-50 p-4 rounded-xl border-l-4 border-brand-brown-dark mb-6">
-                                            <p className="font-lato text-xs md:text-sm text-gray-600 italic leading-relaxed">
-                                                <span className="font-bold text-brand-brown-dark not-italic">Abstract: </span>
+                                        <div className={`bg-gray-50 p-4 rounded-xl border-brand-brown-dark mb-6 ${featuredPaper.language === 'Arabic' ? 'border-r-4' : 'border-l-4'}`}>
+                                            <p className={`font-lato text-xs md:text-sm text-gray-600 italic leading-relaxed ${featuredPaper.language === 'Arabic' ? 'font-arabic not-italic' : ''}`}>
+                                                <span className="font-bold text-brand-brown-dark not-italic">{featuredPaper.language === 'Arabic' ? 'الملخص: ' : 'Abstract: '}</span>
                                                 {featuredPaper.excerpt || "No abstract available for this paper."}
                                             </p>
                                         </div>
 
                                         <div className="mt-auto flex flex-wrap items-center justify-between gap-4">
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2" dir="ltr">
                                                 <div className="w-8 h-8 rounded-full bg-gray-200 relative overflow-hidden">
                                                      <Image src="/fallback.webp" alt="Author" fill className="object-cover" />
                                                 </div>
@@ -233,7 +281,7 @@ export default function ResearchPage() {
                                                     rel="noopener noreferrer"
                                                     className="flex items-center gap-2 px-6 py-2 bg-brand-brown-dark text-white text-xs md:text-sm font-bold rounded-full uppercase tracking-wider hover:bg-brand-gold transition-colors"
                                                 >
-                                                    <Download className="w-4 h-4" /> Download PDF
+                                                    <Download className="w-4 h-4" /> {featuredPaper.language === 'Arabic' ? 'تحميل PDF' : 'Download PDF'}
                                                 </a>
                                             ) : (
                                                 <span className="text-xs text-gray-400 italic">PDF Not Available</span>
@@ -244,34 +292,11 @@ export default function ResearchPage() {
                             </section>
                         )}
 
-                        {/* 4. FILTER BAR */}
-                        <section className="px-6 md:px-12 lg:px-24 mb-8 max-w-7xl mx-auto">
-                             <div className="flex items-center gap-2 mb-4 md:hidden">
-                                <Filter className="w-4 h-4 text-brand-brown" />
-                                <span className="text-xs font-bold uppercase tracking-widest text-brand-brown">Filter Topics</span>
-                            </div>
-                            <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-hide md:justify-center md:flex-wrap">
-                                {filters.map((filter, index) => (
-                                    <button 
-                                        key={index}
-                                        onClick={() => setActiveFilter(filter)}
-                                        className={`px-5 py-2 md:px-6 md:py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
-                                            activeFilter === filter 
-                                            ? 'bg-brand-brown-dark text-white shadow-md' 
-                                            : 'bg-brand-sand text-brand-brown-dark hover:bg-brand-brown-dark/10'
-                                        }`}
-                                    >
-                                        {filter}
-                                    </button>
-                                ))}
-                            </div>
-                        </section>
-
                         {/* 5. PAPERS LIST */}
                         <section className="px-6 md:px-12 lg:px-24 max-w-7xl mx-auto mb-12">
-                            {filteredList.length > 0 ? (
+                            {listPapers.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-                                    {filteredList.map((item) => (
+                                    {listPapers.map((item) => (
                                         <div key={item.id} className="bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-xl hover:border-brand-gold/30 transition-all p-6 md:p-8 flex flex-col h-full group">
 
                                             {/* Header: Category & Date */}
@@ -281,7 +306,7 @@ export default function ResearchPage() {
                                                 </span>
                                                 <div className="flex items-center gap-3">
                                                     <span className="text-[10px] text-gray-400 font-bold flex items-center gap-1">
-                                                        <BookOpen className="w-3 h-3" /> {item.readTime || 'PDF'}
+                                                        <BookOpen className="w-3 h-3" /> {item.readTime ? `${item.readTime} min` : 'PDF'}
                                                     </span>
                                                     <div className="p-1.5 bg-green-50 rounded-md text-green-600">
                                                         <FileText className="w-4 h-4" />
@@ -291,19 +316,19 @@ export default function ResearchPage() {
 
                                             {/* Title */}
                                             <Link href={`/blogs/read/${item.id}`}>
-                                                <h3 className="font-agency text-xl md:text-2xl text-brand-brown-dark leading-tight mb-3 group-hover:text-brand-gold transition-colors cursor-pointer">
+                                                <h3 className={`font-agency text-xl md:text-2xl text-brand-brown-dark leading-tight mb-3 group-hover:text-brand-gold transition-colors cursor-pointer ${item.language === 'Arabic' ? 'font-tajawal font-bold text-right' : ''}`}>
                                                     {item.title}
                                                 </h3>
                                             </Link>
 
                                             {/* Abstract Preview */}
-                                            <p className="font-lato text-xs md:text-sm text-gray-600 leading-relaxed mb-6 line-clamp-3 flex-grow">
+                                            <p className={`font-lato text-xs md:text-sm text-gray-600 leading-relaxed mb-6 line-clamp-3 flex-grow ${item.language === 'Arabic' ? 'font-arabic text-right' : ''}`}>
                                                 {item.excerpt}
                                             </p>
 
                                             {/* Footer: Author & Action */}
                                             <div className="pt-4 border-t border-gray-50 flex items-center justify-between mt-auto">
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2" dir="ltr">
                                                     <div className="w-6 h-6 rounded-full bg-gray-200 relative overflow-hidden">
                                                          <Image src="/fallback.webp" alt="Author" fill className="object-cover" />
                                                     </div>
@@ -315,7 +340,7 @@ export default function ResearchPage() {
                                                         href={item.pdfUrl} 
                                                         target="_blank" 
                                                         rel="noopener noreferrer"
-                                                        className="text-brand-gold hover:text-brand-brown-dark transition-colors" 
+                                                        className="text-brand-gold hover:text-brand-brown-dark transition-colors"
                                                         title="Download"
                                                     >
                                                         <Download className="w-5 h-5" />
@@ -331,22 +356,6 @@ export default function ResearchPage() {
                                     <p>No research papers found matching your criteria.</p>
                                 </div>
                             )}
-                        </section>
-
-                        {/* 6. SEARCH / ARCHIVE */}
-                        <section className="px-6 md:px-12 lg:px-24 mb-8 max-w-2xl mx-auto text-center">
-                            <div className="relative">
-                                <input 
-                                    type="text" 
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    placeholder="Search research papers, authors, or keywords..." 
-                                    className="w-full pl-6 pr-12 py-4 rounded-full border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 text-sm"
-                                />
-                                <button className="absolute right-2 top-2 p-2 bg-brand-brown-dark text-white rounded-full hover:bg-brand-gold transition-colors">
-                                    <Search className="w-4 h-4" />
-                                </button>
-                            </div>
                         </section>
                     </>
                 )}
