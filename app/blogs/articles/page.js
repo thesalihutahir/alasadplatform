@@ -90,7 +90,7 @@ export default function ArticlesPage() {
                             className="object-cover object-center" 
                             priority 
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-white via-brand-gold/40 to-transparent "></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-brand-sand via-brand-gold/40 to-transparent "></div>
                     </div>
                     <div className="relative -mt-16 md:-mt-32 text-center px-6 z-10 max-w-4xl mx-auto">
                         <h1 className="font-agency text-4xl md:text-6xl lg:text-7xl text-brand-brown-dark mb-4 drop-shadow-md">
