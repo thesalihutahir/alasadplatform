@@ -1,7 +1,8 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
-// UPDATE 1: Correct path matches where we created the file
+// Context Imports
 import { AuthContextProvider } from "@/context/AuthContext"; 
+import { ModalProvider } from "@/app/context/ModalContext"; // Import the Modal System
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -14,9 +15,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={inter.className}>
-        {/* UPDATE 2: Correct Name matches the export */}
         <AuthContextProvider>
-          {children}
+          <ModalProvider> {/* Wrapped here so every page can use it */}
+            {children}
+          </ModalProvider>
         </AuthContextProvider>
       </body>
     </html>
