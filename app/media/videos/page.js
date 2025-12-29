@@ -19,9 +19,6 @@ export default function VideosPage() {
     const [loading, setLoading] = useState(true);
     const [activeFilter, setActiveFilter] = useState("All Videos");
     const [visibleCount, setVisibleCount] = useState(6);
-    
-    // Track which video is currently playing (Inline)
-    const [playingVideoId, setPlayingVideoId] = useState(null);
 
     const filters = ["All Videos", "Tafsir", "Lecture", "Event Highlight", "Friday Sermon (Khutbah)"];
 
@@ -69,14 +66,6 @@ export default function VideosPage() {
         if (!text) return 'ltr';
         const arabicPattern = /[\u0600-\u06FF]/;
         return arabicPattern.test(text) ? 'rtl' : 'ltr';
-    };
-
-    // --- HELPER: Get YouTube ID ---
-    const getYouTubeID = (url) => {
-        if (!url) return null;
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-        const match = url.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : null;
     };
 
     // --- FILTER LOGIC ---
@@ -195,7 +184,7 @@ export default function VideosPage() {
                             </div>
                         </section>
 
-                        {/* 4. ALL VIDEOS GRID (INLINE PLAYER) */}
+                        {/* 4. ALL VIDEOS GRID */}
                         <section className="px-6 md:px-12 lg:px-24 max-w-7xl mx-auto">
                              <div className="flex justify-between items-end mb-6 md:mb-8">
                                 <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark">
@@ -206,46 +195,29 @@ export default function VideosPage() {
                             {visibleVideos.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                                     {visibleVideos.map((video) => {
-                                        const dir = getDir(video.title); // Detect Direction
-                                        const isPlaying = playingVideoId === video.id; // Check if THIS video is playing
-
+                                        const dir = getDir(video.title);
                                         return (
-                                            <div 
+                                            <Link 
                                                 key={video.id} 
+                                                href={`/media/videos/${video.id}`} // LINK TO DEDICATED PAGE
                                                 className="group block bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 transition-all hover:shadow-xl hover:border-brand-gold/20"
                                             >
-                                                {/* Video / Thumbnail Container */}
+                                                {/* Thumbnail Container */}
                                                 <div className="relative w-full aspect-video bg-black">
-                                                    {isPlaying ? (
-                                                        <iframe 
-                                                            src={`https://www.youtube.com/embed/${getYouTubeID(video.url)}?autoplay=1`} 
-                                                            title={video.title}
-                                                            className="absolute inset-0 w-full h-full"
-                                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                                            allowFullScreen
-                                                        ></iframe>
-                                                    ) : (
-                                                        // CLICK TO PLAY
-                                                        <div 
-                                                            className="relative w-full h-full cursor-pointer" 
-                                                            onClick={() => setPlayingVideoId(video.id)}
-                                                        >
-                                                            <Image
-                                                                src={video.thumbnail || "/fallback.webp"}
-                                                                alt={video.title}
-                                                                fill
-                                                                className="object-cover opacity-90 group-hover:opacity-100 transition-opacity"
-                                                            />
-                                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                                <div className="w-12 h-12 md:w-16 md:h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:bg-brand-gold group-hover:scale-110 transition-all duration-300 shadow-md">
-                                                                    <Play className="w-5 h-5 md:w-7 md:h-7 text-white fill-current ml-1" />
-                                                                </div>
-                                                            </div>
-                                                            <div className="absolute bottom-3 right-3 bg-black/70 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1">
-                                                                <Clock className="w-3 h-3" /> Watch
-                                                            </div>
+                                                    <Image
+                                                        src={video.thumbnail || "/fallback.webp"}
+                                                        alt={video.title}
+                                                        fill
+                                                        className="object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+                                                    />
+                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                        <div className="w-12 h-12 md:w-16 md:h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:bg-brand-gold group-hover:scale-110 transition-all duration-300 shadow-md">
+                                                            <Play className="w-5 h-5 md:w-7 md:h-7 text-white fill-current ml-1" />
                                                         </div>
-                                                    )}
+                                                    </div>
+                                                    <div className="absolute bottom-3 right-3 bg-black/70 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1">
+                                                        <Clock className="w-3 h-3" /> Watch
+                                                    </div>
                                                 </div>
 
                                                 {/* Content */}
@@ -261,24 +233,18 @@ export default function VideosPage() {
                                                     </div>
 
                                                     {/* Title */}
-                                                    <h3 
-                                                        onClick={() => setPlayingVideoId(video.id)} // Allow title click to play too
-                                                        className={`font-agency text-xl md:text-2xl text-brand-brown-dark leading-tight mb-2 group-hover:text-brand-gold transition-colors cursor-pointer ${dir === 'rtl' ? 'font-tajawal font-bold' : ''}`}
-                                                    >
+                                                    <h3 className={`font-agency text-xl md:text-2xl text-brand-brown-dark leading-tight mb-2 group-hover:text-brand-gold transition-colors ${dir === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
                                                         {video.title}
                                                     </h3>
 
                                                     {/* Description (Truncated) */}
                                                     {video.description && (
-                                                        <p 
-                                                            onClick={() => setPlayingVideoId(video.id)}
-                                                            className={`text-sm text-gray-600 line-clamp-2 leading-relaxed cursor-pointer hover:text-gray-900 transition-colors ${dir === 'rtl' ? 'font-arabic' : 'font-lato'}`}
-                                                        >
+                                                        <p className={`text-sm text-gray-600 line-clamp-2 leading-relaxed hover:text-gray-900 transition-colors ${dir === 'rtl' ? 'font-arabic' : 'font-lato'}`}>
                                                             {video.description}
                                                         </p>
                                                     )}
                                                 </div>
-                                            </div>
+                                            </Link>
                                         );
                                     })}
                                 </div>
