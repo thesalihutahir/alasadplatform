@@ -7,6 +7,8 @@ import { useRouter, useParams } from 'next/navigation';
 // Firebase
 import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, collection, getDocs, query, orderBy } from 'firebase/firestore';
+// Global Modal Context
+import { useModal } from '@/context/ModalContext'; 
 
 import { 
     ArrowLeft, 
@@ -14,9 +16,9 @@ import {
     Youtube, 
     PlayCircle, 
     CheckCircle, 
-    ListVideo,
+    ListVideo, 
     Loader2,
-    Play,
+    Play, 
     Clock
 } from 'lucide-react';
 
@@ -24,6 +26,9 @@ export default function EditVideoPage() {
     const router = useRouter();
     const params = useParams();
     const videoIdParam = params?.id; // The Firestore Doc ID
+    
+    // Access the Global Modal
+    const { showSuccess } = useModal();
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingData, setIsLoadingData] = useState(true);
@@ -176,8 +181,13 @@ export default function EditVideoPage() {
             const videoRef = doc(db, "videos", videoIdParam);
             await updateDoc(videoRef, videoData);
 
-            alert("Video updated successfully!");
-            router.push('/admin/videos');
+            // Trigger the Global Success Modal
+            showSuccess({
+                title: "Video Updated!",
+                message: "Your changes have been saved successfully.",
+                confirmText: "Return to Library",
+                onConfirm: () => router.push('/admin/videos')
+            });
 
         } catch (error) {
             console.error("Error updating video:", error);
