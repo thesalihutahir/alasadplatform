@@ -25,13 +25,9 @@ import {
 
 export default function ManageVideosPage() {
     const router = useRouter();
-    const { showSuccess } = useModal(); // Use for success feedback
+    // 1. Get BOTH modal functions
+    const { showSuccess, showConfirm } = useModal(); 
     
-    // We can also reuse the modal for "confirm delete" by tweaking the context or just using window.confirm for dangerous actions is often safer/faster.
-    // However, if you want a branded delete, we can add a delete confirmation modal. 
-    // For now, I will keep window.confirm for DELETION as it's a standard safety pattern, 
-    // but use the custom modal to confirm "Deleted Successfully".
-
     const [activeTab, setActiveTab] = useState('videos'); 
     const [isLoading, setIsLoading] = useState(true);
 
@@ -105,33 +101,41 @@ export default function ManageVideosPage() {
 
     const filteredContent = getFilteredContent();
 
-    // 3. ACTIONS
-    const handleDelete = async (id, type) => {
+    // 3. UPDATED ACTIONS: Using Custom Modal
+    const handleDelete = (id, type) => {
         const message = type === 'playlist' 
             ? "Warning: Deleting this playlist will NOT delete the videos inside it, but they will become 'orphaned' (no playlist). Continue?"
             : "Are you sure you want to delete this video? This cannot be undone.";
 
-        // Standard browser confirm is safer for destructive actions to avoid accidental clicks
-        if (!confirm(message)) return;
+        // Replace window.confirm with showConfirm
+        showConfirm({
+            title: `Delete ${type === 'playlist' ? 'Playlist' : 'Video'}?`,
+            message: message,
+            confirmText: "Yes, Delete",
+            cancelText: "Cancel",
+            type: 'danger', // Triggers Red Theme
+            onConfirm: async () => {
+                // Actual Delete Logic runs ONLY when confirmed
+                try {
+                    if (type === 'video') {
+                        await deleteDoc(doc(db, "videos", id));
+                    } else {
+                        await deleteDoc(doc(db, "video_playlists", id));
+                    }
+                    
+                    // Show Success Feedback
+                    showSuccess({
+                        title: "Deleted!",
+                        message: `The ${type} has been successfully deleted.`,
+                        confirmText: "Okay",
+                    });
 
-        try {
-            if (type === 'video') {
-                await deleteDoc(doc(db, "videos", id));
-            } else {
-                await deleteDoc(doc(db, "video_playlists", id));
+                } catch (error) {
+                    console.error("Error deleting:", error);
+                    alert("Failed to delete.");
+                }
             }
-            
-            // Show Branded Success Modal
-            showSuccess({
-                title: "Deleted!",
-                message: `The ${type} has been successfully deleted.`,
-                confirmText: "Okay",
-            });
-
-        } catch (error) {
-            console.error("Error deleting:", error);
-            alert("Failed to delete.");
-        }
+        });
     };
 
     const handleEdit = (id, type) => {
