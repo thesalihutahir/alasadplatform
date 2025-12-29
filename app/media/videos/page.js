@@ -9,7 +9,7 @@ import Loader from '@/components/Loader';
 // Firebase Imports
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
-import { Play, ListVideo, Clock, Filter, Loader2, ArrowUpDown } from 'lucide-react';
+import { Play, ListVideo, Clock, Filter, Loader2, ArrowUpDown, Search, X } from 'lucide-react';
 
 export default function VideosPage() {
 
@@ -17,10 +17,13 @@ export default function VideosPage() {
     const [videos, setVideos] = useState([]);
     const [playlists, setPlaylists] = useState([]);
     const [loading, setLoading] = useState(true);
+    
+    // Filters & Search
     const [activeFilter, setActiveFilter] = useState("All Videos");
+    const [searchTerm, setSearchTerm] = useState(""); // Search State
     const [visibleCount, setVisibleCount] = useState(6);
     
-    // NEW: Sort Order State ('desc' = Newest Date Recorded First)
+    // Sort Order State ('desc' = Newest Date Recorded First)
     const [sortOrder, setSortOrder] = useState('desc');
 
     const filters = ["All Videos", "English", "Hausa", "Arabic"];
@@ -30,8 +33,6 @@ export default function VideosPage() {
         const fetchData = async () => {
             try {
                 // 1. Fetch Videos
-                // We fetch by createdAt initially to get the latest added, 
-                // but client-side sorting will handle the "Date Recorded" logic.
                 const qVideos = query(collection(db, "videos"), orderBy("createdAt", "desc"));
                 const videoSnapshot = await getDocs(qVideos);
                 const fetchedVideos = videoSnapshot.docs.map(doc => ({
@@ -80,15 +81,19 @@ export default function VideosPage() {
         return arabicPattern.test(text) ? 'rtl' : 'ltr';
     };
 
-    // --- FILTER & SORT LOGIC ---
-    // 1. Filter by Category
-    const filteredByCat = activeFilter === "All Videos" 
-        ? videos 
-        : videos.filter(video => video.category === activeFilter);
+    // --- FILTER, SEARCH & SORT LOGIC ---
+    
+    // 1. Filter by Category AND Search Term
+    const filteredVideos = videos.filter(video => {
+        const matchesCategory = activeFilter === "All Videos" || video.category === activeFilter;
+        // Search matches title
+        const matchesSearch = video.title.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        return matchesCategory && matchesSearch;
+    });
 
     // 2. Sort by Date Recorded (Smart Sort)
-    const sortedVideos = [...filteredByCat].sort((a, b) => {
-        // Fallback to 0 if date is missing to avoid crash
+    const sortedVideos = [...filteredVideos].sort((a, b) => {
         const dateA = new Date(a.date || 0); 
         const dateB = new Date(b.date || 0);
         
@@ -99,7 +104,6 @@ export default function VideosPage() {
 
     // 3. Slice for Pagination
     const visibleVideos = sortedVideos.slice(0, visibleCount);
-
     return (
         <div className="min-h-screen flex flex-col bg-white font-lato">
             <Header />
@@ -189,9 +193,33 @@ export default function VideosPage() {
                             </section>
                         )}
 
-                        {/* 3. FILTER BAR */}
+                        {/* 3. SEARCH & FILTERS SECTION */}
                         <section className="px-6 md:px-12 lg:px-24 mb-8">
-                             <div className="flex items-center gap-2 mb-4 md:hidden">
+                            
+                            {/* SEARCH BAR (Responsive) */}
+                            <div className="max-w-2xl mx-auto mb-6">
+                                <div className="relative group">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-brand-gold transition-colors" />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Search lectures, topics, or titles..." 
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full pl-12 pr-10 py-3.5 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 focus:bg-white transition-all shadow-sm"
+                                    />
+                                    {searchTerm && (
+                                        <button 
+                                            onClick={() => setSearchTerm('')}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* FILTER CHIPS */}
+                            <div className="flex items-center gap-2 mb-4 md:hidden">
                                 <Filter className="w-4 h-4 text-brand-brown" />
                                 <span className="text-xs font-bold uppercase tracking-widest text-brand-brown">Filter Content</span>
                             </div>
