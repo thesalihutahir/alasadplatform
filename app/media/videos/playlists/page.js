@@ -20,15 +20,31 @@ export default function PlaylistsPage() {
     const filters = ["All", "English", "Hausa", "Arabic"];
 
     useEffect(() => {
-        const fetchPlaylists = async () => {
+        const fetchData = async () => {
             try {
-                const q = query(collection(db, "video_playlists"), orderBy("createdAt", "desc"));
-                const snapshot = await getDocs(q);
-                const data = snapshot.docs.map(doc => ({
+                // 1. Fetch Playlists
+                const qPlaylists = query(collection(db, "video_playlists"), orderBy("createdAt", "desc"));
+                const plSnap = await getDocs(qPlaylists);
+                let fetchedPlaylists = plSnap.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
                 }));
-                setPlaylists(data);
+
+                // 2. Fetch ALL Videos (to count)
+                // Note: This fetches all videos to count them correctly.
+                // For a very large app, a cloud function counter is better, but this is fine for now.
+                const qVideos = query(collection(db, "videos")); 
+                const vidSnap = await getDocs(qVideos);
+                const fetchedVideos = vidSnap.docs.map(doc => doc.data());
+
+                // 3. Calculate Counts Dynamically
+                fetchedPlaylists = fetchedPlaylists.map(playlist => {
+                    const realCount = fetchedVideos.filter(v => v.playlist === playlist.title).length;
+                    return { ...playlist, count: realCount }; // Override static count
+                });
+
+                setPlaylists(fetchedPlaylists);
+
             } catch (error) {
                 console.error("Error fetching playlists:", error);
             } finally {
@@ -36,7 +52,7 @@ export default function PlaylistsPage() {
             }
         };
 
-        fetchPlaylists();
+        fetchData();
     }, []);
 
     // Helper: RTL Detection
@@ -109,7 +125,7 @@ export default function PlaylistsPage() {
                                 {filteredPlaylists.map((playlist) => (
                                     <Link 
                                         key={playlist.id} 
-                                        href={`/media/videos/playlists/${playlist.id}`} // UPDATED PATH
+                                        href={`/media/videos/playlists/${playlist.id}`}
                                         className="group bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
                                     >
                                         <div className="relative aspect-[16/10] bg-gray-200">
@@ -125,7 +141,8 @@ export default function PlaylistsPage() {
                                                 </div>
                                             </div>
                                             <div className="absolute bottom-3 right-3 bg-black/80 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-2">
-                                                <ListVideo className="w-3 h-3" /> {playlist.count || 0} Videos
+                                                {/* Display Dynamic Count Here */}
+                                                <ListVideo className="w-3 h-3" /> {playlist.count} Videos
                                             </div>
                                         </div>
                                         <div className="p-6" dir={getDir(playlist.title)}>
