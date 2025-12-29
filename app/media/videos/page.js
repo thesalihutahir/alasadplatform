@@ -9,7 +9,7 @@ import Loader from '@/components/Loader';
 // Firebase Imports
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
-import { Play, ListVideo, Clock, Filter, Loader2, ArrowUpDown, Search, X } from 'lucide-react';
+import { Play, ListVideo, Clock, Filter, Loader2, ArrowUpDown, Search, X, ChevronRight } from 'lucide-react';
 
 export default function VideosPage() {
 
@@ -20,7 +20,7 @@ export default function VideosPage() {
     
     // Filters & Search
     const [activeFilter, setActiveFilter] = useState("All Videos");
-    const [searchTerm, setSearchTerm] = useState(""); // Search State
+    const [searchTerm, setSearchTerm] = useState("");
     const [visibleCount, setVisibleCount] = useState(6);
     
     // Sort Order State ('desc' = Newest Date Recorded First)
@@ -67,42 +67,32 @@ export default function VideosPage() {
         fetchData();
     }, []);
 
-    // --- HELPER: Format Date ---
+    // --- HELPERS ---
     const formatDate = (dateString) => {
         if (!dateString) return '';
         const date = new Date(dateString);
         return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     };
 
-    // --- HELPER: Auto-Detect Arabic ---
     const getDir = (text) => {
         if (!text) return 'ltr';
         const arabicPattern = /[\u0600-\u06FF]/;
         return arabicPattern.test(text) ? 'rtl' : 'ltr';
     };
 
-    // --- FILTER, SEARCH & SORT LOGIC ---
-    
-    // 1. Filter by Category AND Search Term
+    // --- FILTER & SORT LOGIC ---
     const filteredVideos = videos.filter(video => {
         const matchesCategory = activeFilter === "All Videos" || video.category === activeFilter;
-        // Search matches title
         const matchesSearch = video.title.toLowerCase().includes(searchTerm.toLowerCase());
-        
         return matchesCategory && matchesSearch;
     });
 
-    // 2. Sort by Date Recorded (Smart Sort)
     const sortedVideos = [...filteredVideos].sort((a, b) => {
         const dateA = new Date(a.date || 0); 
         const dateB = new Date(b.date || 0);
-        
-        return sortOrder === 'desc' 
-            ? dateB - dateA  // Newest First
-            : dateA - dateB; // Oldest First
+        return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
     });
 
-    // 3. Slice for Pagination
     const visibleVideos = sortedVideos.slice(0, visibleCount);
     return (
         <div className="min-h-screen flex flex-col bg-white font-lato">
@@ -143,12 +133,16 @@ export default function VideosPage() {
                         {/* 2. PLAYLISTS / SERIES SECTION */}
                         {playlists.length > 0 && (
                             <section className="px-6 md:px-12 lg:px-24 mb-12">
-                                <div className="flex justify-between items-end mb-6 border-b border-gray-100 pb-2">
+                                {/* HEADER: Flex Row + Styled Button */}
+                                <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
                                     <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark">
                                         Featured Playlists
                                     </h2>
-                                    <Link href="/media/videos/playlists" className="text-xs font-bold text-gray-400 uppercase tracking-widest hover:text-brand-gold transition-colors">
-                                        View All →
+                                    <Link 
+                                        href="/media/videos/playlists" 
+                                        className="flex items-center gap-1.5 px-4 py-1.5 bg-gray-50 border border-gray-200 rounded-full text-[10px] md:text-xs font-bold text-gray-600 uppercase tracking-widest hover:bg-brand-gold hover:text-white hover:border-brand-gold transition-all duration-300 shadow-sm"
+                                    >
+                                        View All <ChevronRight className="w-3 h-3" />
                                     </Link>
                                 </div>
 
@@ -196,7 +190,7 @@ export default function VideosPage() {
                         {/* 3. SEARCH & FILTERS SECTION */}
                         <section className="px-6 md:px-12 lg:px-24 mb-8">
                             
-                            {/* SEARCH BAR (Responsive) */}
+                            {/* SEARCH BAR */}
                             <div className="max-w-2xl mx-auto mb-6">
                                 <div className="relative group">
                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-brand-gold transition-colors" />
@@ -242,18 +236,20 @@ export default function VideosPage() {
 
                         {/* 4. ALL VIDEOS GRID */}
                         <section className="px-6 md:px-12 lg:px-24 max-w-7xl mx-auto">
-                             <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4 mb-6 md:mb-8">
-                                <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark">
-                                    Recent
+                             {/* UPDATED HEADER: Always Row, Proper Alignment */}
+                             <div className="flex flex-row items-center justify-between gap-4 mb-6 md:mb-8">
+                                <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark whitespace-nowrap">
+                                    Recent Uploads
                                 </h2>
 
                                 {/* SORTING BUTTON */}
                                 <button 
                                     onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
-                                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 hover:text-brand-brown-dark transition-all shadow-sm"
+                                    className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 hover:text-brand-brown-dark transition-all shadow-sm whitespace-nowrap flex-shrink-0"
                                 >
                                     <ArrowUpDown className="w-3 h-3" />
-                                    Sort: {sortOrder === 'desc' ? 'Newest First' : 'Oldest First'}
+                                    <span className="hidden sm:inline">Sort: </span>
+                                    {sortOrder === 'desc' ? 'Newest' : 'Oldest'}
                                 </button>
                             </div>
 
