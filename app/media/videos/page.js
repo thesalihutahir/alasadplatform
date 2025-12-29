@@ -20,7 +20,8 @@ export default function VideosPage() {
     const [activeFilter, setActiveFilter] = useState("All Videos");
     const [visibleCount, setVisibleCount] = useState(6);
 
-    const filters = ["All Videos", "Tafsir", "Lecture", "Event Highlight", "Friday Sermon (Khutbah)"];
+    // UPDATED FILTERS TO MATCH ADMIN UPLOAD OPTIONS
+    const filters = ["All Videos", "English", "Hausa", "Arabic"];
 
     // --- FETCH DATA ---
     useEffect(() => {
