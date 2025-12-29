@@ -20,14 +20,15 @@ import {
     LayoutList, 
     Loader2,
     Filter,
-    X
+    X,
+    ArrowUpDown, // Added for sorting icon
+    CalendarClock // Added for UI decoration
 } from 'lucide-react';
 
 export default function ManageVideosPage() {
     const router = useRouter();
-    // 1. Get BOTH modal functions
     const { showSuccess, showConfirm } = useModal(); 
-    
+
     const [activeTab, setActiveTab] = useState('videos'); 
     const [isLoading, setIsLoading] = useState(true);
 
@@ -35,15 +36,34 @@ export default function ManageVideosPage() {
     const [videos, setVideos] = useState([]);
     const [playlists, setPlaylists] = useState([]);
 
-    // Filter State
+    // Filter & Sort State
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('All');
+    const [sortOrder, setSortOrder] = useState('desc'); // 'desc' = Newest First (Default)
 
     // Helper: Auto-Detect Arabic
     const getDir = (text) => {
         if (!text) return 'ltr';
         const arabicPattern = /[\u0600-\u06FF]/;
         return arabicPattern.test(text) ? 'rtl' : 'ltr';
+    };
+
+    // Helper: Format Date (Nigerian Time) 
+    const formatUploadTime = (timestamp) => {
+        if (!timestamp) return <span className="text-gray-300 italic">Processing...</span>;
+        
+        // Handle both Firestore Timestamp objects and ISO strings
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        
+        // Format: 29 Dec, 2025 • 5:13 PM
+        return new Intl.DateTimeFormat('en-NG', {
+            day: 'numeric', 
+            month: 'short', 
+            year: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric',
+            hour12: true
+        }).format(date).replace(',', '').replace(' at', ' •');
     };
 
     // 1. FETCH VIDEOS & PLAYLISTS
@@ -69,53 +89,63 @@ export default function ManageVideosPage() {
         };
     }, []);
 
-    // 2. CALCULATE DYNAMIC COUNTS & FILTER LOGIC
-    const getFilteredContent = () => {
+    // 2. GET PROCESSED CONTENT (Filter + Sort)
+    const getProcessedContent = () => {
         const term = searchTerm.toLowerCase();
-        
+        let content = [];
+
+        // A. Filter Logic
         if (activeTab === 'videos') {
-            return videos.filter(video => {
+            content = videos.filter(video => {
                 const matchesSearch = 
                     video.title.toLowerCase().includes(term) || 
                     (video.playlist && video.playlist.toLowerCase().includes(term));
-                
                 const matchesCategory = categoryFilter === 'All' || video.category === categoryFilter;
-
                 return matchesSearch && matchesCategory;
             });
         } else {
-            // Map playlists to include dynamic counts from the 'videos' state
+            // Map playlists to include dynamic counts
             const playlistsWithCounts = playlists.map(pl => ({
                 ...pl,
                 realCount: videos.filter(v => v.playlist === pl.title).length
             }));
 
-            return playlistsWithCounts.filter(playlist => {
+            content = playlistsWithCounts.filter(playlist => {
                 const matchesSearch = playlist.title.toLowerCase().includes(term);
                 const matchesCategory = categoryFilter === 'All' || playlist.category === categoryFilter;
-
                 return matchesSearch && matchesCategory;
             });
         }
+
+        // B. Sort Logic
+        return content.sort((a, b) => {
+            // Safely handle dates (Firestore Timestamp vs String vs Null)
+            const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+            const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+
+            if (sortOrder === 'desc') {
+                return dateB - dateA; // Newest first
+            } else {
+                return dateA - dateB; // Oldest first
+            }
+        });
     };
 
-    const filteredContent = getFilteredContent();
+    const filteredContent = getProcessedContent();
 
-    // 3. UPDATED ACTIONS: Using Custom Modal
+    // 3. ACTIONS
     const handleDelete = (id, type) => {
         const message = type === 'playlist' 
             ? "Warning: Deleting this playlist will NOT delete the videos inside it, but they will become 'orphaned' (no playlist). Continue?"
             : "Are you sure you want to delete this video? This cannot be undone.";
 
-        // Replace window.confirm with showConfirm
         showConfirm({
             title: `Delete ${type === 'playlist' ? 'Playlist' : 'Video'}?`,
             message: message,
             confirmText: "Yes, Delete",
             cancelText: "Cancel",
-            type: 'danger', // Triggers Red Theme
+            type: 'danger', 
             onConfirm: async () => {
-                // Actual Delete Logic runs ONLY when confirmed
                 try {
                     if (type === 'video') {
                         await deleteDoc(doc(db, "videos", id));
@@ -123,7 +153,6 @@ export default function ManageVideosPage() {
                         await deleteDoc(doc(db, "video_playlists", id));
                     }
                     
-                    // Show Success Feedback
                     showSuccess({
                         title: "Deleted!",
                         message: `The ${type} has been successfully deleted.`,
@@ -145,7 +174,6 @@ export default function ManageVideosPage() {
             router.push(`/admin/videos/edit/${id}`);
         }
     };
-
     return (
         <div className="space-y-6">
 
@@ -199,8 +227,10 @@ export default function ManageVideosPage() {
                     </button>
                 </div>
 
-                {/* Filters */}
+                {/* Filters & Sorting */}
                 <div className="flex flex-col md:flex-row w-full xl:w-auto gap-3">
+                    
+                    {/* Category */}
                     <div className="relative">
                         <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-gold" />
                         <select 
@@ -215,6 +245,17 @@ export default function ManageVideosPage() {
                         </select>
                     </div>
 
+                    {/* Sorting Button */}
+                    <button 
+                        onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors"
+                        title={sortOrder === 'desc' ? "Sort: Newest First" : "Sort: Oldest First"}
+                    >
+                        <ArrowUpDown className="w-4 h-4" />
+                        <span className="hidden md:inline">{sortOrder === 'desc' ? 'Newest' : 'Oldest'}</span>
+                    </button>
+
+                    {/* Search */}
                     <div className="relative w-full md:w-72">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input 
@@ -248,12 +289,13 @@ export default function ManageVideosPage() {
                                             <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Video</th>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Language</th>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Playlist</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Uploaded</th> {/* NEW COLUMN */}
                                             <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
                                         {filteredContent.length === 0 ? (
-                                            <tr><td colSpan="4" className="px-6 py-12 text-center text-gray-400">No videos found.</td></tr>
+                                            <tr><td colSpan="5" className="px-6 py-12 text-center text-gray-400">No videos found.</td></tr>
                                         ) : (
                                             filteredContent.map((video) => (
                                                 <tr key={video.id} className="hover:bg-gray-50 transition-colors group">
@@ -281,6 +323,11 @@ export default function ManageVideosPage() {
                                                                 {video.playlist}
                                                             </span>
                                                         ) : <span className="text-xs text-gray-400">-</span>}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <span className="text-xs font-bold text-gray-500 flex items-center gap-1">
+                                                            {formatUploadTime(video.createdAt)}
+                                                        </span>
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
                                                         <div className="flex items-center justify-end gap-2">
@@ -329,9 +376,14 @@ export default function ManageVideosPage() {
                                                             <h3 className={`font-agency text-lg text-brand-brown-dark leading-tight line-clamp-2 ${getDir(list.title) === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
                                                                 {list.title}
                                                             </h3>
-                                                            <p className="text-xs text-brand-gold mt-1 font-bold flex items-center gap-1">
-                                                                <ListVideo className="w-3 h-3" /> {list.realCount} Videos
-                                                            </p>
+                                                            <div className="mt-2 space-y-1">
+                                                                <p className="text-xs text-brand-gold font-bold flex items-center gap-1">
+                                                                    <ListVideo className="w-3 h-3" /> {list.realCount} Videos
+                                                                </p>
+                                                                <p className="text-[10px] text-gray-400 flex items-center gap-1">
+                                                                    <CalendarClock className="w-3 h-3" /> {formatUploadTime(list.createdAt)}
+                                                                </p>
+                                                            </div>
                                                         </div>
                                                         <div className="flex gap-1">
                                                             <button onClick={() => handleEdit(list.id, 'playlist')} className="p-2 text-gray-400 hover:text-brand-gold hover:bg-brand-sand rounded-lg">
