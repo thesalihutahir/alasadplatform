@@ -9,7 +9,7 @@ import Loader from '@/components/Loader';
 // Firebase Imports
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
-import { Play, ListVideo, Clock, Filter, Loader2 } from 'lucide-react';
+import { Play, ListVideo, Clock, Filter, Loader2, ArrowUpDown } from 'lucide-react';
 
 export default function VideosPage() {
 
@@ -19,6 +19,9 @@ export default function VideosPage() {
     const [loading, setLoading] = useState(true);
     const [activeFilter, setActiveFilter] = useState("All Videos");
     const [visibleCount, setVisibleCount] = useState(6);
+    
+    // NEW: Sort Order State ('desc' = Newest Date Recorded First)
+    const [sortOrder, setSortOrder] = useState('desc');
 
     const filters = ["All Videos", "English", "Hausa", "Arabic"];
 
@@ -27,6 +30,8 @@ export default function VideosPage() {
         const fetchData = async () => {
             try {
                 // 1. Fetch Videos
+                // We fetch by createdAt initially to get the latest added, 
+                // but client-side sorting will handle the "Date Recorded" logic.
                 const qVideos = query(collection(db, "videos"), orderBy("createdAt", "desc"));
                 const videoSnapshot = await getDocs(qVideos);
                 const fetchedVideos = videoSnapshot.docs.map(doc => ({
@@ -44,10 +49,9 @@ export default function VideosPage() {
                 }));
 
                 // 3. CALCULATE REAL COUNTS
-                // We map through playlists and count how many videos match the playlist title
                 fetchedPlaylists = fetchedPlaylists.map(playlist => {
                     const realCount = fetchedVideos.filter(v => v.playlist === playlist.title).length;
-                    return { ...playlist, count: realCount }; // Override the static count
+                    return { ...playlist, count: realCount };
                 });
 
                 setPlaylists(fetchedPlaylists);
@@ -76,12 +80,25 @@ export default function VideosPage() {
         return arabicPattern.test(text) ? 'rtl' : 'ltr';
     };
 
-    // --- FILTER LOGIC ---
-    const filteredVideos = activeFilter === "All Videos" 
+    // --- FILTER & SORT LOGIC ---
+    // 1. Filter by Category
+    const filteredByCat = activeFilter === "All Videos" 
         ? videos 
         : videos.filter(video => video.category === activeFilter);
 
-    const visibleVideos = filteredVideos.slice(0, visibleCount);
+    // 2. Sort by Date Recorded (Smart Sort)
+    const sortedVideos = [...filteredByCat].sort((a, b) => {
+        // Fallback to 0 if date is missing to avoid crash
+        const dateA = new Date(a.date || 0); 
+        const dateB = new Date(b.date || 0);
+        
+        return sortOrder === 'desc' 
+            ? dateB - dateA  // Newest First
+            : dateA - dateB; // Oldest First
+    });
+
+    // 3. Slice for Pagination
+    const visibleVideos = sortedVideos.slice(0, visibleCount);
 
     return (
         <div className="min-h-screen flex flex-col bg-white font-lato">
@@ -126,14 +143,12 @@ export default function VideosPage() {
                                     <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark">
                                         Featured Series
                                     </h2>
-                                    {/* UPDATED: Removed 'hidden md:block' so it shows on mobile, updated text */}
                                     <Link href="/media/videos/playlists" className="text-xs font-bold text-gray-400 uppercase tracking-widest hover:text-brand-gold transition-colors">
                                         View All Playlists →
                                     </Link>
                                 </div>
 
                                 <div className="flex overflow-x-auto gap-4 pb-4 md:grid md:grid-cols-3 md:gap-8 scrollbar-hide snap-x">
-                                    {/* Sort by count (popular) or create date, taking top 3 */}
                                     {playlists
                                         .sort((a, b) => b.count - a.count) 
                                         .slice(0, 3)
@@ -156,7 +171,6 @@ export default function VideosPage() {
                                                     </div>
                                                 </div>
                                                 <div className="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1">
-                                                    {/* HERE IS THE REAL COUNT */}
                                                     <ListVideo className="w-3 h-3" /> {playlist.count} Videos
                                                 </div>
                                             </div>
@@ -200,10 +214,19 @@ export default function VideosPage() {
 
                         {/* 4. ALL VIDEOS GRID */}
                         <section className="px-6 md:px-12 lg:px-24 max-w-7xl mx-auto">
-                             <div className="flex justify-between items-end mb-6 md:mb-8">
+                             <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4 mb-6 md:mb-8">
                                 <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark">
                                     Recent Uploads
                                 </h2>
+
+                                {/* SORTING BUTTON */}
+                                <button 
+                                    onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 hover:text-brand-brown-dark transition-all shadow-sm"
+                                >
+                                    <ArrowUpDown className="w-3 h-3" />
+                                    Sort: {sortOrder === 'desc' ? 'Date Recorded (Newest)' : 'Date Recorded (Oldest)'}
+                                </button>
                             </div>
 
                             {visibleVideos.length > 0 ? (
@@ -271,7 +294,7 @@ export default function VideosPage() {
                         </section>
 
                         {/* 5. LOAD MORE */}
-                        {visibleCount < filteredVideos.length && (
+                        {visibleCount < sortedVideos.length && (
                             <section className="py-12 text-center">
                                 <button 
                                     onClick={() => setVisibleCount(prev => prev + 6)}
