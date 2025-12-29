@@ -16,7 +16,7 @@ export default function WatchVideoPage() {
     const { id } = useParams();
     const [video, setVideo] = useState(null);
     const [relatedVideos, setRelatedVideos] = useState([]);
-    const [nextVideo, setNextVideo] = useState(null); // Specific "Next" video for playlists
+    const [nextVideo, setNextVideo] = useState(null); 
     const [loading, setLoading] = useState(true);
 
     // --- FETCH DATA ---
@@ -39,30 +39,32 @@ export default function WatchVideoPage() {
                     let q;
 
                     if (videoData.playlist) {
-                        // A. If Playlist: Fetch videos in SAME playlist
+                        // A. If Playlist: Fetch ALL videos in SAME playlist
                         q = query(
                             videosRef, 
-                            where("playlist", "==", videoData.playlist),
-                            orderBy("createdAt", "desc") // Assuming series are uploaded in order
+                            where("playlist", "==", videoData.playlist)
                         );
                         
                         const snap = await getDocs(q);
-                        const playlistVideos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                        
-                        // Find current index to determine "Next Video"
-                        // Note: If sorting DESC, the "Next" video in a series might actually be the "Previous" index if watching old->new. 
-                        // Logic below assumes standard list display.
+                        let playlistVideos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                        // SORT CHRONOLOGICALLY (Oldest First = Episode 1, 2, 3...)
+                        // This ensures "Next" logic flows naturally: Ep 1 -> Ep 2
+                        playlistVideos.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                        // Find current index
                         const currentIndex = playlistVideos.findIndex(v => v.id === id);
                         
-                        // Simple "Next" logic (next item in array)
-                        if (currentIndex > 0) {
-                            setNextVideo(playlistVideos[currentIndex - 1]); // Newest is 0, so "Next" logically is index-1 if going backwards in time, or index+1 if watching forward.
-                        } else if (currentIndex < playlistVideos.length - 1) {
-                            // Loop logic or just show previous upload
-                             setNextVideo(playlistVideos[currentIndex + 1]); 
+                        // Determine Next Video
+                        if (currentIndex !== -1 && currentIndex < playlistVideos.length - 1) {
+                            setNextVideo(playlistVideos[currentIndex + 1]); 
+                        } else {
+                            // If it's the last episode, maybe suggest the first one or nothing
+                            setNextVideo(null); 
                         }
 
-                        // Filter out current video for "Related" list
+                        // Filter out current video for "Related" list (Show next few episodes)
+                        // Ideally, show videos AFTER the current one, or just others in the series
                         setRelatedVideos(playlistVideos.filter(v => v.id !== id).slice(0, 4));
 
                     } else {
