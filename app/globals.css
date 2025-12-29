@@ -4,7 +4,7 @@
 
 /* --- FONT FACE DEFINITIONS --- */
 
-/* Traditional Arabic (Bold) */
+/* 1. Traditional Arabic (Bold) */
 @font-face {
   font-family: 'Traditional Arabic';
   src: url('/fonts/TradArabicBoldUnicode.woff2') format('woff2');
@@ -13,7 +13,7 @@
   font-display: swap;
 }
 
-/* Agency Regular (Heading Font) */
+/* 2. Agency Regular (Heading Font) */
 @font-face {
   font-family: 'AgencyRegular';
   src: url('/fonts/AgencyRegular.woff2') format('woff2');
@@ -22,7 +22,7 @@
   font-display: swap;
 }
 
-/* Lato Regular (Body Font) */
+/* 3. Lato Regular (Body Font) */
 @font-face {
   font-family: 'LatoRegular';
   src: url('/fonts/Lato-Regular.woff2') format('woff2');
@@ -31,10 +31,28 @@
   font-display: swap;
 }
 
-/* Lato Bold (Crucial for bold text to look crisp) */
+/* 4. Lato Bold */
 @font-face {
   font-family: 'LatoRegular';
   src: url('/fonts/Lato-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 5. Tajawal Regular (NEW - Fixes Mobile Arabic) */
+@font-face {
+  font-family: 'Tajawal';
+  src: url('/fonts/Tajawal-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 6. Tajawal Bold (NEW - Fixes Mobile Arabic) */
+@font-face {
+  font-family: 'Tajawal';
+  src: url('/fonts/Tajawal-Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
