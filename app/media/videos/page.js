@@ -239,7 +239,7 @@ export default function VideosPage() {
                              {/* UPDATED HEADER: Always Row, Proper Alignment */}
                              <div className="flex flex-row items-center justify-between gap-4 mb-6 md:mb-8">
                                 <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark whitespace-nowrap">
-                                    Recent Uploads
+                                    Recent <span className="hidden sm:inline">Uploads</span>
                                 </h2>
 
                                 {/* SORTING BUTTON */}
