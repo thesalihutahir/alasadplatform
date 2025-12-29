@@ -15,7 +15,9 @@ import {
     PlayCircle, 
     CheckCircle, 
     ListVideo,
-    Loader2
+    Loader2,
+    Play,
+    Clock
 } from 'lucide-react';
 
 export default function AddVideoPage() {
@@ -30,7 +32,7 @@ export default function AddVideoPage() {
     const [formData, setFormData] = useState({
         title: '',
         url: '',
-        category: 'Lecture',
+        category: 'English', // Default to English
         playlist: '', 
         date: new Date().toISOString().split('T')[0],
         description: ''
@@ -39,6 +41,9 @@ export default function AddVideoPage() {
     const [videoId, setVideoId] = useState(null);
     const [thumbnail, setThumbnail] = useState(null);
     const [isValid, setIsValid] = useState(false);
+    
+    // Preview Playback State
+    const [isPlayingPreview, setIsPlayingPreview] = useState(false);
 
     // Helper: Auto-Detect Arabic for Preview
     const getDir = (text) => {
@@ -79,6 +84,7 @@ export default function AddVideoPage() {
     const handleUrlChange = (e) => {
         const url = e.target.value;
         setFormData(prev => ({ ...prev, url }));
+        setIsPlayingPreview(false); // Reset player when URL changes
 
         const id = extractVideoId(url);
         if (id) {
@@ -129,6 +135,13 @@ export default function AddVideoPage() {
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    // Format Date for Preview
+    const formatDate = (dateString) => {
+        if (!dateString) return 'Date';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     };
 
     return (
@@ -237,18 +250,16 @@ export default function AddVideoPage() {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs font-bold text-brand-brown mb-1">Category</label>
+                                <label className="block text-xs font-bold text-brand-brown mb-1">Category (Language)</label>
                                 <select 
                                     name="category"
                                     value={formData.category}
                                     onChange={handleChange}
                                     className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
                                 >
-                                    <option>Lecture</option>
-                                    <option>Friday Sermon (Khutbah)</option>
-                                    <option>Tafsir</option>
-                                    <option>Event Highlight</option>
-                                    <option>Documentary</option>
+                                    <option>English</option>
+                                    <option>Hausa</option>
+                                    <option>Arabic</option>
                                 </select>
                             </div>
                             <div>
@@ -287,25 +298,41 @@ export default function AddVideoPage() {
                             Live Preview
                         </h3>
 
-                        {/* Preview Card */}
+                        {/* Preview Card (Exact Frontend Replica) */}
                         <div className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100 transform transition-all hover:scale-[1.02]">
 
-                            {/* Thumbnail Area */}
+                            {/* Thumbnail / Video Area */}
                             <div className="relative w-full aspect-video bg-black group">
-                                {thumbnail ? (
-                                    <>
-                                        <Image 
-                                            src={thumbnail} 
-                                            alt="Preview" 
-                                            fill 
-                                            className="object-cover opacity-90"
-                                        />
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg">
-                                                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                                {isValid && videoId ? (
+                                    isPlayingPreview ? (
+                                        <iframe 
+                                            src={`https://www.youtube.com/embed/${videoId}?autoplay=1`} 
+                                            title="Preview"
+                                            className="absolute inset-0 w-full h-full"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                            allowFullScreen
+                                        ></iframe>
+                                    ) : (
+                                        <div 
+                                            className="relative w-full h-full cursor-pointer"
+                                            onClick={() => setIsPlayingPreview(true)}
+                                        >
+                                            <Image 
+                                                src={thumbnail} 
+                                                alt="Preview" 
+                                                fill 
+                                                className="object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+                                            />
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg group-hover:bg-brand-gold group-hover:scale-110 transition-all duration-300">
+                                                    <Play className="w-6 h-6 text-white fill-current ml-1" />
+                                                </div>
+                                            </div>
+                                            <div className="absolute bottom-3 right-3 bg-black/70 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1">
+                                                <Clock className="w-3 h-3" /> Watch
                                             </div>
                                         </div>
-                                    </>
+                                    )
                                 ) : (
                                     <div className="flex flex-col items-center justify-center h-full text-gray-500">
                                         <Youtube className="w-12 h-12 mb-2 opacity-50" />
@@ -316,29 +343,43 @@ export default function AddVideoPage() {
 
                             {/* Info Area - RTL ENABLED */}
                             <div className="p-5" dir={getDir(formData.title)}>
-                                <div className="flex flex-wrap gap-2 mb-3" dir="ltr">
-                                    <span className="inline-block px-2 py-1 bg-brand-gold text-white text-[10px] font-bold uppercase rounded shadow-sm">
-                                        {formData.category}
-                                    </span>
-                                    {formData.playlist && (
-                                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-brand-sand text-brand-brown-dark text-[10px] font-bold uppercase rounded border border-brand-gold/20">
-                                            <ListVideo className="w-3 h-3" /> Series
+                                <div className="flex justify-between items-start mb-2" dir="ltr">
+                                    <div className="flex gap-2">
+                                        <span className="text-[10px] font-bold text-brand-brown-dark bg-brand-sand px-2 py-1 rounded uppercase tracking-wider">
+                                            {formData.category}
                                         </span>
-                                    )}
+                                        {formData.playlist && (
+                                            <span className="text-[10px] font-bold text-brand-gold border border-brand-gold/30 px-2 py-1 rounded uppercase tracking-wider">
+                                                Series
+                                            </span>
+                                        )}
+                                    </div>
+                                    <span className="text-[10px] text-gray-400 font-lato">
+                                        {formatDate(formData.date)}
+                                    </span>
                                 </div>
+
                                 <h3 className={`font-agency text-xl text-brand-brown-dark mb-2 leading-tight ${getDir(formData.title) === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
                                     {formData.title || "Video Title Placeholder"}
                                 </h3>
+                                
                                 {formData.playlist && (
                                     <p className="text-xs text-brand-gold font-bold uppercase tracking-wide mb-2" dir="ltr">
                                         Part of: {formData.playlist}
                                     </p>
                                 )}
+
                                 <p className={`text-sm text-brand-brown line-clamp-2 opacity-80 ${getDir(formData.description) === 'rtl' ? 'font-arabic' : 'font-lato'}`}>
                                     {formData.description || "The description you enter will appear here, giving users a quick summary of the lecture content."}
                                 </p>
                             </div>
                         </div>
+
+                        {isValid && !isPlayingPreview && (
+                            <p className="text-xs text-center text-gray-400 mt-4">
+                                Click the thumbnail to test video playback
+                            </p>
+                        )}
 
                     </div>
                 </div>
