@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 // Firebase
 import { db, storage } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore'; // Added 'where', 'query', 'getDocs'
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 // Global Modal Context
 import { useModal } from '@/context/ModalContext';
@@ -16,20 +16,25 @@ import {
     Save, 
     X, 
     Image as ImageIcon, 
-    Loader2
+    Loader2,
+    AlertTriangle // Added for warning icon
 } from 'lucide-react';
 
 export default function CreatePlaylistPage() {
     const router = useRouter();
-    const { showSuccess } = useModal(); // Access global modal
+    const { showSuccess } = useModal(); 
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
 
+    // Duplicate Check State
+    const [duplicateWarning, setDuplicateWarning] = useState(null);
+    const [isChecking, setIsChecking] = useState(false);
+
     const [formData, setFormData] = useState({
         title: '',
-        category: 'English', // Default to English
-        cover: '' // Will store Firebase Storage URL
+        category: 'English', 
+        cover: '' 
     });
 
     // Image File State
@@ -43,15 +48,44 @@ export default function CreatePlaylistPage() {
         return arabicPattern.test(text) ? 'rtl' : 'ltr';
     };
 
+    // NEW: Check Duplicate Title
+    const checkDuplicateTitle = async (title) => {
+        if (!title.trim()) {
+            setDuplicateWarning(null);
+            return;
+        }
+        
+        setIsChecking(true);
+        try {
+            const q = query(collection(db, "video_playlists"), where("title", "==", title.trim()));
+            const snapshot = await getDocs(q);
+
+            if (!snapshot.empty) {
+                setDuplicateWarning(`A playlist named "${title}" already exists.`);
+            } else {
+                setDuplicateWarning(null);
+            }
+        } catch (error) {
+            console.error("Error checking duplicate:", error);
+        } finally {
+            setIsChecking(false);
+        }
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+
+        // Trigger check when title changes
+        if (name === 'title') {
+            checkDuplicateTitle(value);
+        }
     };
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            if (file.size > 5 * 1024 * 1024) { // 5MB Limit
+            if (file.size > 5 * 1024 * 1024) { 
                 alert("Image size must be less than 5MB");
                 return;
             }
@@ -68,22 +102,21 @@ export default function CreatePlaylistPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        if (!formData.title) {
-            alert("Please enter a playlist title.");
+        // Prevent submission if duplicate exists
+        if (!formData.title || duplicateWarning) {
             return;
         }
 
         setIsSubmitting(true);
 
         try {
-            let coverUrl = "/fallback.webp"; // Default fallback
+            let coverUrl = "/fallback.webp"; 
 
             // 1. Upload Cover Image (if selected)
             if (imageFile) {
                 const storageRef = ref(storage, `playlist_covers/${Date.now()}_${imageFile.name}`);
                 const uploadTask = uploadBytesResumable(storageRef, imageFile);
 
-                // Wait for upload to complete
                 await new Promise((resolve, reject) => {
                     uploadTask.on('state_changed',
                         (snapshot) => {
@@ -102,6 +135,7 @@ export default function CreatePlaylistPage() {
             // 2. Save Playlist Metadata
             await addDoc(collection(db, "video_playlists"), {
                 ...formData,
+                title: formData.title.trim(), // Ensure trimmed title is saved
                 cover: coverUrl,
                 count: 0, 
                 status: "Active",
@@ -123,8 +157,7 @@ export default function CreatePlaylistPage() {
             setIsSubmitting(false);
         }
     };
-
-    return (
+return (
         <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto pb-12">
 
             {/* Header */}
@@ -143,15 +176,32 @@ export default function CreatePlaylistPage() {
                 {/* Title */}
                 <div>
                     <label className="block text-xs font-bold text-brand-brown mb-1">Playlist Title</label>
-                    <input 
-                        type="text" 
-                        name="title"
-                        value={formData.title}
-                        onChange={handleChange}
-                        placeholder="e.g. Tafsir Surah Al-Baqarah 2024" 
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                        dir={getDir(formData.title)} // Auto-RTL
-                    />
+                    <div className="relative">
+                        <input 
+                            type="text" 
+                            name="title"
+                            value={formData.title}
+                            onChange={handleChange}
+                            placeholder="e.g. Tafsir Surah Al-Baqarah 2024" 
+                            className={`w-full bg-gray-50 border rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 ${
+                                duplicateWarning ? 'border-orange-300 bg-orange-50' : 'border-gray-200'
+                            }`}
+                            dir={getDir(formData.title)} // Auto-RTL
+                        />
+                        {isChecking && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* DUPLICATE WARNING */}
+                    {duplicateWarning && (
+                        <div className="mt-2 flex items-start gap-2 text-xs font-bold text-orange-700 animate-in fade-in slide-in-from-top-1">
+                            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                            <span>{duplicateWarning}</span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Category (Language) */}
@@ -218,8 +268,13 @@ export default function CreatePlaylistPage() {
                     </Link>
                     <button 
                         type="submit" 
-                        disabled={isSubmitting}
-                        className="flex-1 flex items-center justify-center gap-2 py-3 bg-brand-gold text-white font-bold rounded-xl hover:bg-brand-brown-dark transition-colors shadow-md disabled:opacity-50"
+                        // Disabled logic updated
+                        disabled={isSubmitting || !!duplicateWarning || !formData.title}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 font-bold rounded-xl transition-colors shadow-md ${
+                            isSubmitting || !!duplicateWarning || !formData.title
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-brand-gold text-white hover:bg-brand-brown-dark'
+                        }`}
                     >
                         {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         {isSubmitting ? 'Creating...' : 'Create Playlist'}
