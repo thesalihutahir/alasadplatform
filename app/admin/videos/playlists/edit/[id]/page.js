@@ -8,6 +8,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { db, storage } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+// Global Modal Context
+import { useModal } from '@/context/ModalContext';
 
 import { 
     ArrowLeft, 
@@ -21,6 +23,7 @@ export default function EditPlaylistPage() {
     const router = useRouter();
     const params = useParams();
     const id = params?.id;
+    const { showSuccess } = useModal(); // Access global modal
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -142,6 +145,8 @@ export default function EditPlaylistPage() {
             });
 
             // 3. SPECIAL: Update all child videos if Title changed
+            let message = "Playlist details have been updated successfully.";
+            
             if (originalTitle && originalTitle !== formData.title) {
                 const qVideos = query(collection(db, "videos"), where("playlist", "==", originalTitle));
                 const videoSnaps = await getDocs(qVideos);
@@ -153,10 +158,16 @@ export default function EditPlaylistPage() {
                 });
                 await batch.commit();
                 console.log(`Updated ${videoSnaps.size} videos to new playlist name.`);
+                message = `Playlist updated! Also updated ${videoSnaps.size} linked videos to the new playlist name.`;
             }
 
-            alert("Playlist updated successfully!");
-            router.push('/admin/videos'); 
+            // Show Success Modal
+            showSuccess({
+                title: "Playlist Updated!",
+                message: message,
+                confirmText: "Return to Library",
+                onConfirm: () => router.push('/admin/videos')
+            });
 
         } catch (error) {
             console.error("Error updating playlist:", error);
