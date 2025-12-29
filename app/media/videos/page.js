@@ -125,7 +125,7 @@ export default function VideosPage() {
                         </h1>
                         <div className="w-16 md:w-24 h-1 bg-brand-gold mx-auto rounded-full mb-6"></div>
                         <p className="font-lato text-brand-brown text-sm md:text-xl max-w-2xl mx-auto leading-relaxed font-medium">
-                            Watch lectures, sermons, and event highlights from Al-Asad Foundation. Explore our curated series and latest uploads.
+                            Watch lectures, sermons, and event highlights from Al-Asad Education Foundation. Explore our curated series and latest uploads.
                         </p>
                     </div>
                 </section>
@@ -141,10 +141,10 @@ export default function VideosPage() {
                             <section className="px-6 md:px-12 lg:px-24 mb-12">
                                 <div className="flex justify-between items-end mb-6 border-b border-gray-100 pb-2">
                                     <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark">
-                                        Featured Series
+                                        Featured Playlists
                                     </h2>
                                     <Link href="/media/videos/playlists" className="text-xs font-bold text-gray-400 uppercase tracking-widest hover:text-brand-gold transition-colors">
-                                        View All Playlists →
+                                        View All →
                                     </Link>
                                 </div>
 
@@ -216,7 +216,7 @@ export default function VideosPage() {
                         <section className="px-6 md:px-12 lg:px-24 max-w-7xl mx-auto">
                              <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4 mb-6 md:mb-8">
                                 <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark">
-                                    Recent Uploads
+                                    Recent
                                 </h2>
 
                                 {/* SORTING BUTTON */}
@@ -225,7 +225,7 @@ export default function VideosPage() {
                                     className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 hover:text-brand-brown-dark transition-all shadow-sm"
                                 >
                                     <ArrowUpDown className="w-3 h-3" />
-                                    Sort: {sortOrder === 'desc' ? 'Date Recorded (Newest)' : 'Date Recorded (Oldest)'}
+                                    Sort: {sortOrder === 'desc' ? 'Newest First' : 'Oldest First'}
                                 </button>
                             </div>
 
