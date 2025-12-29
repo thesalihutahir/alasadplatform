@@ -87,7 +87,7 @@ export default function PlaylistsPage() {
                             <span className="text-xs font-bold uppercase tracking-widest">Curated Series</span>
                         </div>
                         <h1 className="font-agency text-5xl md:text-7xl text-white mb-4">
-                            Lecture Series
+                            Video Playlists
                         </h1>
                         <p className="text-gray-300 max-w-2xl mx-auto text-lg font-lato">
                             Explore comprehensive collections of lectures, Tafsir, and seminars organized by topic and language.
