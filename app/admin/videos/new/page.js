@@ -40,6 +40,13 @@ export default function AddVideoPage() {
     const [thumbnail, setThumbnail] = useState(null);
     const [isValid, setIsValid] = useState(false);
 
+    // Helper: Auto-Detect Arabic for Preview
+    const getDir = (text) => {
+        if (!text) return 'ltr';
+        const arabicPattern = /[\u0600-\u06FF]/;
+        return arabicPattern.test(text) ? 'rtl' : 'ltr';
+    };
+
     // 1. Fetch Playlists on Mount
     useEffect(() => {
         const fetchPlaylists = async () => {
@@ -224,6 +231,7 @@ export default function AddVideoPage() {
                                 onChange={handleChange}
                                 placeholder="Enter video title" 
                                 className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
+                                dir={getDir(formData.title)} // Auto-RTL Input
                             />
                         </div>
 
@@ -264,6 +272,7 @@ export default function AddVideoPage() {
                                 rows="3"
                                 placeholder="Briefly describe what this video is about..." 
                                 className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
+                                dir={getDir(formData.description)} // Auto-RTL Input
                             ></textarea>
                         </div>
                     </div>
@@ -305,9 +314,9 @@ export default function AddVideoPage() {
                                 )}
                             </div>
 
-                            {/* Info Area */}
-                            <div className="p-5">
-                                <div className="flex flex-wrap gap-2 mb-3">
+                            {/* Info Area - RTL ENABLED */}
+                            <div className="p-5" dir={getDir(formData.title)}>
+                                <div className="flex flex-wrap gap-2 mb-3" dir="ltr">
                                     <span className="inline-block px-2 py-1 bg-brand-gold text-white text-[10px] font-bold uppercase rounded shadow-sm">
                                         {formData.category}
                                     </span>
@@ -317,15 +326,15 @@ export default function AddVideoPage() {
                                         </span>
                                     )}
                                 </div>
-                                <h3 className="font-agency text-xl text-brand-brown-dark mb-2 leading-tight">
+                                <h3 className={`font-agency text-xl text-brand-brown-dark mb-2 leading-tight ${getDir(formData.title) === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
                                     {formData.title || "Video Title Placeholder"}
                                 </h3>
                                 {formData.playlist && (
-                                    <p className="text-xs text-brand-gold font-bold uppercase tracking-wide mb-2">
+                                    <p className="text-xs text-brand-gold font-bold uppercase tracking-wide mb-2" dir="ltr">
                                         Part of: {formData.playlist}
                                     </p>
                                 )}
-                                <p className="font-lato text-sm text-brand-brown line-clamp-2 opacity-80">
+                                <p className={`text-sm text-brand-brown line-clamp-2 opacity-80 ${getDir(formData.description) === 'rtl' ? 'font-arabic' : 'font-lato'}`}>
                                     {formData.description || "The description you enter will appear here, giving users a quick summary of the lecture content."}
                                 </p>
                             </div>
