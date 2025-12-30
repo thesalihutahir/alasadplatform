@@ -3,337 +3,489 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import Loader from '@/components/Loader';
-// Firebase Imports
+import { useRouter } from 'next/navigation';
+// Firebase
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
-import { Play, ListVideo, Clock, Filter, Loader2, ArrowUpDown, Search, X, ChevronRight } from 'lucide-react';
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc, writeBatch, where, getDocs } from 'firebase/firestore';
+// Global Modal Context
+import { useModal } from '@/context/ModalContext';
 
-export default function VideosPage() {
+import { 
+    PlusCircle, Search, Edit, Trash2, PlayCircle, ListVideo, 
+    LayoutList, Loader2, Filter, X, ArrowUpDown, CalendarClock, 
+    Info, ChevronRight, AlertTriangle
+} from 'lucide-react';
 
-    // --- STATE ---
+export default function ManageVideosPage() {
+    const router = useRouter();
+    const { showSuccess, showConfirm } = useModal(); 
+
+    const [activeTab, setActiveTab] = useState('videos'); 
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Data State
     const [videos, setVideos] = useState([]);
     const [playlists, setPlaylists] = useState([]);
-    const [loading, setLoading] = useState(true);
-    
-    // Filters & Search
-    const [activeFilter, setActiveFilter] = useState("All Videos");
-    const [searchTerm, setSearchTerm] = useState("");
-    const [visibleCount, setVisibleCount] = useState(6);
-    
-    // Sort Order State ('desc' = Newest Date Recorded First)
-    const [sortOrder, setSortOrder] = useState('desc');
 
-    const filters = ["All Videos", "English", "Hausa", "Arabic"];
+    // Modal State
+    const [selectedPlaylist, setSelectedPlaylist] = useState(null); // For Playlist Info Modal
 
-    // --- FETCH DATA ---
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // 1. Fetch Videos
-                const qVideos = query(collection(db, "videos"), orderBy("createdAt", "desc"));
-                const videoSnapshot = await getDocs(qVideos);
-                const fetchedVideos = videoSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                setVideos(fetchedVideos);
+    // Filter & Sort State
+    const [searchTerm, setSearchTerm] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('All');
+    const [sortOrder, setSortOrder] = useState('desc'); 
 
-                // 2. Fetch Playlists
-                const qPlaylists = query(collection(db, "video_playlists"), orderBy("createdAt", "desc"));
-                const playlistSnapshot = await getDocs(qPlaylists);
-                let fetchedPlaylists = playlistSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-
-                // 3. CALCULATE REAL COUNTS
-                fetchedPlaylists = fetchedPlaylists.map(playlist => {
-                    const realCount = fetchedVideos.filter(v => v.playlist === playlist.title).length;
-                    return { ...playlist, count: realCount };
-                });
-
-                setPlaylists(fetchedPlaylists);
-
-            } catch (error) {
-                console.error("Error fetching media:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, []);
-
-    // --- HELPERS ---
-    const formatDate = (dateString) => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-    };
-
+    // Helper: Auto-Detect Arabic
     const getDir = (text) => {
         if (!text) return 'ltr';
         const arabicPattern = /[\u0600-\u06FF]/;
         return arabicPattern.test(text) ? 'rtl' : 'ltr';
     };
 
-    // --- FILTER & SORT LOGIC ---
-    const filteredVideos = videos.filter(video => {
-        const matchesCategory = activeFilter === "All Videos" || video.category === activeFilter;
-        const matchesSearch = video.title.toLowerCase().includes(searchTerm.toLowerCase());
-        return matchesCategory && matchesSearch;
-    });
+    // Helper: Format Date
+    const formatUploadTime = (timestamp) => {
+        if (!timestamp) return <span className="text-gray-300 italic">Processing...</span>;
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        return new Intl.DateTimeFormat('en-NG', {
+            day: 'numeric', month: 'short', year: 'numeric',
+            hour: 'numeric', minute: 'numeric', hour12: true
+        }).format(date).replace(',', '').replace(' at', ' •');
+    };
 
-    const sortedVideos = [...filteredVideos].sort((a, b) => {
-        const dateA = new Date(a.date || 0); 
-        const dateB = new Date(b.date || 0);
-        return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
-    });
+    // 1. FETCH DATA
+    useEffect(() => {
+        setIsLoading(true);
+        const qVideos = query(collection(db, "videos"), orderBy("createdAt", "desc"));
+        const unsubVideos = onSnapshot(qVideos, (snapshot) => {
+            setVideos(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        });
 
-    const visibleVideos = sortedVideos.slice(0, visibleCount);
-    return (
-        <div className="min-h-screen flex flex-col bg-white font-lato">
-            <Header />
+        const qPlaylists = query(collection(db, "video_playlists"), orderBy("createdAt", "desc"));
+        const unsubPlaylists = onSnapshot(qPlaylists, (snapshot) => {
+            setPlaylists(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            setIsLoading(false);
+        });
 
-            <main className="flex-grow pb-16">
+        return () => {
+            unsubVideos();
+            unsubPlaylists();
+        };
+    }, []);
 
-                {/* 1. HERO SECTION */}
-                <section className="w-full relative bg-white mb-8 md:mb-12">
-                    <div className="relative w-full aspect-[2.5/1] md:aspect-[3.5/1] lg:aspect-[4/1]">
-                        <Image
-                            src="/images/heroes/media-videos-hero.webp" 
-                            alt="Video Archive Hero"
-                            fill
-                            className="object-cover object-center"
-                            priority
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-white via-brand-gold/40 to-transparent "></div>
+    // 2. PROCESS CONTENT
+    const getProcessedContent = () => {
+        const term = searchTerm.toLowerCase();
+        let content = [];
+
+        if (activeTab === 'videos') {
+            content = videos.filter(video => {
+                const matchesSearch = 
+                    video.title.toLowerCase().includes(term) || 
+                    (video.playlist && video.playlist.toLowerCase().includes(term));
+                const matchesCategory = categoryFilter === 'All' || video.category === categoryFilter;
+                return matchesSearch && matchesCategory;
+            });
+        } else {
+            const playlistsWithCounts = playlists.map(pl => ({
+                ...pl,
+                realCount: videos.filter(v => v.playlist === pl.title).length
+            }));
+            content = playlistsWithCounts.filter(playlist => {
+                const matchesSearch = playlist.title.toLowerCase().includes(term);
+                const matchesCategory = categoryFilter === 'All' || playlist.category === categoryFilter;
+                return matchesSearch && matchesCategory;
+            });
+        }
+
+        return content.sort((a, b) => {
+            const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+            const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+            return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+        });
+    };
+
+    const filteredContent = getProcessedContent();
+
+    // 3. ACTIONS
+    const handleDelete = (id, type) => {
+        // Standard Delete (Playlist Only)
+        const message = type === 'playlist' 
+            ? "Warning: Deleting this playlist will NOT delete the videos inside it (they will become 'Single Videos'). Continue?"
+            : "Are you sure you want to delete this video? This cannot be undone.";
+
+        showConfirm({
+            title: `Delete ${type === 'playlist' ? 'Playlist' : 'Video'}?`,
+            message: message,
+            confirmText: "Yes, Delete",
+            cancelText: "Cancel",
+            type: 'danger', 
+            onConfirm: async () => {
+                try {
+                    if (type === 'video') await deleteDoc(doc(db, "videos", id));
+                    else await deleteDoc(doc(db, "video_playlists", id));
+                    
+                    showSuccess({ title: "Deleted!", message: "Item deleted successfully.", confirmText: "Okay" });
+                } catch (error) {
+                    console.error("Error deleting:", error);
+                    alert("Failed to delete.");
+                }
+            }
+        });
+    };
+
+    // SPECIAL: Delete Entire Series (Playlist + Videos)
+    const handleDeleteSeries = (playlist) => {
+        showConfirm({
+            title: "Delete ENTIRE Series?",
+            message: `DANGER: This will delete the playlist "${playlist.title}" AND ALL ${playlist.realCount} videos inside it. This cannot be undone.`,
+            confirmText: "Yes, Delete Everything",
+            cancelText: "Cancel",
+            type: 'danger',
+            onConfirm: async () => {
+                try {
+                    // 1. Find all videos in this playlist
+                    const q = query(collection(db, "videos"), where("playlist", "==", playlist.title));
+                    const snapshot = await getDocs(q);
+
+                    // 2. Batch Delete
+                    const batch = writeBatch(db);
+                    
+                    // Delete playlist
+                    const playlistRef = doc(db, "video_playlists", playlist.id);
+                    batch.delete(playlistRef);
+
+                    // Delete all videos
+                    snapshot.docs.forEach((doc) => {
+                        batch.delete(doc.ref);
+                    });
+
+                    await batch.commit();
+                    
+                    setSelectedPlaylist(null); // Close modal
+                    showSuccess({ title: "Series Deleted", message: "The playlist and all its videos were deleted.", confirmText: "Done" });
+
+                } catch (error) {
+                    console.error("Error deleting series:", error);
+                    alert("Failed to delete series.");
+                }
+            }
+        });
+    };
+
+    const handleEdit = (id, type) => {
+        router.push(type === 'playlist' ? `/admin/videos/playlists/edit/${id}` : `/admin/videos/edit/${id}`);
+    };
+
+    // Quick View Modal (Video)
+    const handleQuickView = (item) => {
+        showSuccess({
+            title: "Quick Info",
+            message: (
+                <div className="text-left space-y-3 mt-2 text-sm">
+                    <div dir={getDir(item.title)}>
+                        <p className="text-xs font-bold text-gray-400 uppercase">Title</p>
+                        <p className="font-bold text-brand-brown-dark">{item.title}</p>
                     </div>
-
-                    <div className="relative -mt-16 md:-mt-32 text-center px-6 z-10 max-w-4xl mx-auto">
-                        <h1 className="font-agency text-4xl md:text-6xl lg:text-7xl text-brand-brown-dark mb-4 drop-shadow-md">
-                            Video Library
-                        </h1>
-                        <div className="w-16 md:w-24 h-1 bg-brand-gold mx-auto rounded-full mb-6"></div>
-                        <p className="font-lato text-brand-brown text-sm md:text-xl max-w-2xl mx-auto leading-relaxed font-medium">
-                            Watch lectures, sermons, and event highlights from Al-Asad Education Foundation. Explore our curated series and latest uploads.
-                        </p>
+                    {item.date && (
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase">Recorded Date</p>
+                            <p className="font-medium">{item.date}</p>
+                        </div>
+                    )}
+                    <div>
+                        <p className="text-xs font-bold text-gray-400 uppercase">Uploaded On</p>
+                        <p className="font-medium">{formatUploadTime(item.createdAt)}</p>
                     </div>
-                </section>
+                </div>
+            ),
+            confirmText: "Close"
+        });
+    };
+return (
+        <div className="space-y-6 relative">
 
-                {loading ? (
-                    <div className="flex justify-center items-center py-20">
-                        <Loader size="md" />
-                    </div>
-                ) : (
-                    <>
-                        {/* 2. PLAYLISTS / SERIES SECTION */}
-                        {playlists.length > 0 && (
-                            <section className="px-6 md:px-12 lg:px-24 mb-12">
-                                {/* HEADER: Flex Row + Styled Button */}
-                                <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
-                                    <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark">
-                                        <span className="hidden sm:inline">Featured </span>Playlists
-                                    </h2>
-                                    <Link 
-                                        href="/media/videos/playlists" 
-                                        className="flex items-center gap-1.5 px-4 py-1.5 bg-gray-50 border border-gray-200 rounded-full text-[10px] md:text-xs font-bold text-gray-600 uppercase tracking-widest hover:bg-brand-gold hover:text-white hover:border-brand-gold transition-all duration-300 shadow-sm"
-                                    >
-                                        View All <ChevronRight className="w-3 h-3" />
-                                    </Link>
+            {/* --- NEW: PLAYLIST DETAILS MODAL --- */}
+            {selectedPlaylist && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-brown-dark/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
+                        
+                        {/* Modal Header */}
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-start bg-gray-50/50">
+                            <div className="flex gap-4">
+                                <div className="relative w-24 aspect-video rounded-lg overflow-hidden bg-gray-200 shadow-sm border border-white">
+                                    <Image src={selectedPlaylist.cover || "/fallback.webp"} alt="Cover" fill className="object-cover" />
                                 </div>
-
-                                <div className="flex overflow-x-auto gap-4 pb-4 md:grid md:grid-cols-3 md:gap-8 scrollbar-hide snap-x">
-                                    {playlists
-                                        .sort((a, b) => b.count - a.count) 
-                                        .slice(0, 3)
-                                        .map((playlist) => (
-                                        <Link 
-                                            key={playlist.id} 
-                                            href={`/media/videos/playlists/${playlist.id}`} 
-                                            className="snap-center min-w-[260px] md:min-w-0 bg-brand-sand/30 rounded-2xl overflow-hidden cursor-pointer group hover:shadow-lg transition-all"
-                                        >
-                                            <div className="relative w-full aspect-[16/10] bg-gray-200">
-                                                <Image 
-                                                    src={playlist.cover || "/fallback.webp"} 
-                                                    alt={playlist.title} 
-                                                    fill 
-                                                    className="object-cover transition-transform duration-700 group-hover:scale-105"
-                                                />
-                                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center group-hover:bg-black/30 transition-colors">
-                                                    <div className="bg-white/20 backdrop-blur-sm p-3 rounded-full">
-                                                        <ListVideo className="w-8 h-8 text-white" />
-                                                    </div>
-                                                </div>
-                                                <div className="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1">
-                                                    <ListVideo className="w-3 h-3" /> {playlist.count} Videos
-                                                </div>
-                                            </div>
-
-                                            <div className="p-4" dir={getDir(playlist.title)}>
-                                                <h3 className={`font-agency text-lg md:text-xl text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors line-clamp-1 ${getDir(playlist.title) === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
-                                                    {playlist.title}
-                                                </h3>
-                                                <p className="text-xs text-gray-500 mt-1 font-bold uppercase tracking-wider">
-                                                    {getDir(playlist.title) === 'rtl' ? 'عرض السلسلة ←' : 'View Full Playlist →'}
-                                                </p>
-                                            </div>
-                                        </Link>
-                                    ))}
-                                </div>
-                            </section>
-                        )}
-
-                        {/* 3. SEARCH & FILTERS SECTION */}
-                        <section className="px-6 md:px-12 lg:px-24 mb-8">
-                            
-                            {/* SEARCH BAR */}
-                            <div className="max-w-2xl mx-auto mb-6">
-                                <div className="relative group">
-                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-brand-gold transition-colors" />
-                                    <input 
-                                        type="text" 
-                                        placeholder="Search lectures, topics, or titles..." 
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full pl-12 pr-10 py-3.5 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 focus:bg-white transition-all shadow-sm"
-                                    />
-                                    {searchTerm && (
-                                        <button 
-                                            onClick={() => setSearchTerm('')}
-                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors"
-                                        >
-                                            <X className="w-4 h-4" />
-                                        </button>
-                                    )}
+                                <div dir={getDir(selectedPlaylist.title)}>
+                                    <h3 className="font-agency text-2xl text-brand-brown-dark leading-none mb-2">{selectedPlaylist.title}</h3>
+                                    <div className="flex gap-2" dir="ltr">
+                                        <span className="px-2 py-0.5 bg-brand-gold/10 text-brand-gold text-[10px] font-bold uppercase rounded-md">
+                                            {selectedPlaylist.category}
+                                        </span>
+                                        <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold uppercase rounded-md">
+                                            {selectedPlaylist.realCount} Videos
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
+                            <button onClick={() => setSelectedPlaylist(null)} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                                <X className="w-5 h-5 text-gray-500" />
+                            </button>
+                        </div>
 
-                            {/* FILTER CHIPS */}
-                            <div className="flex items-center gap-2 mb-4 md:hidden">
-                                <Filter className="w-4 h-4 text-brand-brown" />
-                                <span className="text-xs font-bold uppercase tracking-widest text-brand-brown">Filter Content</span>
-                            </div>
-                            <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-hide md:justify-center md:flex-wrap">
-                                {filters.map((filter, index) => (
-                                    <button 
-                                        key={index}
-                                        onClick={() => setActiveFilter(filter)}
-                                        className={`px-5 py-2 md:px-6 md:py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
-                                            activeFilter === filter 
-                                            ? 'bg-brand-gold text-white shadow-md transform md:scale-105' 
-                                            : 'bg-brand-sand text-brand-brown-dark hover:bg-brand-gold/10 hover:text-brand-gold'
-                                        }`}
-                                    >
-                                        {filter}
-                                    </button>
-                                ))}
-                            </div>
-                        </section>
-
-                        {/* 4. ALL VIDEOS GRID */}
-                        <section className="px-6 md:px-12 lg:px-24 max-w-7xl mx-auto">
-                             {/* UPDATED HEADER: Always Row, Proper Alignment */}
-                             <div className="flex flex-row items-center justify-between gap-4 mb-6 md:mb-8">
-                                <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark whitespace-nowrap">
-                                    Recent Uploads
-                                </h2>
-
-                                {/* SORTING BUTTON */}
-                                <button 
-                                    onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
-                                    className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 hover:text-brand-brown-dark transition-all shadow-sm whitespace-nowrap flex-shrink-0"
-                                >
-                                    <ArrowUpDown className="w-3 h-3" />
-                                    <span className="hidden sm:inline">Sort: </span>
-                                    {sortOrder === 'desc' ? 'Newest' : 'Oldest'}
-                                </button>
-                            </div>
-
-                            {visibleVideos.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-                                    {visibleVideos.map((video) => {
-                                        const dir = getDir(video.title);
-                                        return (
-                                            <Link 
-                                                key={video.id} 
-                                                href={`/media/videos/${video.id}`} 
-                                                className="group block bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 transition-all hover:shadow-xl hover:border-brand-gold/20"
-                                            >
-                                                {/* Thumbnail Container */}
-                                                <div className="relative w-full aspect-video bg-black">
-                                                    <Image
-                                                        src={video.thumbnail || "/fallback.webp"}
-                                                        alt={video.title}
-                                                        fill
-                                                        className="object-cover opacity-90 group-hover:opacity-100 transition-opacity"
-                                                    />
-                                                    <div className="absolute inset-0 flex items-center justify-center">
-                                                        <div className="w-12 h-12 md:w-16 md:h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:bg-brand-gold group-hover:scale-110 transition-all duration-300 shadow-md">
-                                                            <Play className="w-5 h-5 md:w-7 md:h-7 text-white fill-current ml-1" />
-                                                        </div>
-                                                    </div>
-                                                    <div className="absolute bottom-3 right-3 bg-black/70 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1">
-                                                        <Clock className="w-3 h-3" /> Watch
-                                                    </div>
-                                                </div>
-
-                                                {/* Content */}
-                                                <div className="p-5 flex flex-col h-full" dir={dir}>
-                                                    {/* Meta Row: Category & Date */}
-                                                    <div className="flex justify-between items-center mb-3" dir="ltr">
-                                                        <span className="text-[10px] font-bold text-brand-brown-dark bg-brand-sand px-2 py-1 rounded uppercase tracking-wider">
-                                                            {video.category}
-                                                        </span>
-                                                        <span className="text-[10px] text-gray-400 font-bold">
-                                                            {formatDate(video.date)}
-                                                        </span>
-                                                    </div>
-
-                                                    {/* Title */}
-                                                    <h3 className={`font-agency text-xl md:text-2xl text-brand-brown-dark leading-tight mb-2 group-hover:text-brand-gold transition-colors ${dir === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
-                                                        {video.title}
-                                                    </h3>
-
-                                                    {/* Description */}
-                                                    {video.description && (
-                                                        <p className={`text-sm text-gray-600 line-clamp-2 leading-relaxed hover:text-gray-900 transition-colors ${dir === 'rtl' ? 'font-arabic' : 'font-lato'}`}>
-                                                            {video.description}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            </Link>
-                                        );
-                                    })}
-                                </div>
+                        {/* Modal Body: Scrollable Video List */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                            {videos.filter(v => v.playlist === selectedPlaylist.title).length > 0 ? (
+                                videos.filter(v => v.playlist === selectedPlaylist.title).map((vid, idx) => (
+                                    <div key={vid.id} className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl border border-transparent hover:border-gray-100 transition-all group">
+                                        <span className="text-xs font-bold text-gray-300 w-6">{idx + 1}</span>
+                                        <div className="relative w-16 aspect-video rounded-md overflow-hidden bg-black flex-shrink-0">
+                                            <Image src={vid.thumbnail || "/fallback.webp"} alt="Thumb" fill className="object-cover opacity-80" />
+                                        </div>
+                                        <div className="flex-grow min-w-0" dir={getDir(vid.title)}>
+                                            <p className="text-sm font-bold text-gray-700 line-clamp-1">{vid.title}</p>
+                                            <p className="text-[10px] text-gray-400 font-lato" dir="ltr">{formatUploadTime(vid.createdAt)}</p>
+                                        </div>
+                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => handleEdit(vid.id, 'video')} className="p-2 text-gray-400 hover:text-brand-gold hover:bg-brand-sand rounded-lg">
+                                                <Edit className="w-3 h-3" />
+                                            </button>
+                                            <button onClick={() => handleDelete(vid.id, 'video')} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                                                <Trash2 className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
                             ) : (
-                                <div className="text-center py-12 text-gray-400">
-                                    <Play className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                    <p>No videos found matching your criteria.</p>
+                                <div className="text-center py-10 text-gray-400">
+                                    <ListVideo className="w-10 h-10 mx-auto mb-2 opacity-20" />
+                                    <p className="text-sm">No videos in this playlist yet.</p>
                                 </div>
                             )}
-                        </section>
+                        </div>
 
-                        {/* 5. LOAD MORE */}
-                        {visibleCount < sortedVideos.length && (
-                            <section className="py-12 text-center">
+                        {/* Modal Footer: Actions */}
+                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
+                            <button 
+                                onClick={() => handleDeleteSeries(selectedPlaylist)}
+                                className="flex items-center gap-2 text-red-500 hover:text-red-700 text-xs font-bold uppercase tracking-wider px-4 py-2 hover:bg-red-50 rounded-lg transition-colors"
+                            >
+                                <Trash2 className="w-4 h-4" /> Delete Entire Series
+                            </button>
+                            
+                            <div className="flex gap-2">
                                 <button 
-                                    onClick={() => setVisibleCount(prev => prev + 6)}
-                                    className="px-8 py-3 border-2 border-brand-sand text-brand-brown-dark rounded-full font-agency text-lg hover:bg-brand-brown-dark hover:text-white transition-colors uppercase tracking-wide"
+                                    onClick={() => handleEdit(selectedPlaylist.id, 'playlist')}
+                                    className="px-6 py-2.5 bg-brand-gold text-white text-xs font-bold rounded-xl hover:bg-brand-brown-dark transition-colors shadow-sm"
                                 >
-                                    Load More Videos
+                                    Edit Playlist
                                 </button>
-                            </section>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* --- MAIN PAGE CONTENT --- */}
+
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="font-agency text-3xl text-brand-brown-dark">Video Manager</h1>
+                    <p className="font-lato text-sm text-gray-500">Manage your library, playlists, and lecture series.</p>
+                </div>
+                <div className="flex gap-3">
+                    {activeTab === 'videos' ? (
+                        <Link 
+                            href="/admin/videos/new" 
+                            className="flex items-center gap-2 px-5 py-2.5 bg-brand-gold text-white rounded-xl text-sm font-bold hover:bg-brand-brown-dark transition-colors shadow-md"
+                        >
+                            <PlusCircle className="w-4 h-4" />
+                            Upload Video
+                        </Link>
+                    ) : (
+                        <Link 
+                            href="/admin/videos/playlists/new"
+                            className="flex items-center gap-2 px-5 py-2.5 bg-brand-brown-dark text-white rounded-xl text-sm font-bold hover:bg-brand-gold transition-colors shadow-md"
+                        >
+                            <ListVideo className="w-4 h-4" />
+                            Create Playlist
+                        </Link>
+                    )}
+                </div>
+            </div>
+
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+                <div className="flex bg-gray-100 p-1 rounded-lg w-full md:w-auto">
+                    <button 
+                        onClick={() => { setActiveTab('videos'); setSearchTerm(''); }}
+                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-md text-sm font-bold transition-all ${
+                            activeTab === 'videos' ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'
+                        }`}
+                    >
+                        <PlayCircle className="w-4 h-4" /> Videos
+                    </button>
+                    <button 
+                        onClick={() => { setActiveTab('playlists'); setSearchTerm(''); }}
+                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-md text-sm font-bold transition-all ${
+                            activeTab === 'playlists' ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'
+                        }`}
+                    >
+                        <LayoutList className="w-4 h-4" /> Playlists
+                    </button>
+                </div>
+
+                <div className="flex flex-col w-full xl:w-auto gap-3">
+                    <div className="flex flex-row gap-2 w-full">
+                        <div className="relative flex-1 md:flex-none">
+                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-gold" />
+                            <select 
+                                value={categoryFilter}
+                                onChange={(e) => setCategoryFilter(e.target.value)}
+                                className="w-full md:w-40 pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer"
+                            >
+                                <option value="All">All</option>
+                                <option value="English">English</option>
+                                <option value="Hausa">Hausa</option>
+                                <option value="Arabic">Arabic</option>
+                            </select>
+                        </div>
+                        <button 
+                            onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors flex-1 md:flex-none"
+                        >
+                            <ArrowUpDown className="w-4 h-4" />
+                            <span className="hidden sm:inline">{sortOrder === 'desc' ? 'Newest' : 'Oldest'}</span>
+                        </button>
+                    </div>
+                    <div className="relative w-full md:w-72">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input 
+                            type="text" 
+                            placeholder={`Search by title...`}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all" 
+                        />
+                        {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>}
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px]">
+                {isLoading ? (
+                    <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 text-brand-gold animate-spin" /></div>
+                ) : (
+                    <>
+                        {activeTab === 'videos' && (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead className="bg-gray-50 border-b border-gray-100">
+                                        <tr>
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Video</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Language</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider hidden md:table-cell">Playlist</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {filteredContent.length === 0 ? (
+                                            <tr><td colSpan="5" className="px-6 py-12 text-center text-gray-400">No videos found.</td></tr>
+                                        ) : (
+                                            filteredContent.map((video) => (
+                                                <tr key={video.id} className="hover:bg-gray-50 transition-colors group">
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="relative w-16 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-black cursor-pointer" onClick={() => handleQuickView(video)}>
+                                                                <Image src={video.thumbnail || "/fallback.webp"} alt={video.title} fill className="object-cover opacity-80" />
+                                                            </div>
+                                                            <h3 className={`font-bold text-brand-brown-dark text-sm min-w-[150px] cursor-pointer hover:text-brand-gold ${getDir(video.title) === 'rtl' ? 'font-tajawal' : ''}`} onClick={() => handleQuickView(video)}>
+                                                                {video.title}
+                                                            </h3>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <span className={`inline-block px-2 py-1 rounded text-[10px] font-bold uppercase ${
+                                                            video.category === 'English' ? 'bg-blue-100 text-blue-700' :
+                                                            video.category === 'Hausa' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                                                        }`}>
+                                                            {video.category}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 hidden md:table-cell">
+                                                        {video.playlist ? <span className="text-xs font-bold text-brand-brown bg-brand-sand px-2 py-1 rounded-md">{video.playlist}</span> : <span className="text-xs text-gray-400">-</span>}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <button onClick={() => handleQuickView(video)} className="p-2 text-gray-400 hover:text-brand-gold hover:bg-brand-sand rounded-lg md:hidden"><Info className="w-4 h-4" /></button>
+                                                            <button onClick={() => handleEdit(video.id, 'video')} className="p-2 text-gray-400 hover:text-brand-gold hover:bg-brand-sand rounded-lg"><Edit className="w-4 h-4" /></button>
+                                                            <button onClick={() => handleDelete(video.id, 'video')} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {activeTab === 'playlists' && (
+                            <div className="p-6">
+                                {filteredContent.length === 0 ? (
+                                    <div className="text-center py-12 text-gray-400">
+                                        <LayoutList className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                        <p>No playlists found.</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {filteredContent.map((list) => (
+                                            <div 
+                                                key={list.id} 
+                                                onClick={() => setSelectedPlaylist(list)} // CLICK TO OPEN MODAL
+                                                className="group border border-gray-100 rounded-2xl overflow-hidden hover:shadow-lg transition-all hover:border-brand-gold/30 cursor-pointer"
+                                            >
+                                                <div className="relative w-full aspect-video bg-gray-100">
+                                                    <Image src={list.cover || "/fallback.webp"} alt={list.title} fill className="object-cover" />
+                                                    <div className="absolute top-2 left-2">
+                                                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase shadow-sm ${
+                                                            list.category === 'English' ? 'bg-blue-600 text-white' :
+                                                            list.category === 'Hausa' ? 'bg-green-600 text-white' : 'bg-orange-600 text-white'
+                                                        }`}>
+                                                            {list.category}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="p-4" dir={getDir(list.title)}>
+                                                    <div className="flex justify-between items-start gap-4" dir="ltr">
+                                                        <div>
+                                                            <h3 className={`font-agency text-lg text-brand-brown-dark leading-tight line-clamp-2 ${getDir(list.title) === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
+                                                                {list.title}
+                                                            </h3>
+                                                            <div className="mt-2 space-y-1">
+                                                                <p className="text-xs text-brand-gold font-bold flex items-center gap-1">
+                                                                    <ListVideo className="w-3 h-3" /> {list.realCount} Videos
+                                                                </p>
+                                                                <p className="text-[10px] text-gray-400 flex items-center gap-1">
+                                                                    <CalendarClock className="w-3 h-3" /> {formatUploadTime(list.createdAt)}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex gap-1">
+                                                            {/* Delete Icon (Safe Delete) */}
+                                                            <button onClick={(e) => { e.stopPropagation(); handleDelete(list.id, 'playlist'); }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </>
                 )}
-
-            </main>
-
-            <Footer />
+            </div>
         </div>
     );
 }
