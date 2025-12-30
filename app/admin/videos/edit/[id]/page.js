@@ -26,7 +26,7 @@ export default function EditVideoPage() {
     const router = useRouter();
     const params = useParams();
     const videoIdParam = params?.id; // The Firestore Doc ID
-    
+
     // Access the Global Modal
     const { showSuccess } = useModal();
 
@@ -124,14 +124,10 @@ export default function EditVideoPage() {
         if (allPlaylists.length > 0) {
             const filtered = allPlaylists.filter(p => p.category === formData.category);
             setFilteredPlaylists(filtered);
-            
-            // Note: Unlike Add page, we DON'T automatically clear the playlist here 
-            // immediately to prevent clearing existing data on initial load.
-            // We trust the admin to change it if they switch languages.
         }
     }, [formData.category, allPlaylists]);
 
-    // Handle URL Change
+    // Handle URL Change - UPDATED
     const handleUrlChange = (e) => {
         const url = e.target.value;
         setFormData(prev => ({ ...prev, url }));
@@ -140,7 +136,8 @@ export default function EditVideoPage() {
         const id = extractVideoId(url);
         if (id) {
             setYoutubeId(id);
-            setThumbnail(`https://img.youtube.com/vi/${id}/maxresdefault.jpg`);
+            // CHANGED: Use hqdefault.jpg to ensure thumbnails appear for all videos
+            setThumbnail(`https://img.youtube.com/vi/${id}/hqdefault.jpg`);
             setIsValid(true);
         } else {
             setYoutubeId(null);
@@ -152,8 +149,7 @@ export default function EditVideoPage() {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-        
-        // If category changes, we might want to warn or reset playlist manually
+
         if (name === 'category') {
             setFormData(prev => ({ ...prev, playlist: '' })); // Reset playlist on language switch
         }
@@ -161,7 +157,7 @@ export default function EditVideoPage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!isValid || !youtubeId) {
             alert("Please ensure the YouTube URL is valid.");
             return;
@@ -173,8 +169,7 @@ export default function EditVideoPage() {
             const videoData = {
                 ...formData,
                 videoId: youtubeId,
-                thumbnail: thumbnail,
-                // We typically don't update 'createdAt' or 'views' on edit
+                thumbnail: thumbnail, // Save the safe thumbnail
                 updatedAt: new Date().toISOString()
             };
 
@@ -203,8 +198,7 @@ export default function EditVideoPage() {
         const date = new Date(dateString);
         return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     };
-
-    if (isLoadingData) {
+if (isLoadingData) {
         return <div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 text-brand-gold animate-spin" /></div>;
     }
 
@@ -416,7 +410,7 @@ export default function EditVideoPage() {
                                 <h3 className={`font-agency text-xl text-brand-brown-dark mb-2 leading-tight ${getDir(formData.title) === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
                                     {formData.title || "Video Title Placeholder"}
                                 </h3>
-                                
+
                                 {formData.playlist && (
                                     <p className="text-xs text-brand-gold font-bold uppercase tracking-wide mb-2" dir="ltr">
                                         Part of: {formData.playlist}
