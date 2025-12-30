@@ -31,7 +31,6 @@ export default function PlaylistViewPage() {
                     setPlaylist({ id: playlistSnap.id, ...plData });
 
                     // 2. Fetch Videos in this Playlist
-                    // We fetch by createdAt initially, then smart-sort by 'date' (recorded date) client-side
                     const q = query(
                         collection(db, "videos"),
                         where("playlist", "==", plData.title),
@@ -149,8 +148,9 @@ export default function PlaylistViewPage() {
                                     {playlist.title}
                                 </h1>
 
-                                <p className="text-gray-500 text-base md:text-lg max-w-2xl mb-8 leading-relaxed font-lato" dir="ltr">
-                                    Browse all episodes in this series below. Episodes are listed from newest to oldest.
+                                {/* UPDATED: Uses dynamic description or falls back to default text */}
+                                <p className={`text-gray-500 text-base md:text-lg max-w-2xl mb-8 leading-relaxed ${getDir(playlist.description || "") === 'rtl' ? 'font-arabic' : 'font-lato'}`} dir={getDir(playlist.description || "")}>
+                                    {playlist.description || "Browse all episodes in this series below. Episodes are listed from newest to oldest."}
                                 </p>
 
                                 {/* Quick Action - Links to OLDEST Video */}
