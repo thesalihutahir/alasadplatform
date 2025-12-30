@@ -9,10 +9,12 @@ import { db } from '@/lib/firebase';
 import { collection, query, orderBy, onSnapshot, deleteDoc, doc, writeBatch, where, getDocs } from 'firebase/firestore';
 // Global Modal Context
 import { useModal } from '@/context/ModalContext';
+// Custom Loader (LogoReveal)
+import Loader from '@/components/Loader'; 
 
 import { 
     PlusCircle, Search, Edit, Trash2, PlayCircle, ListVideo, 
-    LayoutList, Loader2, Filter, X, ArrowUpDown, CalendarClock, 
+    LayoutList, Filter, X, ArrowUpDown, CalendarClock, 
     Info, ChevronRight, AlertTriangle
 } from 'lucide-react';
 
@@ -105,10 +107,9 @@ export default function ManageVideosPage() {
     };
 
     const filteredContent = getProcessedContent();
-
     // 3. ACTIONS
     const handleDelete = (id, type) => {
-        // Standard Delete (Playlist Only)
+        // Standard Delete (Playlist Only or Single Video)
         const message = type === 'playlist' 
             ? "Warning: Deleting this playlist will NOT delete the videos inside it (they will become 'Single Videos'). Continue?"
             : "Are you sure you want to delete this video? This cannot be undone.";
@@ -372,7 +373,9 @@ return (
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px]">
                 {isLoading ? (
-                    <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 text-brand-gold animate-spin" /></div>
+                    <div className="flex items-center justify-center h-64">
+                        <Loader />
+                    </div>
                 ) : (
                     <>
                         {activeTab === 'videos' && (
