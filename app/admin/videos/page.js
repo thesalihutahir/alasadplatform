@@ -21,8 +21,9 @@ import {
     Loader2,
     Filter,
     X,
-    ArrowUpDown, // Added for sorting icon
-    CalendarClock // Added for UI decoration
+    ArrowUpDown, 
+    CalendarClock,
+    Info // New icon for Quick View
 } from 'lucide-react';
 
 export default function ManageVideosPage() {
@@ -39,7 +40,7 @@ export default function ManageVideosPage() {
     // Filter & Sort State
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('All');
-    const [sortOrder, setSortOrder] = useState('desc'); // 'desc' = Newest First (Default)
+    const [sortOrder, setSortOrder] = useState('desc'); 
 
     // Helper: Auto-Detect Arabic
     const getDir = (text) => {
@@ -48,35 +49,24 @@ export default function ManageVideosPage() {
         return arabicPattern.test(text) ? 'rtl' : 'ltr';
     };
 
-    // Helper: Format Date (Nigerian Time) 
+    // Helper: Format Date
     const formatUploadTime = (timestamp) => {
         if (!timestamp) return <span className="text-gray-300 italic">Processing...</span>;
-        
-        // Handle both Firestore Timestamp objects and ISO strings
         const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-        
-        // Format: 29 Dec, 2025 • 5:13 PM
         return new Intl.DateTimeFormat('en-NG', {
-            day: 'numeric', 
-            month: 'short', 
-            year: 'numeric',
-            hour: 'numeric',
-            minute: 'numeric',
-            hour12: true
+            day: 'numeric', month: 'short', year: 'numeric',
+            hour: 'numeric', minute: 'numeric', hour12: true
         }).format(date).replace(',', '').replace(' at', ' •');
     };
 
-    // 1. FETCH VIDEOS & PLAYLISTS
+    // 1. FETCH DATA
     useEffect(() => {
         setIsLoading(true);
-
-        // Fetch Videos
         const qVideos = query(collection(db, "videos"), orderBy("createdAt", "desc"));
         const unsubVideos = onSnapshot(qVideos, (snapshot) => {
             setVideos(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         });
 
-        // Fetch Playlists
         const qPlaylists = query(collection(db, "video_playlists"), orderBy("createdAt", "desc"));
         const unsubPlaylists = onSnapshot(qPlaylists, (snapshot) => {
             setPlaylists(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -89,12 +79,11 @@ export default function ManageVideosPage() {
         };
     }, []);
 
-    // 2. GET PROCESSED CONTENT (Filter + Sort)
+    // 2. PROCESS CONTENT
     const getProcessedContent = () => {
         const term = searchTerm.toLowerCase();
         let content = [];
 
-        // A. Filter Logic
         if (activeTab === 'videos') {
             content = videos.filter(video => {
                 const matchesSearch = 
@@ -104,12 +93,10 @@ export default function ManageVideosPage() {
                 return matchesSearch && matchesCategory;
             });
         } else {
-            // Map playlists to include dynamic counts
             const playlistsWithCounts = playlists.map(pl => ({
                 ...pl,
                 realCount: videos.filter(v => v.playlist === pl.title).length
             }));
-
             content = playlistsWithCounts.filter(playlist => {
                 const matchesSearch = playlist.title.toLowerCase().includes(term);
                 const matchesCategory = categoryFilter === 'All' || playlist.category === categoryFilter;
@@ -117,26 +104,19 @@ export default function ManageVideosPage() {
             });
         }
 
-        // B. Sort Logic
         return content.sort((a, b) => {
-            // Safely handle dates (Firestore Timestamp vs String vs Null)
             const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
             const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
-
-            if (sortOrder === 'desc') {
-                return dateB - dateA; // Newest first
-            } else {
-                return dateA - dateB; // Oldest first
-            }
+            return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
         });
     };
 
     const filteredContent = getProcessedContent();
 
-    // 3. ACTIONS
+    // 3. ACTIONS & MODAL LOGIC
     const handleDelete = (id, type) => {
         const message = type === 'playlist' 
-            ? "Warning: Deleting this playlist will NOT delete the videos inside it, but they will become 'orphaned' (no playlist). Continue?"
+            ? "Warning: Deleting this playlist will NOT delete videos inside it. Continue?"
             : "Are you sure you want to delete this video? This cannot be undone.";
 
         showConfirm({
@@ -147,18 +127,10 @@ export default function ManageVideosPage() {
             type: 'danger', 
             onConfirm: async () => {
                 try {
-                    if (type === 'video') {
-                        await deleteDoc(doc(db, "videos", id));
-                    } else {
-                        await deleteDoc(doc(db, "video_playlists", id));
-                    }
+                    if (type === 'video') await deleteDoc(doc(db, "videos", id));
+                    else await deleteDoc(doc(db, "video_playlists", id));
                     
-                    showSuccess({
-                        title: "Deleted!",
-                        message: `The ${type} has been successfully deleted.`,
-                        confirmText: "Okay",
-                    });
-
+                    showSuccess({ title: "Deleted!", message: "Item deleted successfully.", confirmText: "Okay" });
                 } catch (error) {
                     console.error("Error deleting:", error);
                     alert("Failed to delete.");
@@ -168,13 +140,41 @@ export default function ManageVideosPage() {
     };
 
     const handleEdit = (id, type) => {
-        if (type === 'playlist') {
-            router.push(`/admin/videos/playlists/edit/${id}`);
-        } else {
-            router.push(`/admin/videos/edit/${id}`);
-        }
+        router.push(type === 'playlist' ? `/admin/videos/playlists/edit/${id}` : `/admin/videos/edit/${id}`);
     };
-    return (
+
+    // Quick View Modal Logic
+    const handleQuickView = (item) => {
+        showSuccess({
+            title: "Quick Info",
+            message: (
+                <div className="text-left space-y-3 mt-2 text-sm">
+                    <div dir={getDir(item.title)}>
+                        <p className="text-xs font-bold text-gray-400 uppercase">Title</p>
+                        <p className="font-bold text-brand-brown-dark">{item.title}</p>
+                    </div>
+                    {item.date && (
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase">Recorded Date</p>
+                            <p className="font-medium">{item.date}</p>
+                        </div>
+                    )}
+                    <div>
+                        <p className="text-xs font-bold text-gray-400 uppercase">Uploaded On</p>
+                        <p className="font-medium">{formatUploadTime(item.createdAt)}</p>
+                    </div>
+                    {item.playlist && (
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase">Playlist</p>
+                            <p className="font-medium">{item.playlist}</p>
+                        </div>
+                    )}
+                </div>
+            ),
+            confirmText: "Close"
+        });
+    };
+return (
         <div className="space-y-6">
 
             {/* 1. HEADER & ACTIONS */}
@@ -227,33 +227,35 @@ export default function ManageVideosPage() {
                     </button>
                 </div>
 
-                {/* Filters & Sorting */}
-                <div className="flex flex-col md:flex-row w-full xl:w-auto gap-3">
+                {/* Filters & Sorting - RESPONSIVE ROW */}
+                <div className="flex flex-col w-full xl:w-auto gap-3">
                     
-                    {/* Category */}
-                    <div className="relative">
-                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-gold" />
-                        <select 
-                            value={categoryFilter}
-                            onChange={(e) => setCategoryFilter(e.target.value)}
-                            className="w-full md:w-40 pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer appearance-none font-bold text-gray-600"
-                        >
-                            <option value="All">All Languages</option>
-                            <option value="English">English</option>
-                            <option value="Hausa">Hausa</option>
-                            <option value="Arabic">Arabic</option>
-                        </select>
-                    </div>
+                    <div className="flex flex-row gap-2 w-full">
+                        {/* Category Dropdown */}
+                        <div className="relative flex-1 md:flex-none">
+                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-gold" />
+                            <select 
+                                value={categoryFilter}
+                                onChange={(e) => setCategoryFilter(e.target.value)}
+                                className="w-full md:w-40 pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer appearance-none font-bold text-gray-600"
+                            >
+                                <option value="All">All</option>
+                                <option value="English">English</option>
+                                <option value="Hausa">Hausa</option>
+                                <option value="Arabic">Arabic</option>
+                            </select>
+                        </div>
 
-                    {/* Sorting Button */}
-                    <button 
-                        onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
-                        className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors"
-                        title={sortOrder === 'desc' ? "Sort: Newest First" : "Sort: Oldest First"}
-                    >
-                        <ArrowUpDown className="w-4 h-4" />
-                        <span className="hidden md:inline">{sortOrder === 'desc' ? 'Newest' : 'Oldest'}</span>
-                    </button>
+                        {/* Sorting Button */}
+                        <button 
+                            onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors flex-1 md:flex-none"
+                            title={sortOrder === 'desc' ? "Sort: Newest First" : "Sort: Oldest First"}
+                        >
+                            <ArrowUpDown className="w-4 h-4" />
+                            <span className="hidden sm:inline">{sortOrder === 'desc' ? 'Newest' : 'Oldest'}</span>
+                        </button>
+                    </div>
 
                     {/* Search */}
                     <div className="relative w-full md:w-72">
@@ -288,8 +290,7 @@ export default function ManageVideosPage() {
                                         <tr>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Video</th>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Language</th>
-                                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Playlist</th>
-                                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Uploaded</th> {/* NEW COLUMN */}
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider hidden md:table-cell">Playlist</th>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
                                         </tr>
                                     </thead>
@@ -301,10 +302,15 @@ export default function ManageVideosPage() {
                                                 <tr key={video.id} className="hover:bg-gray-50 transition-colors group">
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-4">
-                                                            <div className="relative w-16 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-black">
+                                                            <div className="relative w-16 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-black cursor-pointer" onClick={() => handleQuickView(video)}>
                                                                 <Image src={video.thumbnail || "/fallback.webp"} alt={video.title} fill className="object-cover opacity-80" />
                                                             </div>
-                                                            <h3 className={`font-bold text-brand-brown-dark text-sm line-clamp-1 max-w-[250px] ${getDir(video.title) === 'rtl' ? 'font-tajawal' : ''}`} title={video.title}>
+                                                            {/* UPDATED: Full title visibility (no line-clamp) */}
+                                                            <h3 
+                                                                className={`font-bold text-brand-brown-dark text-sm min-w-[150px] cursor-pointer hover:text-brand-gold ${getDir(video.title) === 'rtl' ? 'font-tajawal' : ''}`} 
+                                                                title="Click for Details"
+                                                                onClick={() => handleQuickView(video)}
+                                                            >
                                                                 {video.title}
                                                             </h3>
                                                         </div>
@@ -317,20 +323,18 @@ export default function ManageVideosPage() {
                                                             {video.category}
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-6 py-4 hidden md:table-cell">
                                                         {video.playlist ? (
                                                             <span className="text-xs font-bold text-brand-brown bg-brand-sand px-2 py-1 rounded-md">
                                                                 {video.playlist}
                                                             </span>
                                                         ) : <span className="text-xs text-gray-400">-</span>}
                                                     </td>
-                                                    <td className="px-6 py-4">
-                                                        <span className="text-xs font-bold text-gray-500 flex items-center gap-1">
-                                                            {formatUploadTime(video.createdAt)}
-                                                        </span>
-                                                    </td>
                                                     <td className="px-6 py-4 text-right">
                                                         <div className="flex items-center justify-end gap-2">
+                                                            <button onClick={() => handleQuickView(video)} className="p-2 text-gray-400 hover:text-brand-gold hover:bg-brand-sand rounded-lg md:hidden" title="Info">
+                                                                <Info className="w-4 h-4" />
+                                                            </button>
                                                             <button onClick={() => handleEdit(video.id, 'video')} className="p-2 text-gray-400 hover:text-brand-gold hover:bg-brand-sand rounded-lg" title="Edit">
                                                                 <Edit className="w-4 h-4" />
                                                             </button>
@@ -359,7 +363,7 @@ export default function ManageVideosPage() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {filteredContent.map((list) => (
                                             <div key={list.id} className="group border border-gray-100 rounded-2xl overflow-hidden hover:shadow-lg transition-all hover:border-brand-gold/30">
-                                                <div className="relative w-full aspect-video bg-gray-100">
+                                                <div className="relative w-full aspect-video bg-gray-100 cursor-pointer" onClick={() => handleQuickView(list)}>
                                                     <Image src={list.cover || "/fallback.webp"} alt={list.title} fill className="object-cover" />
                                                     <div className="absolute top-2 left-2">
                                                         <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase shadow-sm ${
@@ -373,7 +377,7 @@ export default function ManageVideosPage() {
                                                 <div className="p-4" dir={getDir(list.title)}>
                                                     <div className="flex justify-between items-start gap-4" dir="ltr">
                                                         <div>
-                                                            <h3 className={`font-agency text-lg text-brand-brown-dark leading-tight line-clamp-2 ${getDir(list.title) === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
+                                                            <h3 className={`font-agency text-lg text-brand-brown-dark leading-tight ${getDir(list.title) === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
                                                                 {list.title}
                                                             </h3>
                                                             <div className="mt-2 space-y-1">
