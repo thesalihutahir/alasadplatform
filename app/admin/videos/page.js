@@ -6,24 +6,14 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 // Firebase
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc, writeBatch, where, getDocs } from 'firebase/firestore';
 // Global Modal Context
 import { useModal } from '@/context/ModalContext';
 
 import { 
-    PlusCircle, 
-    Search, 
-    Edit, 
-    Trash2, 
-    PlayCircle, 
-    ListVideo, 
-    LayoutList, 
-    Loader2,
-    Filter,
-    X,
-    ArrowUpDown, 
-    CalendarClock,
-    Info // New icon for Quick View
+    PlusCircle, Search, Edit, Trash2, PlayCircle, ListVideo, 
+    LayoutList, Loader2, Filter, X, ArrowUpDown, CalendarClock, 
+    Info, ChevronRight, AlertTriangle
 } from 'lucide-react';
 
 export default function ManageVideosPage() {
@@ -36,6 +26,9 @@ export default function ManageVideosPage() {
     // Data State
     const [videos, setVideos] = useState([]);
     const [playlists, setPlaylists] = useState([]);
+
+    // Modal State
+    const [selectedPlaylist, setSelectedPlaylist] = useState(null); // For Playlist Info Modal
 
     // Filter & Sort State
     const [searchTerm, setSearchTerm] = useState('');
@@ -113,10 +106,11 @@ export default function ManageVideosPage() {
 
     const filteredContent = getProcessedContent();
 
-    // 3. ACTIONS & MODAL LOGIC
+    // 3. ACTIONS
     const handleDelete = (id, type) => {
+        // Standard Delete (Playlist Only)
         const message = type === 'playlist' 
-            ? "Warning: Deleting this playlist will NOT delete videos inside it. Continue?"
+            ? "Warning: Deleting this playlist will NOT delete the videos inside it (they will become 'Single Videos'). Continue?"
             : "Are you sure you want to delete this video? This cannot be undone.";
 
         showConfirm({
@@ -139,11 +133,50 @@ export default function ManageVideosPage() {
         });
     };
 
+    // SPECIAL: Delete Entire Series (Playlist + Videos)
+    const handleDeleteSeries = (playlist) => {
+        showConfirm({
+            title: "Delete ENTIRE Series?",
+            message: `DANGER: This will delete the playlist "${playlist.title}" AND ALL ${playlist.realCount} videos inside it. This cannot be undone.`,
+            confirmText: "Yes, Delete Everything",
+            cancelText: "Cancel",
+            type: 'danger',
+            onConfirm: async () => {
+                try {
+                    // 1. Find all videos in this playlist
+                    const q = query(collection(db, "videos"), where("playlist", "==", playlist.title));
+                    const snapshot = await getDocs(q);
+
+                    // 2. Batch Delete
+                    const batch = writeBatch(db);
+                    
+                    // Delete playlist
+                    const playlistRef = doc(db, "video_playlists", playlist.id);
+                    batch.delete(playlistRef);
+
+                    // Delete all videos
+                    snapshot.docs.forEach((doc) => {
+                        batch.delete(doc.ref);
+                    });
+
+                    await batch.commit();
+                    
+                    setSelectedPlaylist(null); // Close modal
+                    showSuccess({ title: "Series Deleted", message: "The playlist and all its videos were deleted.", confirmText: "Done" });
+
+                } catch (error) {
+                    console.error("Error deleting series:", error);
+                    alert("Failed to delete series.");
+                }
+            }
+        });
+    };
+
     const handleEdit = (id, type) => {
         router.push(type === 'playlist' ? `/admin/videos/playlists/edit/${id}` : `/admin/videos/edit/${id}`);
     };
 
-    // Quick View Modal Logic
+    // Quick View Modal (Video)
     const handleQuickView = (item) => {
         showSuccess({
             title: "Quick Info",
@@ -163,21 +196,97 @@ export default function ManageVideosPage() {
                         <p className="text-xs font-bold text-gray-400 uppercase">Uploaded On</p>
                         <p className="font-medium">{formatUploadTime(item.createdAt)}</p>
                     </div>
-                    {item.playlist && (
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase">Playlist</p>
-                            <p className="font-medium">{item.playlist}</p>
-                        </div>
-                    )}
                 </div>
             ),
             confirmText: "Close"
         });
     };
 return (
-        <div className="space-y-6">
+        <div className="space-y-6 relative">
 
-            {/* 1. HEADER & ACTIONS */}
+            {/* --- NEW: PLAYLIST DETAILS MODAL --- */}
+            {selectedPlaylist && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-brown-dark/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
+                        
+                        {/* Modal Header */}
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-start bg-gray-50/50">
+                            <div className="flex gap-4">
+                                <div className="relative w-24 aspect-video rounded-lg overflow-hidden bg-gray-200 shadow-sm border border-white">
+                                    <Image src={selectedPlaylist.cover || "/fallback.webp"} alt="Cover" fill className="object-cover" />
+                                </div>
+                                <div dir={getDir(selectedPlaylist.title)}>
+                                    <h3 className="font-agency text-2xl text-brand-brown-dark leading-none mb-2">{selectedPlaylist.title}</h3>
+                                    <div className="flex gap-2" dir="ltr">
+                                        <span className="px-2 py-0.5 bg-brand-gold/10 text-brand-gold text-[10px] font-bold uppercase rounded-md">
+                                            {selectedPlaylist.category}
+                                        </span>
+                                        <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold uppercase rounded-md">
+                                            {selectedPlaylist.realCount} Videos
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button onClick={() => setSelectedPlaylist(null)} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                                <X className="w-5 h-5 text-gray-500" />
+                            </button>
+                        </div>
+
+                        {/* Modal Body: Scrollable Video List */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                            {videos.filter(v => v.playlist === selectedPlaylist.title).length > 0 ? (
+                                videos.filter(v => v.playlist === selectedPlaylist.title).map((vid, idx) => (
+                                    <div key={vid.id} className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl border border-transparent hover:border-gray-100 transition-all group">
+                                        <span className="text-xs font-bold text-gray-300 w-6">{idx + 1}</span>
+                                        <div className="relative w-16 aspect-video rounded-md overflow-hidden bg-black flex-shrink-0">
+                                            <Image src={vid.thumbnail || "/fallback.webp"} alt="Thumb" fill className="object-cover opacity-80" />
+                                        </div>
+                                        <div className="flex-grow min-w-0" dir={getDir(vid.title)}>
+                                            <p className="text-sm font-bold text-gray-700 line-clamp-1">{vid.title}</p>
+                                            <p className="text-[10px] text-gray-400 font-lato" dir="ltr">{formatUploadTime(vid.createdAt)}</p>
+                                        </div>
+                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => handleEdit(vid.id, 'video')} className="p-2 text-gray-400 hover:text-brand-gold hover:bg-brand-sand rounded-lg">
+                                                <Edit className="w-3 h-3" />
+                                            </button>
+                                            <button onClick={() => handleDelete(vid.id, 'video')} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                                                <Trash2 className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-10 text-gray-400">
+                                    <ListVideo className="w-10 h-10 mx-auto mb-2 opacity-20" />
+                                    <p className="text-sm">No videos in this playlist yet.</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Modal Footer: Actions */}
+                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
+                            <button 
+                                onClick={() => handleDeleteSeries(selectedPlaylist)}
+                                className="flex items-center gap-2 text-red-500 hover:text-red-700 text-xs font-bold uppercase tracking-wider px-4 py-2 hover:bg-red-50 rounded-lg transition-colors"
+                            >
+                                <Trash2 className="w-4 h-4" /> Delete Entire Series
+                            </button>
+                            
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={() => handleEdit(selectedPlaylist.id, 'playlist')}
+                                    className="px-6 py-2.5 bg-brand-gold text-white text-xs font-bold rounded-xl hover:bg-brand-brown-dark transition-colors shadow-sm"
+                                >
+                                    Edit Playlist
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* --- MAIN PAGE CONTENT --- */}
+
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="font-agency text-3xl text-brand-brown-dark">Video Manager</h1>
@@ -204,13 +313,10 @@ return (
                 </div>
             </div>
 
-            {/* 2. TABS & FILTERS TOOLBAR */}
             <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-                
-                {/* Tabs */}
                 <div className="flex bg-gray-100 p-1 rounded-lg w-full md:w-auto">
                     <button 
-                        onClick={() => { setActiveTab('videos'); setSearchTerm(''); setCategoryFilter('All'); }}
+                        onClick={() => { setActiveTab('videos'); setSearchTerm(''); }}
                         className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-md text-sm font-bold transition-all ${
                             activeTab === 'videos' ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'
                         }`}
@@ -218,7 +324,7 @@ return (
                         <PlayCircle className="w-4 h-4" /> Videos
                     </button>
                     <button 
-                        onClick={() => { setActiveTab('playlists'); setSearchTerm(''); setCategoryFilter('All'); }}
+                        onClick={() => { setActiveTab('playlists'); setSearchTerm(''); }}
                         className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-md text-sm font-bold transition-all ${
                             activeTab === 'playlists' ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'
                         }`}
@@ -227,17 +333,14 @@ return (
                     </button>
                 </div>
 
-                {/* Filters & Sorting - RESPONSIVE ROW */}
                 <div className="flex flex-col w-full xl:w-auto gap-3">
-                    
                     <div className="flex flex-row gap-2 w-full">
-                        {/* Category Dropdown */}
                         <div className="relative flex-1 md:flex-none">
                             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-gold" />
                             <select 
                                 value={categoryFilter}
                                 onChange={(e) => setCategoryFilter(e.target.value)}
-                                className="w-full md:w-40 pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer appearance-none font-bold text-gray-600"
+                                className="w-full md:w-40 pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer"
                             >
                                 <option value="All">All</option>
                                 <option value="English">English</option>
@@ -245,19 +348,14 @@ return (
                                 <option value="Arabic">Arabic</option>
                             </select>
                         </div>
-
-                        {/* Sorting Button */}
                         <button 
                             onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
                             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors flex-1 md:flex-none"
-                            title={sortOrder === 'desc' ? "Sort: Newest First" : "Sort: Oldest First"}
                         >
                             <ArrowUpDown className="w-4 h-4" />
                             <span className="hidden sm:inline">{sortOrder === 'desc' ? 'Newest' : 'Oldest'}</span>
                         </button>
                     </div>
-
-                    {/* Search */}
                     <div className="relative w-full md:w-72">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input 
@@ -267,22 +365,16 @@ return (
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all" 
                         />
-                        {searchTerm && (
-                            <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
-                        )}
+                        {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>}
                     </div>
                 </div>
             </div>
 
-            {/* 3. CONTENT AREA */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px]">
                 {isLoading ? (
-                    <div className="flex items-center justify-center h-64">
-                        <Loader2 className="w-8 h-8 text-brand-gold animate-spin" />
-                    </div>
+                    <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 text-brand-gold animate-spin" /></div>
                 ) : (
                     <>
-                        {/* VIDEOS VIEW */}
                         {activeTab === 'videos' && (
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left">
@@ -305,12 +397,7 @@ return (
                                                             <div className="relative w-16 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-black cursor-pointer" onClick={() => handleQuickView(video)}>
                                                                 <Image src={video.thumbnail || "/fallback.webp"} alt={video.title} fill className="object-cover opacity-80" />
                                                             </div>
-                                                            {/* UPDATED: Full title visibility (no line-clamp) */}
-                                                            <h3 
-                                                                className={`font-bold text-brand-brown-dark text-sm min-w-[150px] cursor-pointer hover:text-brand-gold ${getDir(video.title) === 'rtl' ? 'font-tajawal' : ''}`} 
-                                                                title="Click for Details"
-                                                                onClick={() => handleQuickView(video)}
-                                                            >
+                                                            <h3 className={`font-bold text-brand-brown-dark text-sm min-w-[150px] cursor-pointer hover:text-brand-gold ${getDir(video.title) === 'rtl' ? 'font-tajawal' : ''}`} onClick={() => handleQuickView(video)}>
                                                                 {video.title}
                                                             </h3>
                                                         </div>
@@ -324,23 +411,13 @@ return (
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4 hidden md:table-cell">
-                                                        {video.playlist ? (
-                                                            <span className="text-xs font-bold text-brand-brown bg-brand-sand px-2 py-1 rounded-md">
-                                                                {video.playlist}
-                                                            </span>
-                                                        ) : <span className="text-xs text-gray-400">-</span>}
+                                                        {video.playlist ? <span className="text-xs font-bold text-brand-brown bg-brand-sand px-2 py-1 rounded-md">{video.playlist}</span> : <span className="text-xs text-gray-400">-</span>}
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
                                                         <div className="flex items-center justify-end gap-2">
-                                                            <button onClick={() => handleQuickView(video)} className="p-2 text-gray-400 hover:text-brand-gold hover:bg-brand-sand rounded-lg md:hidden" title="Info">
-                                                                <Info className="w-4 h-4" />
-                                                            </button>
-                                                            <button onClick={() => handleEdit(video.id, 'video')} className="p-2 text-gray-400 hover:text-brand-gold hover:bg-brand-sand rounded-lg" title="Edit">
-                                                                <Edit className="w-4 h-4" />
-                                                            </button>
-                                                            <button onClick={() => handleDelete(video.id, 'video')} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg" title="Delete">
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
+                                                            <button onClick={() => handleQuickView(video)} className="p-2 text-gray-400 hover:text-brand-gold hover:bg-brand-sand rounded-lg md:hidden"><Info className="w-4 h-4" /></button>
+                                                            <button onClick={() => handleEdit(video.id, 'video')} className="p-2 text-gray-400 hover:text-brand-gold hover:bg-brand-sand rounded-lg"><Edit className="w-4 h-4" /></button>
+                                                            <button onClick={() => handleDelete(video.id, 'video')} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -351,7 +428,6 @@ return (
                             </div>
                         )}
 
-                        {/* PLAYLISTS VIEW */}
                         {activeTab === 'playlists' && (
                             <div className="p-6">
                                 {filteredContent.length === 0 ? (
@@ -362,8 +438,12 @@ return (
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {filteredContent.map((list) => (
-                                            <div key={list.id} className="group border border-gray-100 rounded-2xl overflow-hidden hover:shadow-lg transition-all hover:border-brand-gold/30">
-                                                <div className="relative w-full aspect-video bg-gray-100 cursor-pointer" onClick={() => handleQuickView(list)}>
+                                            <div 
+                                                key={list.id} 
+                                                onClick={() => setSelectedPlaylist(list)} // CLICK TO OPEN MODAL
+                                                className="group border border-gray-100 rounded-2xl overflow-hidden hover:shadow-lg transition-all hover:border-brand-gold/30 cursor-pointer"
+                                            >
+                                                <div className="relative w-full aspect-video bg-gray-100">
                                                     <Image src={list.cover || "/fallback.webp"} alt={list.title} fill className="object-cover" />
                                                     <div className="absolute top-2 left-2">
                                                         <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase shadow-sm ${
@@ -377,7 +457,7 @@ return (
                                                 <div className="p-4" dir={getDir(list.title)}>
                                                     <div className="flex justify-between items-start gap-4" dir="ltr">
                                                         <div>
-                                                            <h3 className={`font-agency text-lg text-brand-brown-dark leading-tight ${getDir(list.title) === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
+                                                            <h3 className={`font-agency text-lg text-brand-brown-dark leading-tight line-clamp-2 ${getDir(list.title) === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
                                                                 {list.title}
                                                             </h3>
                                                             <div className="mt-2 space-y-1">
@@ -390,10 +470,8 @@ return (
                                                             </div>
                                                         </div>
                                                         <div className="flex gap-1">
-                                                            <button onClick={() => handleEdit(list.id, 'playlist')} className="p-2 text-gray-400 hover:text-brand-gold hover:bg-brand-sand rounded-lg">
-                                                                <Edit className="w-4 h-4" />
-                                                            </button>
-                                                            <button onClick={() => handleDelete(list.id, 'playlist')} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
+                                                            {/* Delete Icon (Safe Delete) */}
+                                                            <button onClick={(e) => { e.stopPropagation(); handleDelete(list.id, 'playlist'); }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
                                                                 <Trash2 className="w-4 h-4" />
                                                             </button>
                                                         </div>
