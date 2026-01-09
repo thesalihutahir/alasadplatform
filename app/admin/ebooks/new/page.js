@@ -6,29 +6,39 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 // Firebase
 import { db, storage } from '@/lib/firebase';
-import { collection, addDoc, getDocs, serverTimestamp, query, orderBy } from 'firebase/firestore';
+import { collection, addDoc, getDocs, serverTimestamp, query, orderBy, where } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+// Global Modal
+import { useModal } from '@/context/ModalContext';
 
 import { 
     ArrowLeft, 
     Save, 
     UploadCloud, 
     FileText, 
-    Library,
-    Loader2,
-    X,
-    CheckCircle,
-    Image as ImageIcon
+    Library, 
+    Loader2, 
+    X, 
+    CheckCircle, 
+    Image as ImageIcon,
+    AlertTriangle
 } from 'lucide-react';
 
 export default function UploadBookPage() {
     const router = useRouter();
+    const { showSuccess } = useModal();
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isLoadingCollections, setIsLoadingCollections] = useState(true);
 
+    // Duplicate Check State
+    const [duplicateWarning, setDuplicateWarning] = useState(null);
+    const [isChecking, setIsChecking] = useState(false);
+
     // Dynamic Collections State
-    const [availableCollections, setAvailableCollections] = useState([]);
+    const [allCollections, setAllCollections] = useState([]);
+    const [filteredCollections, setFilteredCollections] = useState([]);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -36,7 +46,7 @@ export default function UploadBookPage() {
         author: 'Sheikh Goni Dr. Muneer Ja\'afar',
         collection: '',
         category: 'Tafsir',
-        language: 'English',
+        language: 'English', // Standardized Language
         description: ''
     });
 
@@ -44,6 +54,13 @@ export default function UploadBookPage() {
     const [pdfFile, setPdfFile] = useState(null);
     const [coverFile, setCoverFile] = useState(null);
     const [coverPreview, setCoverPreview] = useState(null);
+
+    // Helper: Auto-Detect Arabic
+    const getDir = (text) => {
+        if (!text) return 'ltr';
+        const arabicPattern = /[\u0600-\u06FF]/;
+        return arabicPattern.test(text) ? 'rtl' : 'ltr';
+    };
 
     // 1. Fetch Collections on Mount
     useEffect(() => {
@@ -55,7 +72,9 @@ export default function UploadBookPage() {
                     id: doc.id,
                     ...doc.data()
                 }));
-                setAvailableCollections(collections);
+                setAllCollections(collections);
+                // Initial filter
+                setFilteredCollections(collections.filter(c => c.category === 'English'));
             } catch (error) {
                 console.error("Error fetching collections:", error);
             } finally {
@@ -66,9 +85,46 @@ export default function UploadBookPage() {
         fetchCollections();
     }, []);
 
+    // 2. Filter Collections when Language Changes
+    useEffect(() => {
+        if (allCollections.length > 0) {
+            const filtered = allCollections.filter(c => c.category === formData.language);
+            setFilteredCollections(filtered);
+            setFormData(prev => ({ ...prev, collection: '' })); // Reset selection
+        }
+    }, [formData.language, allCollections]);
+
+    // Check Duplicate Title
+    const checkDuplicateTitle = async (title) => {
+        if (!title.trim()) {
+            setDuplicateWarning(null);
+            return;
+        }
+        
+        setIsChecking(true);
+        try {
+            const q = query(collection(db, "ebooks"), where("title", "==", title.trim()));
+            const snapshot = await getDocs(q);
+
+            if (!snapshot.empty) {
+                setDuplicateWarning(`A book named "${title}" already exists.`);
+            } else {
+                setDuplicateWarning(null);
+            }
+        } catch (error) {
+            console.error("Error checking duplicate:", error);
+        } finally {
+            setIsChecking(false);
+        }
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+
+        if (name === 'title') {
+            checkDuplicateTitle(value);
+        }
     };
 
     // Handle PDF Selection
@@ -84,9 +140,12 @@ export default function UploadBookPage() {
                 return;
             }
             setPdfFile(file);
+            
             // Auto-fill title if empty
             if (!formData.title) {
-                setFormData(prev => ({ ...prev, title: file.name.replace(".pdf", "") }));
+                const autoTitle = file.name.replace(".pdf", "");
+                setFormData(prev => ({ ...prev, title: autoTitle }));
+                checkDuplicateTitle(autoTitle);
             }
         }
     };
@@ -117,8 +176,7 @@ export default function UploadBookPage() {
             alert("Please upload both a PDF file and a Cover Image.");
             return;
         }
-        if (!formData.title) {
-            alert("Please enter a book title.");
+        if (!formData.title || duplicateWarning) {
             return;
         }
 
@@ -133,8 +191,7 @@ export default function UploadBookPage() {
             const coverRef = ref(storage, `ebooks/covers/${Date.now()}_${coverFile.name}`);
             const coverUploadTask = uploadBytesResumable(coverRef, coverFile);
 
-            // Wait for both uploads
-            // (We track progress of PDF since it's likely larger)
+            // Track PDF progress as main indicator
             pdfUploadTask.on('state_changed', (snapshot) => {
                 const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
                 setUploadProgress(progress);
@@ -148,6 +205,7 @@ export default function UploadBookPage() {
             // 3. Save Metadata
             await addDoc(collection(db, "ebooks"), {
                 ...formData,
+                title: formData.title.trim(),
                 pdfUrl: pdfUrl,
                 coverUrl: coverUrl,
                 fileName: pdfFile.name,
@@ -157,8 +215,12 @@ export default function UploadBookPage() {
                 reads: 0
             });
 
-            alert("eBook published successfully!");
-            router.push('/admin/ebooks');
+            showSuccess({
+                title: "eBook Published!",
+                message: "Your new book has been uploaded successfully.",
+                confirmText: "Return to Library",
+                onConfirm: () => router.push('/admin/ebooks')
+            });
 
         } catch (error) {
             console.error("Error saving ebook:", error);
@@ -190,9 +252,9 @@ export default function UploadBookPage() {
                     </Link>
                     <button 
                         type="submit" 
-                        disabled={isSubmitting || !pdfFile || !coverFile} 
+                        disabled={isSubmitting || !pdfFile || !coverFile || !!duplicateWarning} 
                         className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 font-bold rounded-xl shadow-md text-white transition-colors ${
-                            (pdfFile && coverFile) 
+                            (pdfFile && coverFile && !duplicateWarning) 
                             ? 'bg-brand-gold hover:bg-brand-brown-dark' 
                             : 'bg-gray-300 cursor-not-allowed'
                         }`}
@@ -261,7 +323,7 @@ export default function UploadBookPage() {
                                     <p className="text-xs text-gray-500 text-center px-4">Click to Upload Cover</p>
                                     <input 
                                         type="file" 
-                                        accept="image/*"
+                                        accept="image/*" 
                                         onChange={handleCoverChange}
                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                     />
@@ -276,15 +338,32 @@ export default function UploadBookPage() {
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
                         <h3 className="font-agency text-xl text-brand-brown-dark border-b border-gray-100 pb-2">Book Details</h3>
 
+                        {/* Title & Duplicate Warning */}
                         <div>
                             <label className="block text-xs font-bold text-brand-brown mb-1">Book Title</label>
-                            <input 
-                                type="text" 
-                                name="title" 
-                                value={formData.title} 
-                                onChange={handleChange} 
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50" 
-                            />
+                            <div className="relative">
+                                <input 
+                                    type="text" 
+                                    name="title" 
+                                    value={formData.title} 
+                                    onChange={handleChange} 
+                                    className={`w-full bg-gray-50 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 ${
+                                        duplicateWarning ? 'border-orange-300 bg-orange-50' : 'border-gray-200'
+                                    }`} 
+                                    dir={getDir(formData.title)}
+                                />
+                                {isChecking && (
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                        <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                                    </div>
+                                )}
+                            </div>
+                            {duplicateWarning && (
+                                <div className="mt-2 flex items-start gap-2 text-xs font-bold text-orange-700 animate-in fade-in slide-in-from-top-1">
+                                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                                    <span>{duplicateWarning}</span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Collection Selector */}
@@ -302,14 +381,18 @@ export default function UploadBookPage() {
                                 {isLoadingCollections ? (
                                     <option disabled>Loading collections...</option>
                                 ) : (
-                                    availableCollections.map(col => <option key={col.id} value={col.title}>{col.title}</option>)
+                                    filteredCollections.length > 0 ? (
+                                        filteredCollections.map(col => <option key={col.id} value={col.title}>{col.title}</option>)
+                                    ) : (
+                                        <option disabled>No collections found for {formData.language}</option>
+                                    )
                                 )}
                             </select>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs font-bold text-brand-brown mb-1">Category</label>
+                                <label className="block text-xs font-bold text-brand-brown mb-1">Category (Topic)</label>
                                 <select 
                                     name="category" 
                                     value={formData.category} 
@@ -346,6 +429,7 @@ export default function UploadBookPage() {
                                 onChange={handleChange} 
                                 rows="4" 
                                 className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50"
+                                dir={getDir(formData.description)}
                             ></textarea>
                         </div>
                     </div>
