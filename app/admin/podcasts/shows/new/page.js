@@ -35,8 +35,8 @@ export default function CreatePodcastShowPage() {
     const [formData, setFormData] = useState({
         title: '',
         host: 'Al-Asad Foundation',
-        category: 'General',
-        description: '', // Added Description
+        category: 'English', // Default to English
+        description: '', 
         cover: '' 
     });
 
@@ -160,6 +160,7 @@ export default function CreatePodcastShowPage() {
             setIsSubmitting(false);
         }
     };
+
     return (
         <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto pb-12">
 
@@ -220,20 +221,18 @@ export default function CreatePodcastShowPage() {
                     />
                 </div>
 
-                {/* Category */}
+                {/* Category (UPDATED TO LANGUAGE SYSTEM) */}
                 <div>
-                    <label className="block text-xs font-bold text-brand-brown mb-1">Category</label>
+                    <label className="block text-xs font-bold text-brand-brown mb-1">Category (Language)</label>
                     <select 
                         name="category"
                         value={formData.category}
                         onChange={handleChange}
                         className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
                     >
-                        <option>General</option>
-                        <option>Tafsir</option>
-                        <option>Interviews</option>
-                        <option>Q&A</option>
-                        <option>Ramadan Special</option>
+                        <option>English</option>
+                        <option>Hausa</option>
+                        <option>Arabic</option>
                     </select>
                 </div>
 
