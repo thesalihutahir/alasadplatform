@@ -22,19 +22,21 @@ import {
 const formatDate = (dateString, locale = 'en-GB') => {
     try {
         if (!dateString) return '';
-        return new Date(dateString).toLocaleDateString(locale, { 
+        // Handle Firestore Timestamp or string
+        const date = dateString.toDate ? dateString.toDate() : new Date(dateString);
+        return date.toLocaleDateString(locale, { 
             day: 'numeric', month: 'long', year: 'numeric' 
         });
-    } catch (e) { return dateString; }
+    } catch (e) { return String(dateString); }
 };
 
 // --- HELPER: Read Time Formatter ---
-const getReadTime = (time, lang) => {
-    if (!time) return '';
-    // If old data (string like "5 min read"), return as is
-    if (isNaN(time)) return time;
-    
-    // If new data (number like 5), format it based on language
+const getReadTime = (text, lang) => {
+    if (!text) return '';
+    const wpm = 200;
+    const words = text.trim().split(/\s+/).length;
+    const time = Math.ceil(words / wpm);
+
     if (lang === 'Arabic') return `${time} دقائق قراءة`;
     if (lang === 'Hausa') return `Minti ${time} karatu`;
     return `${time} min read`;
@@ -43,7 +45,9 @@ const getReadTime = (time, lang) => {
 // --- HELPER: Time Ago ---
 const timeAgo = (date) => {
     if (!date) return 'Just now';
-    const seconds = Math.floor((new Date() - date.toDate()) / 1000);
+    const d = date.toDate ? date.toDate() : new Date(date);
+    const seconds = Math.floor((new Date() - d) / 1000);
+    
     let interval = seconds / 31536000;
     if (interval > 1) return Math.floor(interval) + " years ago";
     interval = seconds / 2592000;
@@ -87,7 +91,7 @@ const SocialShare = ({ title }) => {
 };
 
 // --- COMPONENT: Like Button ---
-const LikeButton = ({ postId, initialLikes }) => {
+const LikeButton = ({ postId, initialLikes, collectionName }) => {
     const [likes, setLikes] = useState(initialLikes || 0);
     const [liked, setLiked] = useState(false);
 
@@ -102,7 +106,7 @@ const LikeButton = ({ postId, initialLikes }) => {
         setLiked(true);
         localStorage.setItem(`liked_${postId}`, 'true');
         try {
-            const postRef = doc(db, "posts", postId);
+            const postRef = doc(db, collectionName, postId);
             await updateDoc(postRef, { likes: increment(1) });
         } catch (error) { console.error("Error liking:", error); }
     };
@@ -116,26 +120,26 @@ const LikeButton = ({ postId, initialLikes }) => {
 };
 
 // --- COMPONENT: Comments ---
-const CommentsSection = ({ postId, isArabic }) => {
+const CommentsSection = ({ postId, collectionName, isArabic }) => {
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
     const [authorName, setAuthorName] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        const q = query(collection(db, "posts", postId, "comments"), orderBy("createdAt", "desc"));
+        const q = query(collection(db, collectionName, postId, "comments"), orderBy("createdAt", "desc"));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             setComments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         });
         return () => unsubscribe();
-    }, [postId]);
+    }, [postId, collectionName]);
 
     const handlePostComment = async (e) => {
         e.preventDefault();
         if (!newComment.trim() || !authorName.trim()) return;
         setIsSubmitting(true);
         try {
-            await addDoc(collection(db, "posts", postId, "comments"), { text: newComment, author: authorName, createdAt: serverTimestamp() });
+            await addDoc(collection(db, collectionName, postId, "comments"), { text: newComment, author: authorName, createdAt: serverTimestamp() });
             setNewComment('');
         } catch (error) { console.error("Error posting comment:", error); } finally { setIsSubmitting(false); }
     };
@@ -181,20 +185,18 @@ const CommentsSection = ({ postId, isArabic }) => {
         </div>
     );
 };
-
 // ==========================================
-// LAYOUT 1: ARTICLE (The "Card" Look)
+// LAYOUT 1: ARTICLE (Standard)
 // ==========================================
-const ArticleLayout = ({ post }) => {
-    const isArabic = post.language === 'Arabic' || post.language === 'Hausa'; 
+const ArticleLayout = ({ post, collectionName }) => {
+    const isArabic = post.language === 'Arabic';
+    const displayDate = post.createdAt?.toDate ? post.createdAt.toDate() : new Date(post.createdAt || Date.now());
 
     return (
         <div className="bg-brand-sand min-h-screen py-12 md:py-20 font-lato relative">
-            {/* Background Pattern Hint */}
             <div className="absolute top-0 left-0 w-full h-96 bg-[url('/pattern-light.svg')] opacity-5 pointer-events-none"></div>
 
             <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
-                {/* Global Heading */}
                 <div className="flex justify-between items-center mb-8">
                     <Link href="/blogs/articles" className="inline-flex items-center text-brand-brown-dark font-bold text-sm hover:text-brand-gold transition-colors">
                         <ArrowLeft className="w-4 h-4 mr-2" /> Back to Articles
@@ -203,10 +205,9 @@ const ArticleLayout = ({ post }) => {
                 </div>
 
                 <div className="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/50">
-                    
                     {/* Hero Image */}
                     <div className="relative w-full aspect-video md:aspect-[2.5/1]">
-                        <Image src={post.coverImage || "/fallback.webp"} alt={post.title} fill className="object-cover" />
+                        <Image src={post.featuredImage || "/fallback.webp"} alt={post.title} fill className="object-cover" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                         <div className={`absolute bottom-6 ${isArabic ? 'right-6' : 'left-6'} flex flex-wrap gap-2`}>
                             <span className="px-3 py-1 bg-brand-gold text-white text-[10px] font-bold uppercase tracking-widest rounded-lg shadow-sm">{post.category}</span>
@@ -215,10 +216,8 @@ const ArticleLayout = ({ post }) => {
                     </div>
 
                     <div className="px-6 py-8 md:px-12 md:py-12" dir={isArabic ? 'rtl' : 'ltr'}>
-                        
-                        {/* Metadata Row - FORCED LTR for readability, but aligned based on language */}
+                        {/* Meta */}
                         <div className={`flex flex-wrap items-center gap-4 text-xs md:text-sm text-gray-500 mb-8 pb-6 border-b border-gray-100 ${isArabic ? 'justify-end' : 'justify-start'}`}>
-                            {/* Individual items are forced LTR so the icon stays on the left of text */}
                             <div className="flex items-center gap-2" dir="ltr">
                                 <User className="w-4 h-4 text-brand-gold" />
                                 <span className="font-bold text-brand-brown-dark">{post.author || "Al-Asad Foundation"}</span>
@@ -226,49 +225,40 @@ const ArticleLayout = ({ post }) => {
                             <span className="text-gray-300">|</span>
                             <div className="flex items-center gap-2" dir="ltr">
                                 <Calendar className="w-4 h-4 text-brand-gold" />
-                                <span>{formatDate(post.date)}</span>
+                                <span>{formatDate(displayDate)}</span>
                             </div>
                             <span className="text-gray-300">|</span>
                             <div className="flex items-center gap-2" dir="ltr">
                                 <Clock className="w-4 h-4 text-brand-gold" />
-                                <span>{getReadTime(post.readTime, post.language)}</span>
+                                <span>{getReadTime(post.body || "", post.language)}</span>
                             </div>
                         </div>
 
-                        {/* Title */}
                         <h1 className={`text-4xl md:text-5xl lg:text-6xl text-brand-brown-dark leading-[1.2] mb-6 ${isArabic ? 'font-tajawal font-bold text-right' : 'font-agency text-left'}`}>
                             {post.title}
                         </h1>
-                        
-                        {/* Divider aligned to title */}
+
                         <div className={`w-24 h-1.5 bg-brand-gold rounded-full mb-10 ${isArabic ? 'ml-auto mr-0' : 'mr-auto ml-0'}`}></div>
 
-                        {/* Content */}
                         <article className={`prose prose-lg md:prose-xl prose-stone max-w-none leading-loose text-gray-700 
                             prose-headings:text-brand-brown-dark prose-headings:font-bold
                             prose-a:text-brand-gold hover:prose-a:text-brand-brown-dark 
                             prose-img:rounded-2xl prose-img:shadow-md 
                             ${isArabic 
-                                ? 'font-arabic text-right prose-headings:font-tajawal prose-p:font-arabic prose-li:font-arabic prose-blockquote:border-r-4 prose-blockquote:border-l-0 prose-blockquote:border-brand-gold prose-blockquote:pr-4 prose-blockquote:pl-0' 
+                                ? 'font-arabic text-right prose-headings:font-tajawal prose-blockquote:border-r-4 prose-blockquote:border-l-0 prose-blockquote:border-brand-gold prose-blockquote:pr-4' 
                                 : 'font-lato text-left prose-headings:font-agency prose-blockquote:border-l-4 prose-blockquote:border-brand-gold prose-blockquote:pl-4'
                             }`}>
-                            <ReactMarkdown>{post.content}</ReactMarkdown>
+                            <ReactMarkdown>{post.body}</ReactMarkdown>
                         </article>
 
-                        {/* Footer */}
                         <div className="mt-16 pt-8 border-t border-gray-100">
                             <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
                                 <div className="flex items-center gap-4">
-                                    <LikeButton postId={post.id} initialLikes={post.likes || 0} />
+                                    <LikeButton postId={post.id} initialLikes={post.likes || 0} collectionName={collectionName} />
                                     <SocialShare title={post.title} />
                                 </div>
-                                <div className="flex flex-wrap gap-2 w-full md:w-auto justify-center md:justify-end">
-                                    {post.tags && (typeof post.tags === 'string' ? post.tags.split(',') : post.tags).map((tag, idx) => (
-                                        <span key={idx} className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold border border-gray-200">#{tag.trim()}</span>
-                                    ))}
-                                </div>
                             </div>
-                            <CommentsSection postId={post.id} isArabic={isArabic} />
+                            <CommentsSection postId={post.id} collectionName={collectionName} isArabic={isArabic} />
                         </div>
                     </div>
                 </div>
@@ -280,8 +270,9 @@ const ArticleLayout = ({ post }) => {
 // ==========================================
 // LAYOUT 2: NEWS
 // ==========================================
-const NewsLayout = ({ post, relatedPosts }) => {
+const NewsLayout = ({ post, collectionName, relatedPosts }) => {
     const isArabic = post.language === 'Arabic';
+    const eventDate = post.eventDate ? new Date(post.eventDate) : new Date();
 
     return (
         <div className="bg-brand-sand min-h-screen py-8 md:py-16 font-lato relative">
@@ -290,25 +281,29 @@ const NewsLayout = ({ post, relatedPosts }) => {
                 <div className="lg:col-span-8">
                     <div className="bg-white rounded-[2rem] shadow-xl overflow-hidden border border-gray-100">
                         <div className="relative h-64 md:h-96 w-full">
-                            <Image src={post.coverImage || "/fallback.webp"} alt={post.title} fill className="object-cover" />
+                            <Image src={post.featuredImage || "/fallback.webp"} alt={post.headline} fill className="object-cover" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
                             <div className={`absolute bottom-6 ${isArabic ? 'right-6 text-right' : 'left-6 text-left'} right-6`}>
                                 <span className="bg-brand-gold text-white text-xs font-bold px-3 py-1 rounded uppercase tracking-widest mb-3 inline-block">News Update</span>
-                                <h1 className={`text-3xl md:text-5xl text-white leading-tight drop-shadow-md ${isArabic ? 'font-tajawal font-bold' : 'font-agency'}`}>{post.title}</h1>
+                                <h1 className={`text-3xl md:text-5xl text-white leading-tight drop-shadow-md ${isArabic ? 'font-tajawal font-bold' : 'font-agency'}`}>{post.headline}</h1>
                             </div>
                         </div>
                         <div className="p-8 md:p-10" dir={isArabic ? 'rtl' : 'ltr'}>
                             <div className={`flex flex-col md:flex-row md:items-center gap-4 mb-8 border-b border-gray-100 pb-4 ${isArabic ? 'md:flex-row-reverse' : 'md:justify-between'}`}>
-                                <div className="flex items-center gap-2 text-sm font-bold text-gray-500" dir="ltr"><Calendar className="w-4 h-4 text-brand-gold" /> {formatDate(post.date)}</div>
+                                <div className="flex items-center gap-2 text-sm font-bold text-gray-500" dir="ltr"><Calendar className="w-4 h-4 text-brand-gold" /> {formatDate(eventDate)}</div>
                                 <div className="flex items-center gap-4">
-                                    <LikeButton postId={post.id} initialLikes={post.likes || 0} />
-                                    <SocialShare title={post.title} />
+                                    <LikeButton postId={post.id} initialLikes={post.likes || 0} collectionName={collectionName} />
+                                    <SocialShare title={post.headline} />
                                 </div>
                             </div>
+                            {/* Short Description Highlight */}
+                            <div className="bg-gray-50 p-6 rounded-xl border-l-4 border-brand-gold mb-8 italic text-gray-600">
+                                {post.shortDescription}
+                            </div>
                             <article className={`prose prose-lg max-w-none text-gray-700 leading-loose ${isArabic ? 'font-arabic text-right prose-headings:font-tajawal' : 'font-lato prose-headings:font-agency'}`}>
-                                <ReactMarkdown>{post.content}</ReactMarkdown>
+                                <ReactMarkdown>{post.body || "No additional content."}</ReactMarkdown>
                             </article>
-                            <CommentsSection postId={post.id} isArabic={isArabic} />
+                            <CommentsSection postId={post.id} collectionName={collectionName} isArabic={isArabic} />
                         </div>
                     </div>
                 </div>
@@ -320,11 +315,11 @@ const NewsLayout = ({ post, relatedPosts }) => {
                             {relatedPosts.map(item => (
                                 <Link key={item.id} href={`/blogs/read/${item.id}`} className="flex gap-4 group items-start">
                                     <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border border-white/10">
-                                        <Image src={item.coverImage || "/fallback.webp"} alt={item.title} fill className="object-cover" />
+                                        <Image src={item.featuredImage || "/fallback.webp"} alt={item.headline} fill className="object-cover" />
                                     </div>
                                     <div className={isArabic ? 'text-right' : 'text-left'}>
-                                        <span className="text-[10px] text-brand-gold font-bold uppercase block mb-1">{formatDate(item.date)}</span>
-                                        <h4 className={`font-bold text-sm leading-tight text-white/90 group-hover:text-brand-gold transition-colors line-clamp-2 ${isArabic ? 'font-tajawal' : ''}`}>{item.title}</h4>
+                                        <span className="text-[10px] text-brand-gold font-bold uppercase block mb-1">{formatDate(item.eventDate)}</span>
+                                        <h4 className={`font-bold text-sm leading-tight text-white/90 group-hover:text-brand-gold transition-colors line-clamp-2 ${isArabic ? 'font-tajawal' : ''}`}>{item.headline}</h4>
                                     </div>
                                 </Link>
                             ))}
@@ -339,8 +334,9 @@ const NewsLayout = ({ post, relatedPosts }) => {
 // ==========================================
 // LAYOUT 3: RESEARCH
 // ==========================================
-const ResearchLayout = ({ post }) => {
+const ResearchLayout = ({ post, collectionName }) => {
     const isArabic = post.language === 'Arabic';
+    const publishDate = post.createdAt?.toDate ? post.createdAt.toDate() : new Date();
 
     return (
         <div className="bg-[#f0f2f5] min-h-screen py-12 px-4 md:px-8 font-lato">
@@ -349,48 +345,48 @@ const ResearchLayout = ({ post }) => {
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200" dir={isArabic ? 'rtl' : 'ltr'}>
                         <h4 className={`text-xl text-gray-900 mb-4 flex items-center gap-2 ${isArabic ? 'font-tajawal font-bold' : 'font-agency'}`}><Layers className="w-5 h-5 text-blue-600" /> {isArabic ? 'تفاصيل البحث' : 'Details'}</h4>
                         <div className={`space-y-4 text-sm ${isArabic ? 'text-right' : 'text-left'}`}>
-                            <div className="pb-3 border-b border-gray-100"><span className="block text-xs text-gray-400 uppercase font-bold">{isArabic ? 'تاريخ النشر' : 'Published'}</span> <span className="font-bold text-gray-700">{formatDate(post.date)}</span></div>
-                            <div className="pb-3 border-b border-gray-100"><span className="block text-xs text-gray-400 uppercase font-bold">{isArabic ? 'المؤلف' : 'Author'}</span> <span className="font-bold text-gray-700">{post.author}</span></div>
+                            <div className="pb-3 border-b border-gray-100"><span className="block text-xs text-gray-400 uppercase font-bold">{isArabic ? 'تاريخ النشر' : 'Published'}</span> <span className="font-bold text-gray-700">{formatDate(publishDate)}</span></div>
+                            <div className="pb-3 border-b border-gray-100"><span className="block text-xs text-gray-400 uppercase font-bold">{isArabic ? 'المؤلف' : 'Authors'}</span> <span className="font-bold text-gray-700">{post.authors}</span></div>
+                            <div><span className="block text-xs text-gray-400 uppercase font-bold">{isArabic ? 'النوع' : 'Type'}</span> <span className="font-bold text-blue-600">{post.researchType}</span></div>
                         </div>
                     </div>
                     {post.pdfUrl && <a href={post.pdfUrl} target="_blank" className="block w-full py-4 bg-blue-600 text-white font-bold text-center rounded-xl shadow-lg hover:bg-blue-700 transition-colors flex justify-center items-center gap-2"><Download className="w-5 h-5" /> {isArabic ? 'تحميل PDF' : 'Download PDF'}</a>}
+                    {post.doi && <a href={post.doi} target="_blank" className="block w-full py-4 bg-white border border-gray-300 text-gray-700 font-bold text-center rounded-xl shadow-sm hover:bg-gray-50 transition-colors flex justify-center items-center gap-2"><LinkIcon className="w-4 h-4" /> DOI Link</a>}
                 </div>
                 <div className="lg:col-span-9 order-1 lg:order-2">
                     <div className="bg-white p-8 md:p-12 rounded-[2rem] shadow-xl border border-gray-200" dir={isArabic ? 'rtl' : 'ltr'}>
                         <div className={`flex gap-3 mb-6 ${isArabic ? 'justify-start' : ''}`}>
-                            <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider border border-blue-100">{post.category}</span>
+                            <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider border border-blue-100">{post.publicationStatus}</span>
                             <span className="bg-gray-50 text-gray-600 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider border border-gray-200">{post.language}</span>
                         </div>
-                        <h1 className={`text-3xl md:text-5xl text-gray-900 leading-tight mb-8 ${isArabic ? 'font-tajawal font-bold text-right' : 'font-serif'}`}>{post.title}</h1>
-                        {post.excerpt && (
+                        <h1 className={`text-3xl md:text-5xl text-gray-900 leading-tight mb-8 ${isArabic ? 'font-tajawal font-bold text-right' : 'font-serif'}`}>{post.researchTitle}</h1>
+                        {post.abstract && (
                             <div className={`bg-gray-50 p-6 rounded-2xl border-blue-600 mb-10 ${isArabic ? 'border-r-4 text-right' : 'border-l-4 text-left'}`}>
                                 <h3 className="font-bold text-gray-900 text-sm uppercase tracking-widest mb-2">{isArabic ? 'الملخص' : 'Abstract'}</h3>
-                                <p className={`text-gray-700 italic text-sm leading-relaxed ${isArabic ? 'font-arabic not-italic' : ''}`}>{post.excerpt}</p>
+                                <p className={`text-gray-700 italic text-sm leading-relaxed ${isArabic ? 'font-arabic not-italic' : ''}`}>{post.abstract}</p>
                             </div>
                         )}
-                        <article className={`prose prose-slate max-w-none prose-a:text-blue-600 prose-img:rounded-xl ${isArabic ? 'font-arabic text-right prose-headings:font-tajawal' : 'text-left'}`}>
-                            <ReactMarkdown>{post.content}</ReactMarkdown>
-                        </article>
                         <div className="mt-12 pt-8 border-t border-gray-100 flex justify-end gap-4 items-center">
-                             <SocialShare title={post.title} />
-                             <LikeButton postId={post.id} initialLikes={post.likes || 0} />
+                             <SocialShare title={post.researchTitle} />
+                             <LikeButton postId={post.id} initialLikes={post.likes || 0} collectionName={collectionName} />
                         </div>
-                        <CommentsSection postId={post.id} isArabic={isArabic} />
+                        <CommentsSection postId={post.id} collectionName={collectionName} isArabic={isArabic} />
                     </div>
                 </div>
             </div>
         </div>
     );
 };
-
 // ==========================================
 // MAIN PAGE COMPONENT
 // ==========================================
 export default function BlogPostPage() {
     const params = useParams();
+    const router = useRouter();
     const id = params?.id;
     const [post, setPost] = useState(null);
-    const [relatedPosts, setRelatedPosts] = useState([]);
+    const [collectionName, setCollectionName] = useState('articles'); // Default
+    const [relatedPosts, setRelatedPosts] = useState([]); // For News
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -398,31 +394,65 @@ export default function BlogPostPage() {
             if (!id) return;
             setLoading(true);
             try {
-                const docRef = doc(db, "posts", id);
-                const docSnap = await getDoc(docRef);
+                // 1. Try finding it in 'articles'
+                let docRef = doc(db, "articles", id);
+                let docSnap = await getDoc(docRef);
+                let foundCollection = 'articles';
+
+                // 2. If not found, try 'news'
+                if (!docSnap.exists()) {
+                    docRef = doc(db, "news", id);
+                    docSnap = await getDoc(docRef);
+                    foundCollection = 'news';
+                }
+
+                // 3. If not found, try 'research'
+                if (!docSnap.exists()) {
+                    docRef = doc(db, "research", id);
+                    docSnap = await getDoc(docRef);
+                    foundCollection = 'research';
+                }
+
                 if (docSnap.exists()) {
+                    setCollectionName(foundCollection);
                     const postData = { id: docSnap.id, ...docSnap.data() };
                     setPost(postData);
-                    if (postData.category) {
-                        const qRelated = query(collection(db, "posts"), where("category", "==", postData.category), where("status", "==", "Published"), orderBy("createdAt", "desc"), limit(4));
+
+                    // If it's News, fetch related news
+                    if (foundCollection === 'news') {
+                        const qRelated = query(collection(db, "news"), where("status", "==", "Published"), orderBy("createdAt", "desc"), limit(4));
                         const relatedSnap = await getDocs(qRelated);
-                        const related = relatedSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(p => p.id !== id).slice(0, 3);
+                        const related = relatedSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.id !== id).slice(0, 3);
                         setRelatedPosts(related);
                     }
-                } else { setPost(null); }
-            } catch (error) { console.error("Error:", error); } finally { setLoading(false); }
+                } else {
+                    setPost(null);
+                }
+            } catch (error) { 
+                console.error("Error fetching post:", error); 
+            } finally { 
+                setLoading(false); 
+            }
         };
         fetchPostData();
     }, [id]);
 
     if (loading) return <Loader size="lg" className="h-screen bg-brand-sand" />;
-    if (!post) return <div className="min-h-screen bg-brand-sand flex items-center justify-center"><h1 className="font-agency text-4xl">Post Not Found</h1></div>;
+    
+    if (!post) return (
+        <div className="min-h-screen bg-brand-sand flex flex-col items-center justify-center">
+            <h1 className="font-agency text-4xl text-brand-brown-dark mb-4">Post Not Found</h1>
+            <Link href="/blogs" className="px-6 py-2 bg-brand-gold text-white rounded-xl font-bold">Return to Blogs</Link>
+        </div>
+    );
 
     return (
         <>
             <Header />
             <main>
-                {post.category === 'Research' ? <ResearchLayout post={post} /> : post.category === 'News' ? <NewsLayout post={post} relatedPosts={relatedPosts} /> : <ArticleLayout post={post} />}
+                {collectionName === 'research' && <ResearchLayout post={post} collectionName={collectionName} />}
+                {collectionName === 'news' && <NewsLayout post={post} collectionName={collectionName} relatedPosts={relatedPosts} />}
+                {collectionName === 'articles' && <ArticleLayout post={post} collectionName={collectionName} />}
             </main>
             <Footer />
         </>
