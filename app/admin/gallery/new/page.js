@@ -8,20 +8,24 @@ import { useRouter } from 'next/navigation';
 import { db, storage } from '@/lib/firebase';
 import { collection, addDoc, getDocs, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+// Global Modal
+import { useModal } from '@/context/ModalContext';
 
 import { 
     ArrowLeft, 
     Save, 
     Folder, 
     X, 
-    Image as ImageIcon,
-    Loader2,
-    CheckCircle,
+    Image as ImageIcon, 
+    Loader2, 
+    CheckCircle, 
     UploadCloud
 } from 'lucide-react';
 
 export default function UploadPhotosPage() {
     const router = useRouter();
+    const { showSuccess } = useModal();
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingAlbums, setIsLoadingAlbums] = useState(true);
     const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
@@ -109,7 +113,7 @@ export default function UploadPhotosPage() {
                 await uploadTask; 
                 const url = await getDownloadURL(uploadTask.snapshot.ref);
 
-                // Update Progress
+                // Update Progress (State update inside loop might batch, but good enough for simple UI)
                 setUploadProgress(prev => ({ ...prev, current: prev.current + 1 }));
 
                 // 2. Save Metadata to Firestore
@@ -117,6 +121,8 @@ export default function UploadPhotosPage() {
                     url: url,
                     name: file.name,
                     albumId: selectedAlbum || "uncategorized",
+                    // If we wanted to store album title for easier display without joins:
+                    albumTitle: selectedAlbum ? availableAlbums.find(a => a.id === selectedAlbum)?.title : "Stream",
                     createdAt: serverTimestamp()
                 });
             });
@@ -124,8 +130,12 @@ export default function UploadPhotosPage() {
             // Wait for ALL uploads to finish
             await Promise.all(uploadPromises);
 
-            alert(`Successfully published ${selectedFiles.length} photos!`);
-            router.push('/admin/gallery');
+            showSuccess({
+                title: "Photos Uploaded!",
+                message: `Successfully published ${selectedFiles.length} photos to the gallery.`,
+                confirmText: "Return to Gallery",
+                onConfirm: () => router.push('/admin/gallery')
+            });
 
         } catch (error) {
             console.error("Error saving photos:", error);
