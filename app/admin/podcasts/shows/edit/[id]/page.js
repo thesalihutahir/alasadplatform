@@ -36,7 +36,7 @@ export default function EditPodcastShowPage() {
     const [formData, setFormData] = useState({
         title: '',
         host: 'Al-Asad Foundation',
-        category: 'General',
+        category: 'English', // Default
         description: '',
         cover: '' 
     });
@@ -65,7 +65,7 @@ export default function EditPodcastShowPage() {
                     setFormData({
                         title: data.title || '',
                         host: data.host || '',
-                        category: data.category || 'General',
+                        category: data.category || 'English',
                         description: data.description || '',
                         cover: data.cover || ''
                     });
@@ -145,6 +145,8 @@ export default function EditPodcastShowPage() {
             await updateDoc(showRef, {
                 ...formData,
                 title: formData.title.trim(),
+                description: formData.description.trim(),
+                category: formData.category,
                 cover: coverUrl,
                 updatedAt: new Date().toISOString()
             });
@@ -180,6 +182,7 @@ export default function EditPodcastShowPage() {
             setIsSubmitting(false);
         }
     };
+
     if (isLoading) return <div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 text-brand-gold animate-spin" /></div>;
 
     return (
@@ -228,20 +231,18 @@ export default function EditPodcastShowPage() {
                     />
                 </div>
 
-                {/* Category */}
+                {/* Category (UPDATED) */}
                 <div>
-                    <label className="block text-xs font-bold text-brand-brown mb-1">Category</label>
+                    <label className="block text-xs font-bold text-brand-brown mb-1">Category (Language)</label>
                     <select 
                         name="category"
                         value={formData.category}
                         onChange={handleChange}
                         className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
                     >
-                        <option>General</option>
-                        <option>Tafsir</option>
-                        <option>Interviews</option>
-                        <option>Q&A</option>
-                        <option>Ramadan Special</option>
+                        <option>English</option>
+                        <option>Hausa</option>
+                        <option>Arabic</option>
                     </select>
                 </div>
 
