@@ -20,7 +20,8 @@ import {
     Loader2,
     FileAudio,
     X,
-    Play
+    Play,
+    ListMusic
 } from 'lucide-react';
 
 export default function EditPodcastPage() {
@@ -34,12 +35,14 @@ export default function EditPodcastPage() {
     const [uploadProgress, setUploadProgress] = useState(0);
 
     // Data State
-    const [availableShows, setAvailableShows] = useState([]);
+    const [allShows, setAllShows] = useState([]);
+    const [filteredShows, setFilteredShows] = useState([]);
 
     const [formData, setFormData] = useState({
         title: '',
         url: '', // YouTube URL
         show: '',
+        category: 'English', // NEW: Language
         episodeNumber: '',
         season: '',
         description: '',
@@ -75,10 +78,11 @@ export default function EditPodcastPage() {
             if (!id) return;
             setIsLoading(true);
             try {
-                // A. Fetch Shows for Dropdown
+                // A. Fetch Shows
                 const qShows = query(collection(db, "podcast_shows"), orderBy("createdAt", "desc"));
                 const showsSnap = await getDocs(qShows);
-                setAvailableShows(showsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+                const showsData = showsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                setAllShows(showsData);
 
                 // B. Fetch Podcast Episode
                 const docRef = doc(db, "podcasts", id);
@@ -90,12 +94,17 @@ export default function EditPodcastPage() {
                         title: data.title || '',
                         url: data.url || '',
                         show: data.show || '',
+                        category: data.category || 'English', // Load Category
                         episodeNumber: data.episodeNumber || '',
                         season: data.season || '',
                         description: data.description || '',
                         date: data.date || new Date().toISOString().split('T')[0]
                     });
                     
+                    // Filter shows immediately based on loaded category
+                    const initialFiltered = showsData.filter(s => s.category === (data.category || 'English'));
+                    setFilteredShows(initialFiltered);
+
                     if (data.videoId) {
                         setVideoId(data.videoId);
                         setThumbnail(data.thumbnail);
@@ -117,7 +126,15 @@ export default function EditPodcastPage() {
         fetchData();
     }, [id, router]);
 
-    // Handle URL Change (Safe Thumbnail Logic)
+    // 2. Filter Shows when Category Changes
+    useEffect(() => {
+        if (allShows.length > 0) {
+            const filtered = allShows.filter(s => s.category === formData.category);
+            setFilteredShows(filtered);
+        }
+    }, [formData.category, allShows]);
+
+    // Handle URL Change
     const handleUrlChange = (e) => {
         const url = e.target.value;
         setFormData(prev => ({ ...prev, url }));
@@ -148,6 +165,11 @@ export default function EditPodcastPage() {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        
+        // Reset show if category changes (optional, but good UX)
+        if (name === 'category') {
+            setFormData(prev => ({ ...prev, show: '' }));
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -208,6 +230,7 @@ export default function EditPodcastPage() {
             setUploadProgress(0);
         }
     };
+
     if (isLoading) return <div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 text-brand-gold animate-spin" /></div>;
 
     return (
@@ -366,9 +389,25 @@ export default function EditPodcastPage() {
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 h-fit">
                     <h3 className="font-agency text-xl text-brand-brown-dark border-b border-gray-100 pb-2">Episode Details</h3>
 
+                    {/* Category (Language) Selector */}
+                    <div>
+                        <label className="block text-xs font-bold text-brand-brown mb-1">Category (Language)</label>
+                        <select 
+                            name="category" 
+                            value={formData.category} 
+                            onChange={handleChange} 
+                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
+                        >
+                            <option>English</option>
+                            <option>Hausa</option>
+                            <option>Arabic</option>
+                        </select>
+                    </div>
+
+                    {/* Show Selector (Filtered by Category) */}
                     <div className="bg-brand-sand/20 p-4 rounded-xl border border-brand-gold/20">
                         <label className="flex items-center gap-2 text-xs font-bold text-brand-brown-dark uppercase tracking-wider mb-2">
-                            <Mic className="w-4 h-4" /> Select Show
+                            <ListMusic className="w-4 h-4" /> Select Show
                         </label>
                         <select 
                             name="show" 
@@ -377,9 +416,13 @@ export default function EditPodcastPage() {
                             className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer"
                         >
                             <option value="">Select a Podcast Show...</option>
-                            {availableShows.map(show => (
-                                <option key={show.id} value={show.title}>{show.title}</option>
-                            ))}
+                            {filteredShows.length > 0 ? (
+                                filteredShows.map(show => (
+                                    <option key={show.id} value={show.title}>{show.title}</option>
+                                ))
+                            ) : (
+                                <option disabled>No shows found for {formData.category}</option>
+                            )}
                         </select>
                     </div>
 
@@ -403,6 +446,7 @@ export default function EditPodcastPage() {
                                 name="episodeNumber" 
                                 value={formData.episodeNumber} 
                                 onChange={handleChange} 
+                                placeholder="e.g. 05" 
                                 className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50" 
                             />
                         </div>
