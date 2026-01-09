@@ -16,7 +16,7 @@ import Loader from '@/components/Loader';
 import { 
     PlusCircle, Search, Trash2, Image as ImageIcon, 
     Folder, FolderPlus, Loader2, X, Calendar, UploadCloud,
-    Edit, Info, LayoutGrid, List
+    Edit, Info, LayoutGrid, List, Filter, ArrowUpDown
 } from 'lucide-react';
 
 export default function ManageGalleryPage() {
@@ -98,8 +98,6 @@ export default function ManageGalleryPage() {
                 const matchesSearch = 
                     (photo.name && photo.name.toLowerCase().includes(term)) || 
                     (photo.albumTitle && photo.albumTitle.toLowerCase().includes(term));
-                // Photos don't usually have category, but we can filter by album category if needed.
-                // For now, simpler search.
                 return matchesSearch;
             });
         } else {
@@ -255,7 +253,8 @@ export default function ManageGalleryPage() {
             setIsCreatingAlbum(false);
         }
     };
-return (
+
+    return (
         <div className="space-y-6 relative">
 
             {/* --- ALBUM DETAILS MODAL --- */}
@@ -386,3 +385,173 @@ return (
                     </div>
                 </div>
             )}
+
+            {/* --- MAIN PAGE CONTENT --- */}
+
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="font-agency text-3xl text-brand-brown-dark">Gallery Manager</h1>
+                    <p className="font-lato text-sm text-gray-500">Organize event photos, manage albums, and highlights.</p>
+                </div>
+                <div className="flex gap-3">
+                    {activeTab === 'photos' ? (
+                        <Link 
+                            href="/admin/gallery/new" 
+                            className="flex items-center gap-2 px-5 py-2.5 bg-brand-gold text-white rounded-xl text-sm font-bold hover:bg-brand-brown-dark transition-colors shadow-md"
+                        >
+                            <PlusCircle className="w-4 h-4" /> Upload Photos
+                        </Link>
+                    ) : (
+                        <Link 
+                            href="/admin/gallery/albums/new"
+                            className="flex items-center gap-2 px-5 py-2.5 bg-brand-brown-dark text-white rounded-xl text-sm font-bold hover:bg-brand-gold transition-colors shadow-md"
+                        >
+                            <FolderPlus className="w-4 h-4" /> Create Album
+                        </Link>
+                    )}
+                </div>
+            </div>
+
+            {/* TABS & FILTERS */}
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+                
+                {/* Tabs */}
+                <div className="flex bg-gray-100 p-1 rounded-lg w-full md:w-auto">
+                    <button 
+                        onClick={() => { setActiveTab('photos'); setSearchTerm(''); }}
+                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-md text-sm font-bold transition-all ${
+                            activeTab === 'photos' ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'
+                        }`}
+                    >
+                        <ImageIcon className="w-4 h-4" /> All Photos
+                    </button>
+                    <button 
+                        onClick={() => { setActiveTab('albums'); setSearchTerm(''); }}
+                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-md text-sm font-bold transition-all ${
+                            activeTab === 'albums' ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'
+                        }`}
+                    >
+                        <Folder className="w-4 h-4" /> Event Albums
+                    </button>
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-col w-full xl:w-auto gap-3">
+                    <div className="flex flex-row gap-2 w-full">
+                        {activeTab === 'albums' && (
+                            <div className="relative flex-1 md:flex-none">
+                                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-gold" />
+                                <select 
+                                    value={categoryFilter}
+                                    onChange={(e) => setCategoryFilter(e.target.value)}
+                                    className="w-full md:w-40 pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer"
+                                >
+                                    <option value="All">All</option>
+                                    <option value="Event">Event</option>
+                                    <option value="School Activity">School Activity</option>
+                                    <option value="Community">Community</option>
+                                    <option value="Project">Project</option>
+                                </select>
+                            </div>
+                        )}
+                    </div>
+                    <div className="relative w-full md:w-72">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input type="text" placeholder={`Search ${activeTab}...`} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all" />
+                        {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>}
+                    </div>
+                </div>
+            </div>
+
+            {/* CONTENT AREA */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px]">
+                {isLoading ? (
+                    <div className="flex items-center justify-center h-64"><Loader /></div>
+                ) : (
+                    <>
+                        {/* --- PHOTOS GRID VIEW --- */}
+                        {activeTab === 'photos' && (
+                            <div className="p-6">
+                                {filteredContent.length === 0 ? (
+                                    <div className="text-center py-12 text-gray-400">
+                                        <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                        <p>No photos found.</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                        {filteredContent.map((photo) => (
+                                            <div key={photo.id} className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer border border-gray-200">
+                                                <Image src={photo.url} alt="Gallery Photo" fill className="object-cover transition-transform duration-500 group-hover:scale-110" />
+                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
+                                                    <p className="text-white/70 text-[10px] truncate mb-2">{photo.name || 'Untitled'}</p>
+                                                    <div className="flex justify-end gap-1">
+                                                        <button onClick={(e) => { e.stopPropagation(); handleEdit(photo.id, 'photo'); }} className="p-1.5 bg-white rounded-full text-gray-600 hover:text-brand-gold"><Edit className="w-3 h-3" /></button>
+                                                        <button onClick={(e) => { e.stopPropagation(); handleDelete(photo.id, 'photo'); }} className="p-1.5 bg-white rounded-full text-gray-600 hover:text-red-500"><Trash2 className="w-3 h-3" /></button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* --- ALBUMS VIEW --- */}
+                        {activeTab === 'albums' && (
+                            <div className="p-6">
+                                {filteredContent.length === 0 ? (
+                                    <div className="text-center py-12 text-gray-400">
+                                        <Folder className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                        <p>No albums found.</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                        {filteredContent.map((album) => (
+                                            <div key={album.id} onClick={() => setSelectedAlbum(album)} className="group cursor-pointer">
+                                                <div className="relative w-full aspect-[4/3] mb-3">
+                                                    {/* Stack Effect */}
+                                                    <div className="absolute top-0 left-2 right-2 bottom-2 bg-gray-200 rounded-xl transform translate-y-2 group-hover:translate-y-3 transition-transform"></div>
+                                                    <div className="absolute top-1 left-1 right-1 bottom-1 bg-gray-300 rounded-xl transform translate-y-1 group-hover:translate-y-1.5 transition-transform"></div>
+
+                                                    {/* Cover */}
+                                                    <div className="relative w-full h-full rounded-xl overflow-hidden shadow-sm border border-gray-200 bg-white group-hover:border-brand-gold/50 transition-colors">
+                                                        <Image src={album.cover || "/fallback.webp"} alt={album.title} fill className="object-cover" />
+                                                        
+                                                        {/* Category Badge */}
+                                                        <div className="absolute top-2 left-2">
+                                                            <span className="px-2 py-1 rounded text-[8px] font-bold uppercase shadow-sm bg-black/60 text-white backdrop-blur-sm">
+                                                                {album.category}
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Actions */}
+                                                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button onClick={(e) => {e.stopPropagation(); handleDelete(album.id, 'album')}} className="bg-white p-1.5 rounded-lg shadow text-gray-500 hover:text-red-600">
+                                                                <Trash2 className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <h3 className={`font-agency text-lg text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors truncate ${getDir(album.title) === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
+                                                    {album.title}
+                                                </h3>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <p className="text-xs text-gray-400 flex items-center gap-1">
+                                                        <Calendar className="w-3 h-3" /> {formatUploadTime(album.createdAt)}
+                                                    </p>
+                                                    <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                                    <p className="text-xs text-brand-gold font-bold">{album.realCount} Photos</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+        </div>
+    );
+}
