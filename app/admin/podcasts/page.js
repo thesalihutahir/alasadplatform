@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 // Firebase
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc, writeBatch, where, getDocs } from 'firebase/firestore';
 // Global Modal Context
 import { useModal } from '@/context/ModalContext';
 // Custom Loader
@@ -79,9 +79,11 @@ export default function ManagePodcastsPage() {
         if (activeTab === 'episodes') {
             content = episodes.filter(ep => {
                 const matchesSearch = ep.title.toLowerCase().includes(term) || (ep.show && ep.show.toLowerCase().includes(term));
-                // Assuming episodes don't have a direct 'category' field, we filter by 'show' or skip category filter for episodes
-                // Or if episodes inherit category, logic goes here. For now, simple search.
-                return matchesSearch;
+                // Assuming episodes inherit category from show or have their own. 
+                // If episodes have 'category', filter by it. If not, filter logic might differ.
+                // For now, assuming episodes have a 'category' field (as added in update).
+                const matchesCategory = categoryFilter === 'All' || ep.category === categoryFilter;
+                return matchesSearch && matchesCategory;
             });
         } else {
             // Shows
@@ -161,7 +163,7 @@ export default function ManagePodcastsPage() {
             confirmText: "Close"
         });
     };
-    return (
+return (
         <div className="space-y-6 relative">
 
             {/* 1. HEADER */}
@@ -197,7 +199,7 @@ export default function ManagePodcastsPage() {
                 {/* Tabs */}
                 <div className="flex bg-gray-100 p-1 rounded-lg w-full md:w-auto">
                     <button 
-                        onClick={() => { setActiveTab('episodes'); setSearchTerm(''); }}
+                        onClick={() => { setActiveTab('episodes'); setSearchTerm(''); setCategoryFilter('All'); }}
                         className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-md text-sm font-bold transition-all ${
                             activeTab === 'episodes' ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'
                         }`}
@@ -205,7 +207,7 @@ export default function ManagePodcastsPage() {
                         <List className="w-4 h-4" /> Episodes
                     </button>
                     <button 
-                        onClick={() => { setActiveTab('shows'); setSearchTerm(''); }}
+                        onClick={() => { setActiveTab('shows'); setSearchTerm(''); setCategoryFilter('All'); }}
                         className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-md text-sm font-bold transition-all ${
                             activeTab === 'shows' ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'
                         }`}
@@ -214,35 +216,37 @@ export default function ManagePodcastsPage() {
                     </button>
                 </div>
 
-                {/* Filters */}
+                {/* Filters & Sorting - RESPONSIVE ROW */}
                 <div className="flex flex-col w-full xl:w-auto gap-3">
+                    
                     <div className="flex flex-row gap-2 w-full">
-                        {/* Only Show Category Filter for Shows Tab */}
-                        {activeTab === 'shows' && (
-                            <div className="relative flex-1 md:flex-none">
-                                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-gold" />
-                                <select 
-                                    value={categoryFilter}
-                                    onChange={(e) => setCategoryFilter(e.target.value)}
-                                    className="w-full md:w-40 pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer"
-                                >
-                                    <option value="All">All</option>
-                                    <option value="General">General</option>
-                                    <option value="Tafsir">Tafsir</option>
-                                    <option value="Interviews">Interviews</option>
-                                </select>
-                            </div>
-                        )}
-                        
+                        {/* Category Dropdown */}
+                        <div className="relative flex-1 md:flex-none">
+                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-gold" />
+                            <select 
+                                value={categoryFilter}
+                                onChange={(e) => setCategoryFilter(e.target.value)}
+                                className="w-full md:w-40 pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer appearance-none font-bold text-gray-600"
+                            >
+                                <option value="All">All</option>
+                                <option value="English">English</option>
+                                <option value="Hausa">Hausa</option>
+                                <option value="Arabic">Arabic</option>
+                            </select>
+                        </div>
+
+                        {/* Sorting Button */}
                         <button 
                             onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
                             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors flex-1 md:flex-none"
+                            title={sortOrder === 'desc' ? "Sort: Newest First" : "Sort: Oldest First"}
                         >
                             <ArrowUpDown className="w-4 h-4" />
                             <span className="hidden sm:inline">{sortOrder === 'desc' ? 'Newest' : 'Oldest'}</span>
                         </button>
                     </div>
 
+                    {/* Search */}
                     <div className="relative w-full md:w-72">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input 
@@ -273,6 +277,7 @@ export default function ManagePodcastsPage() {
                                     <thead className="bg-gray-50 border-b border-gray-100">
                                         <tr>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Episode</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Lang</th>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider hidden md:table-cell">Show</th>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
@@ -290,6 +295,7 @@ export default function ManagePodcastsPage() {
                                                                 <Image src={ep.thumbnail || "/fallback.webp"} alt={ep.title} fill className="object-cover" />
                                                             </div>
                                                             <div className="min-w-[150px]">
+                                                                {/* Full Title (No Line Clamp) */}
                                                                 <h3 
                                                                     className={`font-bold text-brand-brown-dark text-sm cursor-pointer hover:text-brand-gold ${getDir(ep.title) === 'rtl' ? 'font-tajawal' : ''}`}
                                                                     onClick={() => handleQuickView(ep)}
@@ -299,6 +305,14 @@ export default function ManagePodcastsPage() {
                                                                 <p className="text-[10px] text-gray-400 font-bold">EP {ep.episodeNumber || '-'}</p>
                                                             </div>
                                                         </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <span className={`inline-block px-2 py-1 rounded text-[10px] font-bold uppercase ${
+                                                            ep.category === 'English' ? 'bg-blue-100 text-blue-700' :
+                                                            ep.category === 'Hausa' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                                                        }`}>
+                                                            {ep.category || 'N/A'}
+                                                        </span>
                                                     </td>
                                                     <td className="px-6 py-4 hidden md:table-cell">
                                                         {ep.show ? (
@@ -339,9 +353,20 @@ export default function ManagePodcastsPage() {
                                             <div key={show.id} className="group border border-gray-100 rounded-2xl overflow-hidden hover:shadow-lg transition-all hover:border-brand-gold/30 flex gap-4 p-4 items-center bg-brand-sand/10 cursor-pointer" onClick={() => handleEdit(show.id, 'show')}>
                                                 <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 shadow-md border border-white">
                                                     <Image src={show.cover || "/fallback.webp"} alt={show.title} fill className="object-cover" />
+                                                    <div className="absolute top-1 left-1">
+                                                        <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase shadow-sm ${
+                                                            show.category === 'English' ? 'bg-blue-600 text-white' :
+                                                            show.category === 'Hausa' ? 'bg-green-600 text-white' : 'bg-orange-600 text-white'
+                                                        }`}>
+                                                            {show.category}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                                 <div className="flex-grow min-w-0">
-                                                    <h3 className="font-agency text-lg text-brand-brown-dark leading-none mb-1 truncate">{show.title}</h3>
+                                                    {/* Full Title Logic for Shows too */}
+                                                    <h3 className={`font-agency text-lg text-brand-brown-dark leading-none mb-1 ${getDir(show.title) === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
+                                                        {show.title}
+                                                    </h3>
                                                     <p className="text-xs text-gray-500 mb-2 truncate">{show.host}</p>
                                                     <span className="text-[10px] bg-white border border-gray-200 px-2 py-0.5 rounded-full font-bold text-brand-gold">
                                                         {show.realCount} Episodes
