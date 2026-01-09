@@ -21,7 +21,8 @@ import {
     AlertTriangle,
     FileAudio,
     X,
-    Play
+    Play,
+    ListMusic // Icon for Category/Show
 } from 'lucide-react';
 
 export default function AddPodcastPage() {
@@ -33,12 +34,14 @@ export default function AddPodcastPage() {
     const [uploadProgress, setUploadProgress] = useState(0);
 
     // Dynamic Shows State
-    const [availableShows, setAvailableShows] = useState([]);
+    const [allShows, setAllShows] = useState([]);
+    const [filteredShows, setFilteredShows] = useState([]);
 
     const [formData, setFormData] = useState({
         title: '',
         url: '', // YouTube URL
         show: '',
+        category: 'English', // NEW: Language Category
         episodeNumber: '',
         season: '',
         description: '',
@@ -73,7 +76,9 @@ export default function AddPodcastPage() {
                     id: doc.id,
                     ...doc.data()
                 }));
-                setAvailableShows(shows);
+                setAllShows(shows);
+                // Initial filter
+                setFilteredShows(shows.filter(s => s.category === 'English'));
             } catch (error) {
                 console.error("Error fetching shows:", error);
             } finally {
@@ -83,6 +88,16 @@ export default function AddPodcastPage() {
 
         fetchShows();
     }, []);
+
+    // 2. Filter Shows when Category Changes
+    useEffect(() => {
+        if (allShows.length > 0) {
+            const filtered = allShows.filter(s => s.category === formData.category);
+            setFilteredShows(filtered);
+            // Reset selected show if it doesn't match the new category
+            setFormData(prev => ({ ...prev, show: '' }));
+        }
+    }, [formData.category, allShows]);
 
     // Helper: Extract YouTube ID
     const extractVideoId = (url) => {
@@ -100,7 +115,6 @@ export default function AddPodcastPage() {
             const snapshot = await getDocs(q);
 
             if (!snapshot.empty) {
-                const existing = snapshot.docs[0].data();
                 setDuplicateWarning(`Duplicate Found: This episode already exists in your library.`);
             }
         } catch (error) {
@@ -153,8 +167,8 @@ export default function AddPodcastPage() {
         if (!isValid || !videoId || duplicateWarning) {
             return;
         }
-        if (!formData.title || !formData.show) {
-            alert("Please fill in the title and select a show.");
+        if (!formData.title) {
+            alert("Please fill in the episode title.");
             return;
         }
 
@@ -211,6 +225,7 @@ export default function AddPodcastPage() {
             setUploadProgress(0);
         }
     };
+
     return (
         <form onSubmit={handleSubmit} className="space-y-6 max-w-5xl mx-auto pb-12">
 
@@ -375,10 +390,25 @@ export default function AddPodcastPage() {
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4 h-fit">
                     <h3 className="font-agency text-xl text-brand-brown-dark border-b border-gray-100 pb-2">Episode Details</h3>
 
-                    {/* Show Selector */}
+                    {/* Category (Language) Selector */}
+                    <div>
+                        <label className="block text-xs font-bold text-brand-brown mb-1">Category (Language)</label>
+                        <select 
+                            name="category" 
+                            value={formData.category} 
+                            onChange={handleChange} 
+                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
+                        >
+                            <option>English</option>
+                            <option>Hausa</option>
+                            <option>Arabic</option>
+                        </select>
+                    </div>
+
+                    {/* Show Selector (Filtered by Category) */}
                     <div className="bg-brand-sand/20 p-4 rounded-xl border border-brand-gold/20">
                         <label className="flex items-center gap-2 text-xs font-bold text-brand-brown-dark uppercase tracking-wider mb-2">
-                            <Mic className="w-4 h-4" /> Select Show
+                            <ListMusic className="w-4 h-4" /> Select Show
                         </label>
                         <select 
                             name="show" 
@@ -390,12 +420,12 @@ export default function AddPodcastPage() {
                             {isLoadingShows ? (
                                 <option disabled>Loading shows...</option>
                             ) : (
-                                availableShows.length > 0 ? (
-                                    availableShows.map(show => (
+                                filteredShows.length > 0 ? (
+                                    filteredShows.map(show => (
                                         <option key={show.id} value={show.title}>{show.title}</option>
                                     ))
                                 ) : (
-                                    <option disabled>No shows found</option>
+                                    <option disabled>No shows found for {formData.category}</option>
                                 )
                             )}
                         </select>
