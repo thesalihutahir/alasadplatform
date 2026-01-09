@@ -6,8 +6,10 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 // Firebase
 import { db, storage } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+// Global Modal Context
+import { useModal } from '@/context/ModalContext';
 
 import { 
     ArrowLeft, 
@@ -15,27 +17,69 @@ import {
     Library, 
     X, 
     Image as ImageIcon, 
-    Loader2
+    Loader2,
+    AlertTriangle
 } from 'lucide-react';
 
 export default function CreateCollectionPage() {
     const router = useRouter();
+    const { showSuccess } = useModal(); 
+
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
 
+    // Duplicate Check State
+    const [duplicateWarning, setDuplicateWarning] = useState(null);
+    const [isChecking, setIsChecking] = useState(false);
+
     const [formData, setFormData] = useState({
         title: '',
-        category: 'General',
+        category: 'English', // Standardized to Language
         description: '',
-        cover: '' // Firebase URL
+        cover: '' 
     });
 
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
 
+    // Helper: Auto-Detect Arabic
+    const getDir = (text) => {
+        if (!text) return 'ltr';
+        const arabicPattern = /[\u0600-\u06FF]/;
+        return arabicPattern.test(text) ? 'rtl' : 'ltr';
+    };
+
+    // Check Duplicate Title
+    const checkDuplicateTitle = async (title) => {
+        if (!title.trim()) {
+            setDuplicateWarning(null);
+            return;
+        }
+        
+        setIsChecking(true);
+        try {
+            const q = query(collection(db, "ebook_collections"), where("title", "==", title.trim()));
+            const snapshot = await getDocs(q);
+
+            if (!snapshot.empty) {
+                setDuplicateWarning(`A collection named "${title}" already exists.`);
+            } else {
+                setDuplicateWarning(null);
+            }
+        } catch (error) {
+            console.error("Error checking duplicate:", error);
+        } finally {
+            setIsChecking(false);
+        }
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+
+        if (name === 'title') {
+            checkDuplicateTitle(value);
+        }
     };
 
     const handleImageChange = (e) => {
@@ -58,15 +102,14 @@ export default function CreateCollectionPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        if (!formData.title) {
-            alert("Please enter a Collection Title.");
+        if (!formData.title || duplicateWarning) {
             return;
         }
 
         setIsSubmitting(true);
 
         try {
-            let coverUrl = "/fallback.webp"; // Default
+            let coverUrl = "/fallback.webp"; 
 
             // 1. Upload Cover Image (if selected)
             if (imageFile) {
@@ -91,14 +134,21 @@ export default function CreateCollectionPage() {
             // 2. Save Collection Metadata
             await addDoc(collection(db, "ebook_collections"), {
                 ...formData,
+                title: formData.title.trim(),
+                description: formData.description.trim(),
                 cover: coverUrl,
                 status: "Active",
                 bookCount: 0,
                 createdAt: serverTimestamp()
             });
 
-            alert("Collection created successfully!");
-            router.push('/admin/ebooks'); 
+            // Show Success Modal
+            showSuccess({
+                title: "Collection Created!",
+                message: "Your new book collection has been created successfully.",
+                confirmText: "Return to Library",
+                onConfirm: () => router.push('/admin/ebooks')
+            });
 
         } catch (error) {
             console.error("Error creating collection:", error);
@@ -127,30 +177,61 @@ export default function CreateCollectionPage() {
                 {/* Title */}
                 <div>
                     <label className="block text-xs font-bold text-brand-brown mb-1">Collection Title</label>
-                    <input 
-                        type="text" 
-                        name="title"
-                        value={formData.title}
-                        onChange={handleChange}
-                        placeholder="e.g. Tafsir Series" 
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                    />
+                    <div className="relative">
+                        <input 
+                            type="text" 
+                            name="title"
+                            value={formData.title}
+                            onChange={handleChange}
+                            placeholder="e.g. Tafsir Series" 
+                            className={`w-full bg-gray-50 border rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 ${
+                                duplicateWarning ? 'border-orange-300 bg-orange-50' : 'border-gray-200'
+                            }`}
+                            dir={getDir(formData.title)}
+                        />
+                        {isChecking && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* DUPLICATE WARNING */}
+                    {duplicateWarning && (
+                        <div className="mt-2 flex items-start gap-2 text-xs font-bold text-orange-700 animate-in fade-in slide-in-from-top-1">
+                            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                            <span>{duplicateWarning}</span>
+                        </div>
+                    )}
                 </div>
 
-                {/* Category */}
+                {/* Category (UPDATED) */}
                 <div>
-                    <label className="block text-xs font-bold text-brand-brown mb-1">Category</label>
+                    <label className="block text-xs font-bold text-brand-brown mb-1">Category (Language)</label>
                     <select 
                         name="category"
                         value={formData.category}
                         onChange={handleChange}
                         className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
                     >
-                        <option>General</option>
-                        <option>Tafsir</option>
-                        <option>Fiqh</option>
-                        <option>Aqeedah</option>
+                        <option>English</option>
+                        <option>Hausa</option>
+                        <option>Arabic</option>
                     </select>
+                </div>
+
+                {/* Description */}
+                <div>
+                    <label className="block text-xs font-bold text-brand-brown mb-1">Description (Optional)</label>
+                    <textarea 
+                        name="description"
+                        value={formData.description}
+                        onChange={handleChange}
+                        rows="3"
+                        placeholder="What is this collection about?" 
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
+                        dir={getDir(formData.description)}
+                    ></textarea>
                 </div>
 
                 {/* Cover Image Upload */}
@@ -202,8 +283,12 @@ export default function CreateCollectionPage() {
                     </Link>
                     <button 
                         type="submit" 
-                        disabled={isSubmitting}
-                        className="flex-1 flex items-center justify-center gap-2 py-3 bg-brand-gold text-white font-bold rounded-xl hover:bg-brand-brown-dark transition-colors shadow-md disabled:opacity-50"
+                        disabled={isSubmitting || !!duplicateWarning || !formData.title}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 font-bold rounded-xl transition-colors shadow-md ${
+                            isSubmitting || !!duplicateWarning || !formData.title
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-brand-gold text-white hover:bg-brand-brown-dark'
+                        }`}
                     >
                         {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         {isSubmitting ? 'Creating...' : 'Create Collection'}
