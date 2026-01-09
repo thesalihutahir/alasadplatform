@@ -9,7 +9,7 @@ import Loader from '@/components/Loader';
 // Firebase Imports
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
-import { PenTool, Newspaper, ScrollText, ArrowRight, Calendar, User, Clock } from 'lucide-react';
+import { PenTool, Newspaper, ScrollText, ArrowRight, Calendar, User } from 'lucide-react';
 
 export default function BlogsPage() {
 
@@ -51,26 +51,45 @@ export default function BlogsPage() {
 
     // --- FETCH DATA ---
     useEffect(() => {
-        const fetchPosts = async () => {
+        const fetchAllContent = async () => {
             try {
-                // Get the 4 latest PUBLISHED posts
-                const q = query(
-                    collection(db, "posts"), 
-                    where("status", "==", "Published"), // Only show published
-                    orderBy("createdAt", "desc"), 
-                    limit(4)
-                );
+                // We want a mix of latest content from all 3 collections
+                // Since we can't query across collections easily without a Group Query (which requires index),
+                // we'll fetch latest 3 from each and sort them in memory.
+                
+                const fetchLatest = async (colName, typeLabel) => {
+                    const q = query(
+                        collection(db, colName), 
+                        where("status", "==", "Published"), 
+                        orderBy("createdAt", "desc"), 
+                        limit(3)
+                    );
+                    const snap = await getDocs(q);
+                    return snap.docs.map(doc => ({
+                        id: doc.id,
+                        type: typeLabel, // 'Article', 'News', 'Research'
+                        ...doc.data()
+                    }));
+                };
 
-                const querySnapshot = await getDocs(q);
-                const posts = querySnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
+                const [articles, news, research] = await Promise.all([
+                    fetchLatest('articles', 'Article'),
+                    fetchLatest('news', 'News'),
+                    fetchLatest('research', 'Research')
+                ]);
 
-                if (posts.length > 0) {
-                    setFeaturedPost(posts[0]); // First one is Featured
-                    setRecentPostsList(posts.slice(1)); // Rest are Recent
+                // Combine and Sort by Date
+                const allPosts = [...articles, ...news, ...research].sort((a, b) => {
+                    const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+                    const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+                    return dateB - dateA; // Descending
+                });
+
+                if (allPosts.length > 0) {
+                    setFeaturedPost(allPosts[0]); // Most recent is Featured
+                    setRecentPostsList(allPosts.slice(1, 7)); // Next 6 are Recent list
                 }
+
             } catch (error) {
                 console.error("Error fetching blog posts:", error);
             } finally {
@@ -78,7 +97,7 @@ export default function BlogsPage() {
             }
         };
 
-        fetchPosts();
+        fetchAllContent();
     }, []);
 
     // --- HELPER: Format Date ---
@@ -91,6 +110,15 @@ export default function BlogsPage() {
             return '';
         }
     };
+
+    // --- HELPER: Get Title (Handles different field names) ---
+    const getTitle = (post) => post.title || post.headline || post.researchTitle;
+    
+    // --- HELPER: Get Excerpt (Handles different field names) ---
+    const getExcerpt = (post) => post.excerpt || post.shortDescription || post.abstract;
+
+    // --- HELPER: Get Author (Handles different field names) ---
+    const getAuthor = (post) => post.author || post.authors || "Admin";
 
     return (
         <div className="min-h-screen flex flex-col bg-white font-lato">
@@ -165,7 +193,7 @@ export default function BlogsPage() {
                         {featuredPost && (
                             <section className="px-6 md:px-12 lg:px-24 mb-16 md:mb-24 max-w-7xl mx-auto">
                                 <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark mb-6 md:mb-8 border-l-4 border-brand-gold pl-3 md:pl-6">
-                                    Featured Read
+                                    Latest Featured
                                 </h2>
 
                                 <Link href={`/blogs/read/${featuredPost.id}`} className="block group">
@@ -173,28 +201,28 @@ export default function BlogsPage() {
                                         {/* Image Side */}
                                         <div className="relative w-full lg:w-3/5 aspect-video rounded-2xl overflow-hidden shadow-lg bg-gray-100">
                                             <Image
-                                                src={featuredPost.coverImage || "/fallback.webp"}
-                                                alt={featuredPost.title}
+                                                src={featuredPost.featuredImage || (featuredPost.type === 'Research' ? "/images/research-placeholder.jpg" : "/fallback.webp")}
+                                                alt={getTitle(featuredPost)}
                                                 fill
                                                 className="object-cover transition-transform duration-700 group-hover:scale-105"
                                             />
                                             <div className="absolute top-3 left-3 bg-brand-gold text-white text-[10px] md:text-xs font-bold px-3 py-1.5 rounded shadow-sm uppercase tracking-widest">
-                                                {featuredPost.category}
+                                                {featuredPost.type}
                                             </div>
                                         </div>
 
                                         {/* Text Side */}
                                         <div className="lg:w-2/5 flex flex-col justify-center">
                                             <div className="flex items-center gap-3 text-xs text-gray-400 mb-2 md:mb-3">
-                                                <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {formatDate(featuredPost.date)}</span>
+                                                <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {formatDate(featuredPost.createdAt)}</span>
                                                 <span>•</span>
-                                                <span className="flex items-center gap-1"><User className="w-3 h-3" /> {featuredPost.author}</span>
+                                                <span className="flex items-center gap-1"><User className="w-3 h-3" /> {getAuthor(featuredPost)}</span>
                                             </div>
                                             <h3 className="font-agency text-2xl md:text-4xl text-brand-brown-dark leading-tight mb-3 md:mb-4 group-hover:text-brand-gold transition-colors">
-                                                {featuredPost.title}
+                                                {getTitle(featuredPost)}
                                             </h3>
                                             <p className="font-lato text-sm md:text-lg text-brand-brown line-clamp-3 md:line-clamp-4 mb-4 leading-relaxed">
-                                                {featuredPost.excerpt}
+                                                {getExcerpt(featuredPost)}
                                             </p>
                                             <span className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-brand-brown-dark transition-colors flex items-center gap-2">
                                                 Read More <ArrowRight className="w-4 h-4" />
@@ -219,26 +247,29 @@ export default function BlogsPage() {
                                             {/* Thumbnail */}
                                             <div className="relative w-24 h-24 md:w-full md:h-48 flex-shrink-0 rounded-lg md:rounded-none overflow-hidden bg-brand-sand">
                                                 <Image 
-                                                    src={item.coverImage || "/fallback.webp"} 
-                                                    alt={item.title} 
+                                                    src={item.featuredImage || (item.type === 'Research' ? "/images/research-placeholder.jpg" : "/fallback.webp")} 
+                                                    alt={getTitle(item)}
                                                     fill 
                                                     className="object-cover transition-transform duration-500 group-hover:scale-110" 
                                                 />
                                                 {/* Desktop Date Badge */}
                                                 <div className="hidden md:block absolute bottom-0 left-0 bg-white/90 px-3 py-1 text-xs font-bold text-brand-brown-dark rounded-tr-lg">
-                                                    {formatDate(item.date)}
+                                                    {formatDate(item.createdAt)}
                                                 </div>
                                             </div>
 
                                             {/* Content */}
                                             <div className="md:p-5 md:flex-grow">
-                                                <span className="text-[10px] md:text-xs text-brand-gold font-bold uppercase tracking-widest">
-                                                    {item.category}
+                                                <span className={`text-[10px] md:text-xs font-bold uppercase tracking-widest px-2 py-0.5 rounded ${
+                                                    item.type === 'Article' ? 'text-blue-600 bg-blue-50' : 
+                                                    item.type === 'News' ? 'text-orange-600 bg-orange-50' : 'text-purple-600 bg-purple-50'
+                                                }`}>
+                                                    {item.type}
                                                 </span>
                                                 <h4 className="font-agency text-lg md:text-xl text-brand-brown-dark leading-tight mb-1 md:mt-2 line-clamp-2 md:line-clamp-3 group-hover:text-brand-gold transition-colors">
-                                                    {item.title}
+                                                    {getTitle(item)}
                                                 </h4>
-                                                <span className="text-[10px] text-gray-400 md:hidden">{formatDate(item.date)}</span>
+                                                <span className="text-[10px] text-gray-400 md:hidden">{formatDate(item.createdAt)}</span>
                                             </div>
                                         </Link>
                                     ))}
