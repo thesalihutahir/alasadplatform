@@ -118,22 +118,22 @@ export default function ManageBlogsPage() {
                 </Link>
             </div>
 
-            {/* TABS & TOOLBAR - Revised for Mobile */}
+            {/* TABS & TOOLBAR */}
             <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                 
-                {/* Tabs - Stack on very small screens, row on others */}
-                <div className="flex flex-wrap gap-2 w-full xl:w-auto bg-gray-50 p-1 rounded-lg">
+                {/* Tabs - Optimized for single line display on mobile */}
+                <div className="flex w-full xl:w-auto bg-gray-50 p-1 rounded-lg overflow-x-auto scrollbar-hide">
                     {['articles', 'news', 'research'].map((tab) => (
                         <button 
                             key={tab}
                             onClick={() => setActiveTab(tab)} 
-                            className={`flex-1 min-w-[90px] flex items-center justify-center gap-2 px-4 py-2 rounded-md text-xs sm:text-sm font-bold transition-all capitalize ${
+                            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs font-bold transition-all capitalize whitespace-nowrap ${
                                 activeTab === tab ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'
                             }`}
                         >
-                            {tab === 'articles' && <FileText className="w-3 h-3 sm:w-4 sm:h-4" />}
-                            {tab === 'news' && <Bell className="w-3 h-3 sm:w-4 sm:h-4" />}
-                            {tab === 'research' && <BookOpen className="w-3 h-3 sm:w-4 sm:h-4" />}
+                            {tab === 'articles' && <FileText className="w-3 h-3" />}
+                            {tab === 'news' && <Bell className="w-3 h-3" />}
+                            {tab === 'research' && <BookOpen className="w-3 h-3" />}
                             {tab}
                         </button>
                     ))}
