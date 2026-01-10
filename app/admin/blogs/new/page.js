@@ -50,7 +50,7 @@ const UI_TEXT = {
         source: "Source", doi: "DOI / Link",
         pdfReq: "Research PDF (Required)", imgReq: "Featured Image (Recommended)",
         upload: "Click to Upload", remove: "Remove",
-        phTitle: "Enter a descriptive title...", phName: "Salihu Tahir", phResearchName: "S. I. Tahir", phTags: "faith, life, ...",
+        phTitle: "Enter a descriptive title...", phName: "e.g. Salihu Tahir", phResearchName: "e.g. S. I. Tahir", phTags: "faith, life, ...",
         phBody: "Write your content here...", phSource: "e.g. Foundation Press",
         phHeadline: "Enter a catchy headline...", phAbstract: "Summary of the research..."
     },
@@ -65,7 +65,7 @@ const UI_TEXT = {
         source: "المصدر", doi: "رابط دائم / DOI",
         pdfReq: "ملف البحث (مطلوب)", imgReq: "صورة بارزة (موصى به)",
         upload: "اضغط للرفع", remove: "حذف",
-        phTitle: "أدخل عنواناً واضحاً...", phName: "صالح طاهر", phResearchName: "س. إ. طاهر", phTags: "إيمان، حياة...",
+        phTitle: "أدخل عنواناً واضحاً...", phName: "مثلاً: صالح طاهر", phResearchName: "مثلاً: طاهر بن صالح", phTags: "إيمان، حياة...",
         phBody: "اكتب المحتوى هنا...", phSource: "مثلاً: بيان صحفي",
         phHeadline: "أدخل عنواناً جذاباً...", phAbstract: "ملخص البحث..."
     },
@@ -80,7 +80,7 @@ const UI_TEXT = {
         source: "Majiya", doi: "Adireshin Yanar Gizo / DOI",
         pdfReq: "Takardar Bincike (Dole)", imgReq: "Hoto (Abin So)",
         upload: "Danna don Dorawa", remove: "Cire",
-        phTitle: "Shigar da take...", phName: "Salihu Tahir", phResearchName: "S. I. Tahir", phTags: "imani, rayuwa...",
+        phTitle: "Shigar da take...", phName: "Misali: Salihu Tahir", phResearchName: "Misali: S. I. Tahir", phTags: "imani, rayuwa...",
         phBody: "Rubuta anan...", phSource: "Misali: Sanarwar Jarida",
         phHeadline: "Shigar da babban labari...", phAbstract: "Tsokaci akan bincike..."
     }
@@ -156,7 +156,7 @@ export default function CreateBlogPage() {
         
         // Articles
         title: '',
-        author: 'Salihu Tahir',
+        author: '',
         category: 'Faith & Spirituality',
         body: '',
         excerpt: '',
@@ -171,7 +171,7 @@ export default function CreateBlogPage() {
         
         // Research
         researchTitle: '',
-        authors: 'S. I. Tahir', 
+        authors: '', 
         institution: '', 
         publicationYear: new Date().getFullYear(),
         abstract: '',
