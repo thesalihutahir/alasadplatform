@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
@@ -12,9 +12,129 @@ import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { useModal } from '@/context/ModalContext';
 
 import { 
-    ArrowLeft, Save, Loader2, UploadCloud, FileText, Bell, BookOpen, 
-    Image as ImageIcon, X, AlertTriangle, CheckCircle, Calendar
+    ArrowLeft, Save, Loader2, UploadCloud, 
+    FileText, Bell, BookOpen, 
+    X, AlertTriangle, Link as LinkIcon, Building, Sparkles, Globe, ChevronDown, Check, Eye
 } from 'lucide-react';
+
+// --- CONSTANTS ---
+const ARTICLE_CATEGORIES = [
+    { id: "Faith & Spirituality", en: "Faith & Spirituality", ar: "الإيمان والروحانيات", ha: "Imani da Ruhaniya" },
+    { id: "Islam & Sufism", en: "Islam & Sufism", ar: "الإسلام والتصوف", ha: "Musulunci da Sufanci" },
+    { id: "Education & Learning", en: "Education & Learning", ar: "التربية والتعليم", ha: "Ilimi da Tarbiyya" },
+    { id: "Thoughts & Reflections", en: "Thoughts & Reflections", ar: "خواطر وتأملات", ha: "Tunani da Tsokaci" },
+    { id: "History & Biographies", en: "History & Biographies", ar: "التاريخ والسير", ha: "Tarihi da Sira" }
+];
+
+const RESEARCH_TYPES = [
+    { id: "Original Research", en: "Original Research", ar: "تحقيق", ha: "Bincike na Asali" },
+    { id: "Textual Analysis", en: "Textual Analysis", ar: "شرح، تحليل، تفسير", ha: "Sharhi da Fashin Baki" },
+    { id: "Literature Review", en: "Literature Review", ar: "دراسة نقدية", ha: "Bitaryar Ayyuka" },
+    { id: "Comparative Study", en: "Comparative Study", ar: "مقارنة", ha: "Binciken Gwama" },
+    { id: "Historical Research", en: "Historical Research", ar: "دراسة تاريخية", ha: "Binciken Tarihi" },
+    { id: "Case Study", en: "Case Study", ar: "دراسة حالة", ha: "Nazarin Keɓaɓɓen Yanayi" },
+    { id: "Theoretical / Conceptual Study", en: "Theoretical / Conceptual Study", ar: "تأصيل وتصور", ha: "Nazarin Tushe da Hasashe" },
+    { id: "Applied Research", en: "Applied Research", ar: "دراسة تطبيقية", ha: "Bincike na Aiwatarwa" },
+    { id: "Methodological Study", en: "Methodological Study", ar: "منهجية", ha: "Nazarin Manhaja" }
+];
+
+const UI_TEXT = {
+    English: {
+        title: "Title", headline: "Headline", researchTitle: "Research Title",
+        excerpt: "Excerpt / Summary", shortDesc: "Short Description", abstract: "Abstract",
+        body: "Body Content", fullContent: "Full Narrative (Optional)",
+        author: "Author", authors: "Authors / Contributors",
+        category: "Category", type: "Research Type",
+        tags: "Tags", institution: "Institution / Affiliation",
+        date: "Date", year: "Publication Year",
+        source: "Source", doi: "DOI / Link",
+        pdfReq: "Research PDF (Required)", imgReq: "Featured Image (Recommended)",
+        upload: "Click to Upload", remove: "Remove",
+        phTitle: "Enter a descriptive title...", phName: "Salihu Tahir", phResearchName: "S. I. Tahir", phTags: "faith, life, ...",
+        phBody: "Write your content here...", phSource: "e.g. Foundation Press",
+        phHeadline: "Enter a catchy headline...", phAbstract: "Summary of the research..."
+    },
+    Arabic: {
+        title: "العنوان", headline: "العنوان الرئيسي", researchTitle: "عنوان البحث",
+        excerpt: "مقتطف / ملخص", shortDesc: "وصف قصير", abstract: "الملخص",
+        body: "المحتوى", fullContent: "التفاصيل الكاملة (اختياري)",
+        author: "المؤلف", authors: "المؤلفون / المساهمون",
+        category: "التصنيف", type: "نوع البحث",
+        tags: "الوسوم", institution: "المؤسسة / الانتماء",
+        date: "التاريخ", year: "سنة النشر",
+        source: "المصدر", doi: "رابط دائم / DOI",
+        pdfReq: "ملف البحث (مطلوب)", imgReq: "صورة بارزة (موصى به)",
+        upload: "اضغط للرفع", remove: "حذف",
+        phTitle: "أدخل عنواناً واضحاً...", phName: "صالح طاهر", phResearchName: "س. إ. طاهر", phTags: "إيمان، حياة...",
+        phBody: "اكتب المحتوى هنا...", phSource: "مثلاً: بيان صحفي",
+        phHeadline: "أدخل عنواناً جذاباً...", phAbstract: "ملخص البحث..."
+    },
+    Hausa: {
+        title: "Taken Rubutu", headline: "Babban Labari", researchTitle: "Taken Bincike",
+        excerpt: "Takaitaccen Bayani", shortDesc: "Gajeren Bayani", abstract: "Tsokaci",
+        body: "Abun Ciki", fullContent: "Cikakken Bayani (Na Zabi)",
+        author: "Marubuci", authors: "Marubuta / Masu Bada Gudummawa",
+        category: "Rukuni", type: "Nau'in Bincike",
+        tags: "Alamomi (Tags)", institution: "Cibiya / Kungiya",
+        date: "Kwanan Wata", year: "Shekarar Wallafa",
+        source: "Majiya", doi: "Adireshin Yanar Gizo / DOI",
+        pdfReq: "Takardar Bincike (Dole)", imgReq: "Hoto (Abin So)",
+        upload: "Danna don Dorawa", remove: "Cire",
+        phTitle: "Shigar da take...", phName: "Salihu Tahir", phResearchName: "S. I. Tahir", phTags: "imani, rayuwa...",
+        phBody: "Rubuta anan...", phSource: "Misali: Sanarwar Jarida",
+        phHeadline: "Shigar da babban labari...", phAbstract: "Tsokaci akan bincike..."
+    }
+};
+
+// --- CUSTOM DROPDOWN COMPONENT ---
+const CustomSelect = ({ label, options, value, onChange, placeholder, dir }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const selectedOption = options.find(opt => opt.value === value);
+
+    return (
+        <div className="relative" ref={dropdownRef}>
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">{label}</label>
+            <div 
+                onClick={() => setIsOpen(!isOpen)}
+                className={`w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm flex justify-between items-center cursor-pointer transition-all hover:border-brand-gold/50 ${isOpen ? 'ring-2 ring-brand-gold/20 border-brand-gold' : ''}`}
+                dir={dir}
+            >
+                <span className={`${!selectedOption ? 'text-gray-400' : 'text-gray-700 font-medium'}`}>
+                    {selectedOption ? selectedOption.label : placeholder}
+                </span>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </div>
+
+            {isOpen && (
+                <div className="absolute z-20 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-100">
+                    {options.map((opt) => (
+                        <div 
+                            key={opt.value}
+                            onClick={() => { onChange(opt.value); setIsOpen(false); }}
+                            className={`px-4 py-3 text-sm cursor-pointer hover:bg-brand-sand/10 flex justify-between items-center ${value === opt.value ? 'bg-brand-sand/20 text-brand-brown-dark font-bold' : 'text-gray-600'}`}
+                            dir={dir}
+                        >
+                            {opt.label}
+                            {value === opt.value && <Check className="w-3 h-3 text-brand-gold" />}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
 
 export default function EditContentPage() {
     const router = useRouter();
@@ -23,86 +143,79 @@ export default function EditContentPage() {
     const { showSuccess } = useModal();
 
     const id = params?.id;
-    const type = searchParams.get('type'); // 'articles', 'news', or 'research'
+    // We get the type from the URL query to know which fields to render and which collection to update
+    const type = searchParams.get('type') || 'articles'; 
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [uploadProgress, setUploadProgress] = useState(0);
 
-    // Form State
+    // --- FORM STATE ---
     const [formData, setFormData] = useState({
         status: 'Draft',
         language: 'English',
-        // Articles
-        title: '',
         slug: '',
+        
+        // Fields (Superset of all types)
+        title: '',
         author: '',
-        category: 'Faith',
+        category: '',
         body: '',
         excerpt: '',
-        // News
+        tags: '', 
+        readTime: 0, 
         headline: '',
         eventDate: '',
+        source: '',
         shortDescription: '',
-        // Research
         researchTitle: '',
-        authors: '',
+        authors: '', 
+        institution: '', 
+        publicationYear: new Date().getFullYear(),
         abstract: '',
-        researchType: 'Journal Article',
-        publicationStatus: 'Published',
+        researchType: '',
         doi: '',
     });
 
-    // File State
-    const [file, setFile] = useState(null); // New file to upload
-    const [existingFileUrl, setExistingFileUrl] = useState(null); // Current URL
-    const [filePreview, setFilePreview] = useState(null); // For new image preview
+    // --- FILES STATE ---
+    const [mainFile, setMainFile] = useState(null); // New file to upload
+    const [existingFileUrl, setExistingFileUrl] = useState(null); // Existing URL
+    const [filePreview, setFilePreview] = useState(null); 
 
-    // Helper: RTL
-    const getDir = (text) => {
-        if (!text) return 'ltr';
-        const arabicPattern = /[\u0600-\u06FF]/;
-        return arabicPattern.test(text) ? 'rtl' : 'ltr';
+    // --- HELPERS ---
+    const t = UI_TEXT[formData.language] || UI_TEXT.English;
+    const isRTL = formData.language === 'Arabic';
+
+    const formatInput = (text) => {
+        if (!text) return "";
+        if (formData.language !== 'Arabic') {
+            return text.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+        }
+        return text;
     };
 
-    // 1. FETCH DATA
+    // --- FETCH DATA ---
     useEffect(() => {
         const fetchData = async () => {
-            if (!id || !type) return;
-            setIsLoading(true);
+            if (!id) return;
             try {
                 const docRef = doc(db, type, id);
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    // Populate Form
-                    setFormData({
-                        status: data.status || 'Draft',
-                        language: data.language || 'English',
-                        // Map fields based on what exists
-                        title: data.title || '',
-                        slug: data.slug || '',
-                        author: data.author || '',
-                        category: data.category || 'Faith',
-                        body: data.body || '',
-                        excerpt: data.excerpt || '',
-                        headline: data.headline || '',
-                        eventDate: data.eventDate || '',
-                        shortDescription: data.shortDescription || '',
-                        researchTitle: data.researchTitle || '',
-                        authors: data.authors || '',
-                        abstract: data.abstract || '',
-                        researchType: data.researchType || 'Journal Article',
-                        publicationStatus: data.publicationStatus || 'Published',
-                        doi: data.doi || '',
-                    });
-
-                    // Handle File
+                    setFormData(prev => ({ ...prev, ...data }));
+                    
+                    // Set existing file URL
                     if (type === 'research') {
                         setExistingFileUrl(data.pdfUrl);
                     } else {
                         setExistingFileUrl(data.featuredImage);
+                    }
+                    
+                    // Handle tags array conversion for display if necessary
+                    if (Array.isArray(data.tags)) {
+                        setFormData(prev => ({ ...prev, tags: data.tags.join(', ') }));
                     }
                 } else {
                     alert("Content not found");
@@ -117,50 +230,79 @@ export default function EditContentPage() {
         fetchData();
     }, [id, type, router]);
 
-    // HANDLE CHANGE
+    // --- AUTOMATION ---
+    useEffect(() => {
+        if (type === 'articles' && formData.body) {
+            const words = formData.body.trim().split(/\s+/).length;
+            const time = Math.ceil(words / 200);
+            setFormData(prev => ({ ...prev, readTime: time }));
+        }
+    }, [formData.body, type]);
+
+    // --- VALIDATION ---
+    const isFormValid = () => {
+        if (type === 'articles') return formData.title && formData.author && formData.body && formData.excerpt;
+        if (type === 'news') return formData.headline && formData.eventDate && formData.shortDescription;
+        if (type === 'research') {
+            // Check if there is a PDF (either new upload OR existing URL)
+            const hasPdf = mainFile || existingFileUrl;
+            return formData.researchTitle && formData.authors && formData.abstract && formData.publicationYear && hasPdf;
+        }
+        return false;
+    };
+
+    // --- HANDLERS ---
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    // FILE HANDLER
-    const handleFileChange = (e) => {
-        const selected = e.target.files[0];
-        if (selected) {
-            if (type === 'research' && selected.type !== 'application/pdf') {
-                alert("Please upload a PDF for research.");
-                return;
-            }
-            if ((type !== 'research') && !selected.type.startsWith('image/')) {
-                alert("Please upload an image file.");
-                return;
-            }
-            
-            setFile(selected);
-            if (selected.type.startsWith('image/')) {
-                setFilePreview(URL.createObjectURL(selected));
-            }
+    const handleBlur = (e) => {
+        const { name, value } = e.target;
+        if (['title', 'headline', 'researchTitle', 'author', 'authors'].includes(name)) {
+            setFormData(prev => ({ ...prev, [name]: formatInput(value) }));
         }
     };
 
+    const handleSelectChange = (name, value) => {
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleFileChange = (e) => {
+        const selected = e.target.files[0];
+        if (!selected) return;
+
+        if (type === 'research' && selected.type !== 'application/pdf') {
+            alert("Research requires a PDF document.");
+            return;
+        }
+        if (type !== 'research' && !['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'].includes(selected.type)) {
+            alert("Please upload a valid image (JPG, PNG, WEBP, SVG).");
+            return;
+        }
+
+        setMainFile(selected);
+        if (selected.type.startsWith('image/')) setFilePreview(URL.createObjectURL(selected));
+        else setFilePreview(null);
+    };
+
     const removeNewFile = () => {
-        setFile(null);
+        setMainFile(null);
         setFilePreview(null);
     };
 
-    // SUBMIT LOGIC
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
 
         try {
-            let fileUrl = existingFileUrl;
+            let fileUrl = existingFileUrl; // Default to old file
             
-            // Upload New File if selected
-            if (file) {
+            // Upload New File if exists
+            if (mainFile) {
                 const folder = type === 'research' ? 'research_pdfs' : 'blog_images';
-                const storageRef = ref(storage, `${folder}/${Date.now()}_edited_${file.name}`);
-                const uploadTask = uploadBytesResumable(storageRef, file);
+                const storageRef = ref(storage, `${folder}/${Date.now()}_edited_${mainFile.name}`);
+                const uploadTask = uploadBytesResumable(storageRef, mainFile);
                 
                 uploadTask.on('state_changed', (snapshot) => {
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
@@ -171,93 +313,230 @@ export default function EditContentPage() {
                 fileUrl = await getDownloadURL(uploadTask.snapshot.ref);
             }
 
-            // Construct Data Payload
+            // Prepare Payload
             let payload = {
                 updatedAt: serverTimestamp(),
                 status: formData.status,
                 language: formData.language,
-                // Slug usually remains static or is edited manually if we added a slug field
+                // Slug usually isn't updated on edit to preserve SEO, unless explicitly wanted
             };
 
             if (type === 'articles') {
-                payload = { ...payload, title: formData.title, author: formData.author, category: formData.category, body: formData.body, excerpt: formData.excerpt, featuredImage: fileUrl };
+                payload = { ...payload, title: formData.title, author: formData.author, category: formData.category, body: formData.body, excerpt: formData.excerpt, tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean), featuredImage: fileUrl, readTime: formData.readTime };
             } else if (type === 'news') {
-                payload = { ...payload, headline: formData.headline, eventDate: formData.eventDate, shortDescription: formData.shortDescription, body: formData.body, featuredImage: fileUrl };
+                payload = { ...payload, headline: formData.headline, eventDate: formData.eventDate, source: formData.source, shortDescription: formData.shortDescription, body: formData.body, featuredImage: fileUrl };
             } else if (type === 'research') {
-                payload = { ...payload, researchTitle: formData.researchTitle, authors: formData.authors, abstract: formData.abstract, researchType: formData.researchType, publicationStatus: formData.publicationStatus, doi: formData.doi, pdfUrl: fileUrl };
+                payload = { ...payload, researchTitle: formData.researchTitle, authors: formData.authors, institution: formData.institution, publicationYear: formData.publicationYear, researchType: formData.researchType, abstract: formData.abstract, doi: formData.doi, pdfUrl: fileUrl };
             }
 
-            // Update Doc
             const docRef = doc(db, type, id);
             await updateDoc(docRef, payload);
 
             showSuccess({
-                title: "Content Updated",
-                message: "Your changes have been saved successfully.",
-                confirmText: "Return to List",
+                title: "Changes Saved",
+                message: "Content has been updated successfully.",
+                confirmText: "Back to List",
                 onConfirm: () => router.push('/admin/blogs')
             });
 
         } catch (error) {
-            console.error("Error updating:", error);
-            alert("Failed to update content.");
+            console.error("Error:", error);
+            alert("Failed to update.");
         } finally {
             setIsSubmitting(false);
-            setUploadProgress(0);
         }
     };
 
     if (isLoading) return <div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 text-brand-gold animate-spin" /></div>;
-return (
-        <div className="max-w-6xl mx-auto pb-12">
+
+    // --- DROPDOWN OPTIONS ---
+    const getCategoryOptions = () => ARTICLE_CATEGORIES.map(cat => ({
+        value: cat.id,
+        label: formData.language === 'English' ? cat.en : formData.language === 'Arabic' ? cat.ar : cat.ha
+    }));
+
+    const getResearchTypeOptions = () => RESEARCH_TYPES.map(type => ({
+        value: type.id,
+        label: formData.language === 'English' ? type.en : formData.language === 'Arabic' ? type.ar : type.ha
+    }));
+
+    return (
+        <div className="max-w-6xl mx-auto pb-20 font-lato">
             
             {/* HEADER */}
-            <div className="flex items-center justify-between py-6 border-b border-gray-200 mb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-0 bg-gray-50 z-20 py-4 border-b border-gray-200">
                 <div className="flex items-center gap-4">
-                    <Link href="/admin/blogs" className="p-2 hover:bg-gray-100 rounded-lg"><ArrowLeft className="w-5 h-5" /></Link>
+                    <Link href="/admin/blogs" className="p-2 hover:bg-gray-100 rounded-lg"><ArrowLeft className="w-6 h-6 text-gray-600" /></Link>
                     <div>
                         <h1 className="font-agency text-3xl text-brand-brown-dark">Edit Content</h1>
-                        <p className="font-lato text-sm text-gray-500 capitalize">Editing {type?.slice(0, -1) || 'Item'}</p>
+                        <p className="font-lato text-sm text-gray-500 capitalize">Editing {type}</p>
                     </div>
+                </div>
+                <div className="flex gap-3">
+                    <button 
+                        type="button" 
+                        onClick={handleSubmit} 
+                        disabled={isSubmitting || !isFormValid()} 
+                        className={`flex items-center gap-2 px-6 py-2.5 font-bold rounded-xl shadow-md transition-colors ${!isFormValid() ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-brand-gold text-white hover:bg-brand-brown-dark'}`}
+                    >
+                        {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        {isSubmitting ? `Saving ${Math.round(uploadProgress)}%` : 'Save Changes'}
+                    </button>
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* LANGUAGE SELECTOR */}
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mt-6 mb-8 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Globe className="w-5 h-5 text-brand-gold" />
+                    <span className="text-sm font-bold text-gray-700">Content Language</span>
+                </div>
+                <div className="flex gap-2">
+                    {['English', 'Hausa', 'Arabic'].map(lang => (
+                        <button key={lang} onClick={() => setFormData(prev => ({ ...prev, language: lang }))} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${formData.language === lang ? 'bg-brand-brown-dark text-white shadow-md' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}>
+                            {lang}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <form className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
-                {/* LEFT COLUMN: UPLOADS & META */}
+                {/* --- LEFT COLUMN: INPUTS --- */}
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 space-y-6">
+                        
+                        {/* ================= ARTICLES ================= */}
+                        {type === 'articles' && (
+                            <>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">{t.title} <span className="text-red-500">*</span></label>
+                                    <input type="text" name="title" value={formData.title} onChange={handleChange} onBlur={handleBlur} placeholder={t.phTitle} className={`w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-brand-gold/50 ${isRTL ? 'text-right font-tajawal' : ''}`} dir={isRTL ? 'rtl' : 'ltr'} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">{t.excerpt} <span className="text-red-500">*</span></label>
+                                    <textarea name="excerpt" value={formData.excerpt} onChange={handleChange} rows="3" placeholder={t.excerpt} className={`w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 ${isRTL ? 'text-right font-arabic' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}></textarea>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">{t.body} <span className="text-red-500">*</span></label>
+                                    <textarea name="body" value={formData.body} onChange={handleChange} rows="15" placeholder={t.phBody} className={`w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-base leading-relaxed focus:outline-none focus:ring-2 focus:ring-brand-gold/50 ${isRTL ? 'text-right font-arabic' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}></textarea>
+                                    <div className="flex justify-between items-center mt-2 text-xs text-gray-400"><span>Markdown Supported</span><span className="flex items-center gap-1 text-brand-gold"><Sparkles className="w-3 h-3"/> {formData.readTime} min read (Auto)</span></div>
+                                </div>
+                            </>
+                        )}
+
+                        {/* ================= NEWS ================= */}
+                        {type === 'news' && (
+                            <>
+                                <div>
+                                    <label className="block text-xs font-bold text-orange-600 uppercase mb-2">{t.headline} <span className="text-red-500">*</span></label>
+                                    <input type="text" name="headline" value={formData.headline} onChange={handleChange} onBlur={handleBlur} placeholder={t.phHeadline} className={`w-full p-4 bg-orange-50/50 border border-orange-100 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-orange-500/50 ${isRTL ? 'text-right font-tajawal' : ''}`} dir={isRTL ? 'rtl' : 'ltr'} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">{t.source}</label>
+                                    <input type="text" name="source" value={formData.source} onChange={handleChange} placeholder={t.phSource} className={`w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 ${isRTL ? 'text-right' : ''}`} dir={isRTL ? 'rtl' : 'ltr'} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">{t.shortDesc} <span className="text-red-500">*</span></label>
+                                    <textarea name="shortDescription" value={formData.shortDescription} onChange={handleChange} rows="3" className={`w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 ${isRTL ? 'text-right font-arabic' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}></textarea>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">{t.fullContent}</label>
+                                    <textarea name="body" value={formData.body} onChange={handleChange} rows="10" className={`w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-base leading-relaxed focus:outline-none focus:ring-2 focus:ring-orange-500/50 ${isRTL ? 'text-right font-arabic' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}></textarea>
+                                </div>
+                            </>
+                        )}
+
+                        {/* ================= RESEARCH ================= */}
+                        {type === 'research' && (
+                            <>
+                                <div>
+                                    <label className="block text-xs font-bold text-blue-700 uppercase mb-2">{t.researchTitle} <span className="text-red-500">*</span></label>
+                                    <input type="text" name="researchTitle" value={formData.researchTitle} onChange={handleChange} onBlur={handleBlur} className={`w-full p-4 bg-blue-50/50 border border-blue-100 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${isRTL ? 'text-right font-tajawal' : ''}`} dir={isRTL ? 'rtl' : 'ltr'} />
+                                </div>
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">{t.authors} <span className="text-red-500">*</span></label>
+                                        <input type="text" name="authors" value={formData.authors} onChange={handleChange} onBlur={handleBlur} placeholder={t.phName} className={`w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${isRTL ? 'text-right' : ''}`} dir={isRTL ? 'rtl' : 'ltr'} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">{t.institution}</label>
+                                        <input type="text" name="institution" value={formData.institution} onChange={handleChange} className={`w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${isRTL ? 'text-right' : ''}`} dir={isRTL ? 'rtl' : 'ltr'} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">{t.abstract} <span className="text-red-500">*</span></label>
+                                    <textarea name="abstract" value={formData.abstract} onChange={handleChange} rows="6" placeholder={t.phAbstract} className={`w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${isRTL ? 'text-right font-arabic' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}></textarea>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">{t.doi}</label>
+                                    <div className="relative">
+                                        <LinkIcon className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+                                        <input type="text" name="doi" value={formData.doi} onChange={handleChange} className="w-full pl-10 p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50" />
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                {/* --- RIGHT COLUMN: META --- */}
                 <div className="space-y-6">
-                    
-                    {/* Language & Status */}
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 space-y-5">
+                        <h4 className="font-bold text-brand-brown-dark text-sm border-b border-gray-100 pb-2">Publishing Meta</h4>
+                        
                         <div>
-                            <label className="block text-xs font-bold text-brand-brown mb-1">Language</label>
-                            <select name="language" value={formData.language} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50">
-                                <option>English</option>
-                                <option>Hausa</option>
-                                <option>Arabic</option>
+                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Status</label>
+                            <select name="status" value={formData.status} onChange={handleChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none">
+                                <option value="Draft">Draft</option>
+                                <option value="Published">Published</option>
+                                <option value="Archived">Archived</option>
                             </select>
                         </div>
-                        <div>
-                            <label className="block text-xs font-bold text-brand-brown mb-1">Status</label>
-                            <select name="status" value={formData.status} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50">
-                                <option>Draft</option>
-                                <option>Published</option>
-                                <option>Archived</option>
-                            </select>
-                        </div>
+
+                        {type === 'articles' && (
+                            <>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase mb-1">{t.author} <span className="text-red-500">*</span></label>
+                                    <input type="text" name="author" value={formData.author} onChange={handleChange} onBlur={handleBlur} placeholder={t.phName} className={`w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm ${isRTL ? 'text-right' : ''}`} dir={isRTL ? 'rtl' : 'ltr'} />
+                                </div>
+                                <CustomSelect label={t.category} options={getCategoryOptions()} value={formData.category} onChange={(val) => handleSelectChange('category', val)} placeholder="Select..." dir={isRTL ? 'rtl' : 'ltr'} />
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase mb-1">{t.tags}</label>
+                                    <input type="text" name="tags" value={formData.tags} onChange={handleChange} placeholder={t.phTags} className={`w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm ${isRTL ? 'text-right' : ''}`} dir={isRTL ? 'rtl' : 'ltr'} />
+                                </div>
+                            </>
+                        )}
+
+                        {type === 'news' && (
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">{t.date} <span className="text-red-500">*</span></label>
+                                <input type="date" name="eventDate" value={formData.eventDate} onChange={handleChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
+                            </div>
+                        )}
+
+                        {type === 'research' && (
+                            <>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase mb-1">{t.year} <span className="text-red-500">*</span></label>
+                                    <input type="number" name="publicationYear" value={formData.publicationYear} onChange={handleChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
+                                </div>
+                                <CustomSelect label={t.type} options={getResearchTypeOptions()} value={formData.researchType} onChange={(val) => handleSelectChange('researchType', val)} placeholder="Select..." dir={isRTL ? 'rtl' : 'ltr'} />
+                            </>
+                        )}
                     </div>
 
-                    {/* File Replacement */}
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <label className="block text-xs font-bold text-brand-brown mb-3">
-                            {type === 'research' ? 'Replace PDF' : 'Replace Featured Image'}
+                    {/* File Upload */}
+                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                        <label className="block text-xs font-bold text-brand-brown mb-3 uppercase">
+                            {type === 'research' ? t.pdfReq : t.imgReq}
                         </label>
-
-                        {/* Existing File Info */}
-                        {existingFileUrl && !file && (
-                            <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-3 mb-4">
+                        
+                        {/* Current File Display */}
+                        {existingFileUrl && !mainFile && (
+                            <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-3 mb-4">
                                 <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-green-600 flex-shrink-0">
-                                    <CheckCircle className="w-4 h-4" />
+                                    <Check className="w-4 h-4" />
                                 </div>
                                 <div className="flex-grow min-w-0">
                                     <p className="font-bold text-green-700 text-xs">Current File Active</p>
@@ -270,141 +549,29 @@ return (
                             </div>
                         )}
 
-                        <div className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center text-center transition-colors min-h-[150px] ${
-                            file ? 'bg-blue-50 border-blue-300' : 'bg-white border-gray-300 hover:border-brand-gold'
-                        }`}>
-                            {file ? (
+                        <div className={`border-2 border-dashed rounded-2xl p-4 flex flex-col items-center justify-center text-center transition-colors min-h-[150px] ${mainFile ? 'bg-blue-50 border-blue-300' : 'bg-gray-50 border-gray-200 hover:border-brand-gold'}`}>
+                            {mainFile ? (
                                 <div className="w-full relative">
                                     {filePreview ? (
-                                        <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-2">
-                                            <Image src={filePreview} alt="Preview" fill className="object-cover" />
-                                        </div>
+                                        <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-2 shadow-sm"><Image src={filePreview} alt="Preview" fill className="object-cover" /></div>
                                     ) : (
-                                        <FileText className="w-10 h-10 text-blue-600 mx-auto mb-2" />
+                                        <FileText className="w-12 h-12 text-blue-600 mx-auto mb-2" />
                                     )}
-                                    <p className="text-xs font-bold truncate px-2">{file.name}</p>
-                                    <button type="button" onClick={removeNewFile} className="text-red-500 text-xs font-bold hover:underline mt-2">
-                                        Remove New File
-                                    </button>
+                                    <p className="text-xs font-bold truncate px-2 text-brand-brown-dark">{mainFile.name}</p>
+                                    <button type="button" onClick={removeNewFile} className="mt-3 text-red-500 text-xs font-bold hover:underline">Remove New File</button>
                                 </div>
                             ) : (
                                 <div className="relative w-full">
-                                    <UploadCloud className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                                    <p className="text-xs text-gray-500 font-bold">Upload New File</p>
-                                    <input 
-                                        type="file" 
-                                        accept={type === 'research' ? "application/pdf" : "image/*"}
-                                        onChange={handleFileChange}
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
-                                    />
+                                    <UploadCloud className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                                    <p className="text-sm text-gray-500 font-bold">Replace File</p>
+                                    <p className="text-xs text-gray-400 mt-1">{type === 'research' ? 'PDF only' : 'JPG, PNG, WEBP, SVG'}</p>
+                                    <input type="file" accept={type === 'research' ? "application/pdf" : "image/jpeg, image/png, image/webp, image/svg+xml"} onChange={handleFileChange} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                                 </div>
                             )}
                         </div>
-                        {isSubmitting && file && (
-                            <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
-                                <div className="bg-brand-gold h-full transition-all duration-300" style={{width: `${uploadProgress}%`}}></div>
-                            </div>
+                        {isSubmitting && mainFile && (
+                            <div className="mt-4 w-full bg-gray-200 rounded-full h-1.5 overflow-hidden"><div className="bg-brand-gold h-full transition-all duration-300" style={{width: `${uploadProgress}%`}}></div></div>
                         )}
-                    </div>
-                </div>
-
-                {/* RIGHT COLUMN: CONTENT FIELDS */}
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-                        
-                        {/* --- ARTICLE FIELDS --- */}
-                        {type === 'articles' && (
-                            <>
-                                <div>
-                                    <label className="block text-xs font-bold text-brand-brown mb-1">Title</label>
-                                    <input type="text" name="title" value={formData.title} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50" dir={getDir(formData.title)} />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-brand-brown mb-1">Author</label>
-                                        <input type="text" name="author" value={formData.author} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-brand-brown mb-1">Category</label>
-                                        <select name="category" value={formData.category} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm">
-                                            <option>Faith</option><option>Education</option><option>Technology</option><option>Community</option><option>Reflections</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-brand-brown mb-1">Excerpt</label>
-                                    <textarea name="excerpt" value={formData.excerpt} onChange={handleChange} rows="3" className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" dir={getDir(formData.excerpt)}></textarea>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-brand-brown mb-1">Body Content</label>
-                                    <textarea name="body" value={formData.body} onChange={handleChange} rows="10" className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" dir={getDir(formData.body)}></textarea>
-                                </div>
-                            </>
-                        )}
-
-                        {/* --- NEWS FIELDS --- */}
-                        {type === 'news' && (
-                            <>
-                                <div>
-                                    <label className="block text-xs font-bold text-brand-brown mb-1">Headline</label>
-                                    <input type="text" name="headline" value={formData.headline} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50" dir={getDir(formData.headline)} />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-brand-brown mb-1">Event Date</label>
-                                    <input type="date" name="eventDate" value={formData.eventDate} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-brand-brown mb-1">Short Description</label>
-                                    <textarea name="shortDescription" value={formData.shortDescription} onChange={handleChange} rows="3" className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" dir={getDir(formData.shortDescription)}></textarea>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-brand-brown mb-1">Full Content (Optional)</label>
-                                    <textarea name="body" value={formData.body} onChange={handleChange} rows="6" className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" dir={getDir(formData.body)}></textarea>
-                                </div>
-                            </>
-                        )}
-
-                        {/* --- RESEARCH FIELDS --- */}
-                        {type === 'research' && (
-                            <>
-                                <div>
-                                    <label className="block text-xs font-bold text-brand-brown mb-1">Research Title</label>
-                                    <input type="text" name="researchTitle" value={formData.researchTitle} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50" dir={getDir(formData.researchTitle)} />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-brand-brown mb-1">Authors</label>
-                                        <input type="text" name="authors" value={formData.authors} onChange={handleChange} placeholder="e.g. T. Salihu" className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-brand-brown mb-1">Type</label>
-                                        <select name="researchType" value={formData.researchType} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm">
-                                            <option>Journal Article</option><option>Conference Paper</option><option>Thesis</option><option>Report</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-brand-brown mb-1">Abstract</label>
-                                    <textarea name="abstract" value={formData.abstract} onChange={handleChange} rows="6" className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" dir={getDir(formData.abstract)}></textarea>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-brand-brown mb-1">DOI / Link</label>
-                                    <input type="text" name="doi" value={formData.doi} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-                                </div>
-                            </>
-                        )}
-
-                        {/* Submit Button */}
-                        <div className="pt-4 border-t border-gray-100">
-                            <button 
-                                type="submit" 
-                                disabled={isSubmitting}
-                                className="w-full flex items-center justify-center gap-2 py-3 bg-brand-gold text-white font-bold rounded-xl hover:bg-brand-brown-dark transition-colors shadow-md disabled:opacity-50"
-                            >
-                                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                                {isSubmitting ? 'Saving Changes...' : 'Save Changes'}
-                            </button>
-                        </div>
                     </div>
                 </div>
             </form>
