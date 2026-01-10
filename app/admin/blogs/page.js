@@ -40,6 +40,7 @@ export default function ManageBlogsPage() {
     // Helper: Format Date
     const formatDate = (timestamp) => {
         if (!timestamp) return <span className="text-gray-300 italic">...</span>;
+        // Handle both Firestore Timestamp and Date string/object
         const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
         return new Intl.DateTimeFormat('en-NG', {
             day: 'numeric', month: 'short', year: 'numeric'
