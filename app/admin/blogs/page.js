@@ -27,7 +27,7 @@ export default function ManageBlogsPage() {
     
     // Filters
     const [searchTerm, setSearchTerm] = useState('');
-    const [languageFilter, setLanguageFilter] = useState('All'); // NEW: Language Filter
+    const [languageFilter, setLanguageFilter] = useState('All'); 
     const [sortOrder, setSortOrder] = useState('desc');
 
     // Helper: Auto-Detect Arabic
@@ -40,7 +40,6 @@ export default function ManageBlogsPage() {
     // Helper: Format Date
     const formatDate = (timestamp) => {
         if (!timestamp) return <span className="text-gray-300 italic">...</span>;
-        // Handle both Firestore Timestamp and Date string/object
         const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
         return new Intl.DateTimeFormat('en-NG', {
             day: 'numeric', month: 'short', year: 'numeric'
@@ -50,7 +49,7 @@ export default function ManageBlogsPage() {
     // 1. FETCH DATA BASED ON TAB
     useEffect(() => {
         setIsLoading(true);
-        const collectionName = activeTab; // 'articles', 'news', 'research'
+        const collectionName = activeTab; 
         
         const q = query(collection(db, collectionName), orderBy("createdAt", "desc"));
         
@@ -67,7 +66,6 @@ export default function ManageBlogsPage() {
         const title = item.title || item.headline || item.researchTitle || '';
         const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase());
         
-        // News might not have language, so we handle that gracefully
         const itemLang = item.language || 'English'; 
         const matchesLanguage = languageFilter === 'All' || itemLang === languageFilter;
 
@@ -100,12 +98,12 @@ export default function ManageBlogsPage() {
 
     // 4. EDIT ACTION
     const handleEdit = (id) => {
-        // We pass the type as a query param so the edit page knows what layout to load
         router.push(`/admin/blogs/edit/${id}?type=${activeTab}`);
     };
 
     return (
-        <div className="space-y-6 relative">
+        <div className="space-y-6 relative max-w-full overflow-hidden">
+            
             {/* HEADER */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
@@ -114,50 +112,68 @@ export default function ManageBlogsPage() {
                 </div>
                 <Link 
                     href="/admin/blogs/new" 
-                    className="flex items-center gap-2 px-5 py-2.5 bg-brand-gold text-white rounded-xl text-sm font-bold hover:bg-brand-brown-dark transition-colors shadow-md"
+                    className="flex items-center justify-center gap-2 px-5 py-3 bg-brand-gold text-white rounded-xl text-sm font-bold hover:bg-brand-brown-dark transition-colors shadow-md w-full md:w-auto"
                 >
                     <PlusCircle className="w-4 h-4" /> Create New
                 </Link>
             </div>
 
-            {/* TABS & TOOLBAR */}
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+            {/* TABS & TOOLBAR - Revised for Mobile */}
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
                 
-                {/* Tabs */}
-                <div className="flex bg-gray-100 p-1 rounded-lg w-full md:w-auto">
-                    <button onClick={() => setActiveTab('articles')} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-md text-sm font-bold transition-all ${activeTab === 'articles' ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'}`}>
-                        <FileText className="w-4 h-4" /> Articles
-                    </button>
-                    <button onClick={() => setActiveTab('news')} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-md text-sm font-bold transition-all ${activeTab === 'news' ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'}`}>
-                        <Bell className="w-4 h-4" /> News
-                    </button>
-                    <button onClick={() => setActiveTab('research')} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-md text-sm font-bold transition-all ${activeTab === 'research' ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'}`}>
-                        <BookOpen className="w-4 h-4" /> Research
-                    </button>
+                {/* Tabs - Stack on very small screens, row on others */}
+                <div className="flex flex-wrap gap-2 w-full xl:w-auto bg-gray-50 p-1 rounded-lg">
+                    {['articles', 'news', 'research'].map((tab) => (
+                        <button 
+                            key={tab}
+                            onClick={() => setActiveTab(tab)} 
+                            className={`flex-1 min-w-[90px] flex items-center justify-center gap-2 px-4 py-2 rounded-md text-xs sm:text-sm font-bold transition-all capitalize ${
+                                activeTab === tab ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'
+                            }`}
+                        >
+                            {tab === 'articles' && <FileText className="w-3 h-3 sm:w-4 sm:h-4" />}
+                            {tab === 'news' && <Bell className="w-3 h-3 sm:w-4 sm:h-4" />}
+                            {tab === 'research' && <BookOpen className="w-3 h-3 sm:w-4 sm:h-4" />}
+                            {tab}
+                        </button>
+                    ))}
                 </div>
 
-                {/* Filters */}
-                <div className="flex flex-col w-full xl:w-auto gap-3">
-                    <div className="flex flex-row gap-2 w-full">
+                {/* Filters - Stack vertically on mobile */}
+                <div className="flex flex-col sm:flex-row w-full xl:w-auto gap-3">
+                    
+                    <div className="flex gap-2 w-full sm:w-auto">
                         {/* Language Filter */}
-                        <div className="relative flex-1 md:flex-none">
+                        <div className="relative flex-grow sm:flex-grow-0 min-w-[120px]">
                             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-gold" />
-                            <select value={languageFilter} onChange={(e) => setLanguageFilter(e.target.value)} className="w-full md:w-40 pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer">
+                            <select 
+                                value={languageFilter} 
+                                onChange={(e) => setLanguageFilter(e.target.value)} 
+                                className="w-full pl-9 pr-8 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer appearance-none"
+                            >
                                 <option value="All">All Langs</option>
                                 <option value="English">English</option>
                                 <option value="Hausa">Hausa</option>
                                 <option value="Arabic">Arabic</option>
                             </select>
                         </div>
-                        {/* Sort */}
-                        <button onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')} className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors flex-1 md:flex-none">
+
+                        {/* Sort Button */}
+                        <button onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')} className="flex items-center justify-center px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors">
                             <ArrowUpDown className="w-4 h-4" />
                         </button>
                     </div>
-                    {/* Search */}
-                    <div className="relative w-full md:w-72">
+
+                    {/* Search - Full width on mobile */}
+                    <div className="relative w-full sm:w-64">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input type="text" placeholder="Search title..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all" />
+                        <input 
+                            type="text" 
+                            placeholder="Search title..." 
+                            value={searchTerm} 
+                            onChange={(e) => setSearchTerm(e.target.value)} 
+                            className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all" 
+                        />
                         {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>}
                     </div>
                 </div>
@@ -169,12 +185,12 @@ export default function ManageBlogsPage() {
                     <div className="flex items-center justify-center h-64"><Loader /></div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left">
+                        <table className="w-full text-left min-w-[600px]"> {/* Min-width forces scroll on small screens */}
                             <thead className="bg-gray-50 border-b border-gray-100">
                                 <tr>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Title</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-5/12">Title</th>
                                     <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Lang</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Details</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider hidden md:table-cell">Details</th>
                                     <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
                                     <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
                                 </tr>
@@ -184,13 +200,13 @@ export default function ManageBlogsPage() {
                                     <tr><td colSpan="5" className="px-6 py-12 text-center text-gray-400">No content found.</td></tr>
                                 ) : (
                                     filteredContent.map((item) => (
-                                        <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                                        <tr key={item.id} className="hover:bg-gray-50 transition-colors group">
                                             <td className="px-6 py-4">
-                                                <p className={`font-bold text-brand-brown-dark text-sm line-clamp-1 ${getDir(item.title || item.headline) === 'rtl' ? 'font-tajawal' : ''}`}>
+                                                <p className={`font-bold text-brand-brown-dark text-sm line-clamp-2 md:line-clamp-1 ${getDir(item.title || item.headline) === 'rtl' ? 'font-tajawal' : ''}`}>
                                                     {item.title || item.headline || item.researchTitle}
                                                 </p>
-                                                {/* Sub-label */}
-                                                <p className="text-xs text-gray-400">
+                                                {/* Mobile-only detail view */}
+                                                <p className="text-xs text-gray-400 mt-1 md:hidden">
                                                     {activeTab === 'research' ? item.authors : (item.category || formatDate(item.eventDate))}
                                                 </p>
                                             </td>
@@ -203,7 +219,7 @@ export default function ManageBlogsPage() {
                                                     {item.language || 'English'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-xs text-gray-500">
+                                            <td className="px-6 py-4 text-xs text-gray-500 hidden md:table-cell">
                                                 {activeTab === 'research' && <span className="bg-blue-50 text-blue-600 px-2 py-1 rounded">{item.researchType}</span>}
                                                 {activeTab === 'articles' && <span className="bg-purple-50 text-purple-600 px-2 py-1 rounded">{item.author}</span>}
                                                 {activeTab === 'news' && <span className="flex items-center gap-1"><Calendar className="w-3 h-3"/> {formatDate(item.eventDate)}</span>}
@@ -216,9 +232,9 @@ export default function ManageBlogsPage() {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <div className="flex justify-end gap-1">
-                                                    <button onClick={() => handleEdit(item.id)} className="p-2 text-gray-400 hover:text-brand-gold"><Edit className="w-4 h-4" /></button>
-                                                    <button onClick={() => handleDelete(item.id)} className="p-2 text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                                                <div className="flex justify-end gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => handleEdit(item.id)} className="p-2 text-gray-400 hover:text-brand-gold bg-gray-50 sm:bg-transparent rounded-lg"><Edit className="w-4 h-4" /></button>
+                                                    <button onClick={() => handleDelete(item.id)} className="p-2 text-gray-400 hover:text-red-600 bg-gray-50 sm:bg-transparent rounded-lg"><Trash2 className="w-4 h-4" /></button>
                                                 </div>
                                             </td>
                                         </tr>
