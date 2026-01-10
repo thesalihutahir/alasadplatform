@@ -107,7 +107,7 @@ export default function CreateBlogPage() {
         
         // Articles
         title: '',
-        author: 'Sheikh Dr. Muneer Ja\'afar',
+        author: '',
         category: 'Faith & Spirituality',
         body: '',
         excerpt: '',
@@ -122,7 +122,7 @@ export default function CreateBlogPage() {
         
         // Research
         researchTitle: '',
-        authors: 'Sheikh Dr. Muneer Ja\'afar', 
+        authors: '', 
         institution: '', 
         publicationYear: new Date().getFullYear(),
         abstract: '',
@@ -360,7 +360,7 @@ export default function CreateBlogPage() {
             <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mt-6 mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Globe className="w-5 h-5 text-brand-gold" />
-                    <span className="text-sm font-bold text-gray-700">Content Language:</span>
+                    <span className="text-sm font-bold text-gray-700"></span>
                 </div>
                 <div className="flex gap-2">
                     {['English', 'Hausa', 'Arabic'].map(lang => (
