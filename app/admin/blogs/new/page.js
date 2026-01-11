@@ -14,7 +14,7 @@ import { useModal } from '@/context/ModalContext';
 import { 
     ArrowLeft, Save, Loader2, UploadCloud, 
     FileText, Bell, BookOpen, 
-    X, AlertTriangle, Link as LinkIcon, Building, Sparkles, Globe, ChevronDown, Check
+    X, AlertTriangle, Link as LinkIcon, Building, Sparkles, Globe, ChevronDown, Check, Calendar
 } from 'lucide-react';
 
 // --- CONSTANTS ---
@@ -91,7 +91,6 @@ const CustomSelect = ({ label, options, value, onChange, placeholder, dir }) => 
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
 
-    // Close on outside click
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -137,6 +136,27 @@ const CustomSelect = ({ label, options, value, onChange, placeholder, dir }) => 
     );
 };
 
+// --- CUSTOM DATE PICKER COMPONENT ---
+const CustomDatePicker = ({ label, value, onChange }) => {
+    return (
+        <div className="relative group">
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">{label}</label>
+            <div className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm flex justify-between items-center transition-all group-hover:border-brand-gold/50 relative">
+                <span className={`${!value ? 'text-gray-400' : 'text-gray-700 font-medium'}`}>
+                    {value || "Select Date..."}
+                </span>
+                <Calendar className="w-4 h-4 text-gray-400" />
+                {/* The native date input sits on top, invisible, triggering the OS calendar */}
+                <input 
+                    type="date" 
+                    value={value} 
+                    onChange={onChange} 
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                />
+            </div>
+        </div>
+    );
+};
 export default function CreateBlogPage() {
     const router = useRouter();
     const { showSuccess } = useModal();
@@ -150,6 +170,7 @@ export default function CreateBlogPage() {
 
     // --- FORM STATE ---
     const [formData, setFormData] = useState({
+        // Common
         status: 'Draft',
         language: 'English',
         slug: '',
@@ -179,9 +200,11 @@ export default function CreateBlogPage() {
         doi: '',
     });
 
+    // --- FILES STATE ---
     const [mainFile, setMainFile] = useState(null); 
     const [filePreview, setFilePreview] = useState(null); 
 
+    // --- HELPERS ---
     const t = UI_TEXT[formData.language] || UI_TEXT.English; 
     const isRTL = formData.language === 'Arabic';
 
@@ -195,7 +218,7 @@ export default function CreateBlogPage() {
         return text;
     };
 
-    // --- EFFECTS ---
+    // --- AUTOMATION EFFECTS ---
     useEffect(() => {
         if (contentType === 'articles' && formData.body) {
             const words = formData.body.trim().split(/\s+/).length;
@@ -232,7 +255,6 @@ export default function CreateBlogPage() {
         }
     };
 
-    // Custom Select Handler
     const handleSelectChange = (name, value) => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
@@ -317,7 +339,7 @@ export default function CreateBlogPage() {
         }
     };
 
-    // --- DROPDOWN OPTIONS GENERATORS ---
+    // --- DROPDOWN OPTIONS ---
     const getCategoryOptions = () => ARTICLE_CATEGORIES.map(cat => ({
         value: cat.id,
         label: formData.language === 'English' ? cat.en : formData.language === 'Arabic' ? cat.ar : cat.ha
@@ -327,13 +349,6 @@ export default function CreateBlogPage() {
         value: type.id,
         label: formData.language === 'English' ? type.en : formData.language === 'Arabic' ? type.ar : type.ha
     }));
-
-    const getLanguageOptions = () => [
-        { value: "English", label: "English" },
-        { value: "Hausa", label: "Hausa" },
-        { value: "Arabic", label: "Arabic" }
-    ];
-
     return (
         <div className="max-w-6xl mx-auto pb-20 font-lato">
             
@@ -359,7 +374,7 @@ export default function CreateBlogPage() {
 
             {/* LANGUAGE & MODE */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8 mt-6">
-                {/* Language Selector (Top Priority) */}
+                {/* Language Selector */}
                 <div className="md:col-span-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-center">
                     <div className="flex items-center gap-2 mb-3">
                         <Globe className="w-5 h-5 text-brand-gold" />
@@ -490,10 +505,11 @@ export default function CreateBlogPage() {
                         )}
 
                         {contentType === 'news' && (
-                            <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">{t.date} <span className="text-red-500">*</span></label>
-                                <input type="date" name="eventDate" value={formData.eventDate} onChange={handleChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
-                            </div>
+                            <CustomDatePicker 
+                                label={<span>{t.date} <span className="text-red-500">*</span></span>}
+                                value={formData.eventDate} 
+                                onChange={handleChange} // Uses native input event
+                            />
                         )}
 
                         {contentType === 'research' && (
