@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
@@ -8,13 +8,15 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { db, storage } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-// Context
+// Context & Components
 import { useModal } from '@/context/ModalContext';
+import CustomSelect from '@/components/CustomSelect'; 
+import CustomDatePicker from '@/components/CustomDatePicker'; 
 
 import { 
     ArrowLeft, Save, Loader2, UploadCloud, 
     FileText, Bell, BookOpen, 
-    X, AlertTriangle, Link as LinkIcon, Building, Sparkles, Globe, ChevronDown, Check, Eye
+    X, AlertTriangle, Link as LinkIcon, Building, Sparkles, Globe, Check, Eye
 } from 'lucide-react';
 
 // --- CONSTANTS ---
@@ -36,6 +38,12 @@ const RESEARCH_TYPES = [
     { id: "Theoretical / Conceptual Study", en: "Theoretical / Conceptual Study", ar: "تأصيل وتصور", ha: "Nazarin Tushe da Hasashe" },
     { id: "Applied Research", en: "Applied Research", ar: "دراسة تطبيقية", ha: "Bincike na Aiwatarwa" },
     { id: "Methodological Study", en: "Methodological Study", ar: "منهجية", ha: "Nazarin Manhaja" }
+];
+
+const STATUS_OPTIONS = [
+    { value: 'Draft', label: 'Draft' },
+    { value: 'Published', label: 'Published' },
+    { value: 'Archived', label: 'Archived' }
 ];
 
 const UI_TEXT = {
@@ -85,57 +93,6 @@ const UI_TEXT = {
         phHeadline: "Shigar da babban labari...", phAbstract: "Tsokaci akan bincike..."
     }
 };
-
-// --- CUSTOM DROPDOWN COMPONENT ---
-const CustomSelect = ({ label, options, value, onChange, placeholder, dir }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const dropdownRef = useRef(null);
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                setIsOpen(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-
-    const selectedOption = options.find(opt => opt.value === value);
-
-    return (
-        <div className="relative" ref={dropdownRef}>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">{label}</label>
-            <div 
-                onClick={() => setIsOpen(!isOpen)}
-                className={`w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm flex justify-between items-center cursor-pointer transition-all hover:border-brand-gold/50 ${isOpen ? 'ring-2 ring-brand-gold/20 border-brand-gold' : ''}`}
-                dir={dir}
-            >
-                <span className={`${!selectedOption ? 'text-gray-400' : 'text-gray-700 font-medium'}`}>
-                    {selectedOption ? selectedOption.label : placeholder}
-                </span>
-                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-            </div>
-
-            {isOpen && (
-                <div className="absolute z-20 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-100">
-                    {options.map((opt) => (
-                        <div 
-                            key={opt.value}
-                            onClick={() => { onChange(opt.value); setIsOpen(false); }}
-                            className={`px-4 py-3 text-sm cursor-pointer hover:bg-brand-sand/10 flex justify-between items-center ${value === opt.value ? 'bg-brand-sand/20 text-brand-brown-dark font-bold' : 'text-gray-600'}`}
-                            dir={dir}
-                        >
-                            {opt.label}
-                            {value === opt.value && <Check className="w-3 h-3 text-brand-gold" />}
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-};
-
 export default function EditContentPage() {
     const router = useRouter();
     const params = useParams();
@@ -264,7 +221,8 @@ export default function EditContentPage() {
         }
     };
 
-    const handleSelectChange = (name, value) => {
+    // Custom Component Handler
+    const handleValueChange = (name, value) => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
@@ -318,7 +276,6 @@ export default function EditContentPage() {
                 updatedAt: serverTimestamp(),
                 status: formData.status,
                 language: formData.language,
-                // Slug usually isn't updated on edit to preserve SEO, unless explicitly wanted
             };
 
             if (type === 'articles') {
@@ -359,7 +316,6 @@ export default function EditContentPage() {
         value: type.id,
         label: formData.language === 'English' ? type.en : formData.language === 'Arabic' ? type.ar : type.ha
     }));
-
     return (
         <div className="max-w-6xl mx-auto pb-20 font-lato">
             
@@ -485,14 +441,15 @@ export default function EditContentPage() {
                     <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 space-y-5">
                         <h4 className="font-bold text-brand-brown-dark text-sm border-b border-gray-100 pb-2">Publishing Meta</h4>
                         
-                        <div>
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Status</label>
-                            <select name="status" value={formData.status} onChange={handleChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none">
-                                <option value="Draft">Draft</option>
-                                <option value="Published">Published</option>
-                                <option value="Archived">Archived</option>
-                            </select>
-                        </div>
+                        {/* Status Dropdown - Using CustomSelect */}
+                        <CustomSelect 
+                            label="Status" 
+                            options={STATUS_OPTIONS} 
+                            value={formData.status} 
+                            onChange={(val) => handleValueChange('status', val)} 
+                            placeholder="Select..." 
+                            dir={isRTL ? 'rtl' : 'ltr'} 
+                        />
 
                         {type === 'articles' && (
                             <>
@@ -500,7 +457,7 @@ export default function EditContentPage() {
                                     <label className="block text-xs font-bold text-gray-400 uppercase mb-1">{t.author} <span className="text-red-500">*</span></label>
                                     <input type="text" name="author" value={formData.author} onChange={handleChange} onBlur={handleBlur} placeholder={t.phName} className={`w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm ${isRTL ? 'text-right' : ''}`} dir={isRTL ? 'rtl' : 'ltr'} />
                                 </div>
-                                <CustomSelect label={t.category} options={getCategoryOptions()} value={formData.category} onChange={(val) => handleSelectChange('category', val)} placeholder="Select..." dir={isRTL ? 'rtl' : 'ltr'} />
+                                <CustomSelect label={t.category} options={getCategoryOptions()} value={formData.category} onChange={(val) => handleValueChange('category', val)} placeholder="Select..." dir={isRTL ? 'rtl' : 'ltr'} />
                                 <div>
                                     <label className="block text-xs font-bold text-gray-400 uppercase mb-1">{t.tags}</label>
                                     <input type="text" name="tags" value={formData.tags} onChange={handleChange} placeholder={t.phTags} className={`w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm ${isRTL ? 'text-right' : ''}`} dir={isRTL ? 'rtl' : 'ltr'} />
@@ -509,10 +466,12 @@ export default function EditContentPage() {
                         )}
 
                         {type === 'news' && (
-                            <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">{t.date} <span className="text-red-500">*</span></label>
-                                <input type="date" name="eventDate" value={formData.eventDate} onChange={handleChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
-                            </div>
+                            <CustomDatePicker 
+                                label={<span>{t.date} <span className="text-red-500">*</span></span>}
+                                value={formData.eventDate} 
+                                onChange={(val) => handleValueChange('eventDate', val)} 
+                                dir={isRTL ? 'rtl' : 'ltr'}
+                            />
                         )}
 
                         {type === 'research' && (
@@ -521,7 +480,7 @@ export default function EditContentPage() {
                                     <label className="block text-xs font-bold text-gray-400 uppercase mb-1">{t.year} <span className="text-red-500">*</span></label>
                                     <input type="number" name="publicationYear" value={formData.publicationYear} onChange={handleChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
                                 </div>
-                                <CustomSelect label={t.type} options={getResearchTypeOptions()} value={formData.researchType} onChange={(val) => handleSelectChange('researchType', val)} placeholder="Select..." dir={isRTL ? 'rtl' : 'ltr'} />
+                                <CustomSelect label={t.type} options={getResearchTypeOptions()} value={formData.researchType} onChange={(val) => handleValueChange('researchType', val)} placeholder="Select..." dir={isRTL ? 'rtl' : 'ltr'} />
                             </>
                         )}
                     </div>
