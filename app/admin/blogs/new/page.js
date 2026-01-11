@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -8,13 +8,15 @@ import { useRouter } from 'next/navigation';
 import { db, storage } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-// Context
+// Context & Components
 import { useModal } from '@/context/ModalContext';
+import CustomSelect from '@/components/CustomSelect'; 
+import CustomDatePicker from '@/components/CustomDatePicker'; 
 
 import { 
     ArrowLeft, Save, Loader2, UploadCloud, 
     FileText, Bell, BookOpen, 
-    X, AlertTriangle, Link as LinkIcon, Building, Sparkles, Globe, ChevronDown, Check, Calendar
+    X, AlertTriangle, Link as LinkIcon, Building, Sparkles, Globe 
 } from 'lucide-react';
 
 // --- CONSTANTS ---
@@ -85,78 +87,6 @@ const UI_TEXT = {
         phHeadline: "Shigar da babban labari...", phAbstract: "Tsokaci akan bincike..."
     }
 };
-
-// --- CUSTOM DROPDOWN COMPONENT ---
-const CustomSelect = ({ label, options, value, onChange, placeholder, dir }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const dropdownRef = useRef(null);
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                setIsOpen(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-
-    const selectedOption = options.find(opt => opt.value === value);
-
-    return (
-        <div className="relative" ref={dropdownRef}>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">{label}</label>
-            <div 
-                onClick={() => setIsOpen(!isOpen)}
-                className={`w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm flex justify-between items-center cursor-pointer transition-all hover:border-brand-gold/50 ${isOpen ? 'ring-2 ring-brand-gold/20 border-brand-gold' : ''}`}
-                dir={dir}
-            >
-                <span className={`${!selectedOption ? 'text-gray-400' : 'text-gray-700 font-medium'}`}>
-                    {selectedOption ? selectedOption.label : placeholder}
-                </span>
-                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-            </div>
-
-            {isOpen && (
-                <div className="absolute z-20 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-100">
-                    {options.map((opt) => (
-                        <div 
-                            key={opt.value}
-                            onClick={() => { onChange(opt.value); setIsOpen(false); }}
-                            className={`px-4 py-3 text-sm cursor-pointer hover:bg-brand-sand/10 flex justify-between items-center ${value === opt.value ? 'bg-brand-sand/20 text-brand-brown-dark font-bold' : 'text-gray-600'}`}
-                            dir={dir}
-                        >
-                            {opt.label}
-                            {value === opt.value && <Check className="w-3 h-3 text-brand-gold" />}
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-};
-
-// --- CUSTOM DATE PICKER COMPONENT ---
-const CustomDatePicker = ({ label, value, onChange }) => {
-    return (
-        <div className="relative group">
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">{label}</label>
-            <div className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm flex justify-between items-center transition-all group-hover:border-brand-gold/50 relative">
-                <span className={`${!value ? 'text-gray-400' : 'text-gray-700 font-medium'}`}>
-                    {value || "Select Date..."}
-                </span>
-                <Calendar className="w-4 h-4 text-gray-400" />
-                {/* The native date input sits on top, invisible, triggering the OS calendar */}
-                <input 
-                    type="date" 
-                    value={value} 
-                    onChange={onChange} 
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                />
-            </div>
-        </div>
-    );
-};
 export default function CreateBlogPage() {
     const router = useRouter();
     const { showSuccess } = useModal();
@@ -170,12 +100,9 @@ export default function CreateBlogPage() {
 
     // --- FORM STATE ---
     const [formData, setFormData] = useState({
-        // Common
         status: 'Draft',
         language: 'English',
         slug: '',
-        
-        // Articles
         title: '',
         author: '',
         category: 'Faith & Spirituality',
@@ -183,14 +110,10 @@ export default function CreateBlogPage() {
         excerpt: '',
         tags: '', 
         readTime: 0, 
-
-        // News
         headline: '',
         eventDate: new Date().toISOString().split('T')[0],
         source: '',
         shortDescription: '',
-        
-        // Research
         researchTitle: '',
         authors: '', 
         institution: '', 
@@ -255,6 +178,7 @@ export default function CreateBlogPage() {
         }
     };
 
+    // Custom Select/Date Handler
     const handleSelectChange = (name, value) => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
@@ -339,7 +263,7 @@ export default function CreateBlogPage() {
         }
     };
 
-    // --- DROPDOWN OPTIONS ---
+    // --- DROPDOWN OPTIONS GENERATORS ---
     const getCategoryOptions = () => ARTICLE_CATEGORIES.map(cat => ({
         value: cat.id,
         label: formData.language === 'English' ? cat.en : formData.language === 'Arabic' ? cat.ar : cat.ha
@@ -349,7 +273,7 @@ export default function CreateBlogPage() {
         value: type.id,
         label: formData.language === 'English' ? type.en : formData.language === 'Arabic' ? type.ar : type.ha
     }));
-    return (
+return (
         <div className="max-w-6xl mx-auto pb-20 font-lato">
             
             {/* HEADER */}
@@ -506,9 +430,10 @@ export default function CreateBlogPage() {
 
                         {contentType === 'news' && (
                             <CustomDatePicker 
-                                label={<span>{t.date} <span className="text-red-500">*</span></span>}
+                                label={<span>{t.date} <span className="text-red-500">*</span></span>} 
                                 value={formData.eventDate} 
-                                onChange={handleChange} // Uses native input event
+                                onChange={(val) => handleSelectChange('eventDate', val)} 
+                                dir={isRTL ? 'rtl' : 'ltr'}
                             />
                         )}
 
