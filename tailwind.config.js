@@ -19,7 +19,7 @@ module.exports = {
         'agency': ['AgencyRegular', 'sans-serif'], // For headings
         'lato': ['LatoRegular', 'sans-serif'],     // For body text
         'tajawal': ['Tajawal', 'sans-serif'],
-        'arabic': ['"Traditional Arabic"', 'serif'],
+        'arabic': ['Amiri', 'serif'],              // UPDATED: Now uses Amiri
       },
       backgroundImage: {
         // Define background image patterns
