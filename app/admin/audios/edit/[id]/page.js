@@ -18,7 +18,8 @@ import {
     Loader2, 
     FileAudio, 
     X,
-    ListMusic
+    ListMusic,
+    AlertTriangle
 } from 'lucide-react';
 
 export default function EditAudioPage() {
@@ -31,6 +32,10 @@ export default function EditAudioPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [uploadProgress, setUploadProgress] = useState(0);
 
+    // Duplicate Check State
+    const [duplicateWarning, setDuplicateWarning] = useState(null);
+    const [isChecking, setIsChecking] = useState(false);
+
     // Data State
     const [allSeries, setAllSeries] = useState([]);
     const [filteredSeries, setFilteredSeries] = useState([]);
@@ -39,7 +44,6 @@ export default function EditAudioPage() {
         title: '',
         speaker: '',
         category: 'English', // Language
-        genre: 'Friday Sermon', 
         series: '', 
         date: new Date().toISOString().split('T')[0],
         description: '',
@@ -79,7 +83,6 @@ export default function EditAudioPage() {
                         title: data.title || '',
                         speaker: data.speaker || '',
                         category: data.category || 'English',
-                        genre: data.genre || 'Friday Sermon',
                         series: data.series || '',
                         date: data.date || new Date().toISOString().split('T')[0],
                         description: data.description || '',
@@ -389,6 +392,9 @@ export default function EditAudioPage() {
                                     <option disabled>No series found for {formData.category}</option>
                                 )}
                             </select>
+                            <p className="text-[10px] text-gray-500 mt-1">
+                                Group this track with others (e.g., "Tafsir Part 1" goes into "Tafsir Series").
+                            </p>
                         </div>
 
                         {/* Speaker */}
@@ -403,34 +409,19 @@ export default function EditAudioPage() {
                             />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold text-brand-brown mb-1">Genre</label>
-                                <select 
-                                    name="genre"
-                                    value={formData.genre}
-                                    onChange={handleChange}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                                >
-                                    <option>Friday Sermon</option>
-                                    <option>Tafsir Series</option>
-                                    <option>Fiqh Class</option>
-                                    <option>General Lecture</option>
-                                    <option>Seerah</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-brand-brown mb-1">Date Recorded</label>
-                                <input 
-                                    type="date" 
-                                    name="date"
-                                    value={formData.date}
-                                    onChange={handleChange}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                                />
-                            </div>
+                        {/* Date Recorded */}
+                        <div>
+                            <label className="block text-xs font-bold text-brand-brown mb-1">Date Recorded</label>
+                            <input 
+                                type="date" 
+                                name="date"
+                                value={formData.date}
+                                onChange={handleChange}
+                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
+                            />
                         </div>
 
+                        {/* Description */}
                         <div>
                             <label className="block text-xs font-bold text-brand-brown mb-1">Description (Optional)</label>
                             <textarea 
