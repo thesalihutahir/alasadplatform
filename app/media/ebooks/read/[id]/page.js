@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import dynamic from 'next/dynamic'; // Import Dynamic for PDF Viewer
 import { useParams, useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -16,10 +17,19 @@ import {
     MessageCircle, Send, Check, ArrowLeft, Library, FileText, Globe, Building2 
 } from 'lucide-react';
 
+// --- DYNAMIC IMPORT FOR PDF/EPUB VIEWER ---
+const PdfViewer = dynamic(() => import('@/components/PdfViewer'), { 
+    ssr: false,
+    loading: () => (
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center text-white">
+            <Loader size="lg" />
+        </div>
+    )
+});
+
 // --- HELPER: Date Formatter ---
 const formatDate = (dateString) => {
     if (!dateString) return '';
-    // Handle Firestore Timestamp or string
     const date = dateString.toDate ? dateString.toDate() : new Date(dateString);
     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 };
@@ -188,6 +198,7 @@ export default function BookReadPage() {
     const [book, setBook] = useState(null);
     const [relatedBooks, setRelatedBooks] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isReading, setIsReading] = useState(false); // Reader Modal State
 
     useEffect(() => {
         const fetchBookData = async () => {
@@ -271,6 +282,14 @@ export default function BookReadPage() {
         <div className="min-h-screen flex flex-col bg-white font-lato">
             <Header />
 
+            {/* --- CUSTOM READER MODAL --- */}
+            {isReading && (
+                <PdfViewer 
+                    url={book.fileUrl} 
+                    onClose={() => setIsReading(false)} 
+                />
+            )}
+
             <main className="flex-grow">
                 {/* 1. IMMERSIVE HEADER SECTION */}
                 <div className="relative w-full bg-brand-brown-dark overflow-hidden">
@@ -336,14 +355,12 @@ export default function BookReadPage() {
 
                                 {/* Action Buttons */}
                                 <div className={`flex flex-wrap items-center gap-4 justify-center ${isArabic ? 'md:justify-end' : 'md:justify-start'}`}>
-                                    <a 
-                                        href={book.fileUrl} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
+                                    <button 
+                                        onClick={() => setIsReading(true)}
                                         className="px-8 py-3 bg-white text-brand-brown-dark font-bold text-sm rounded-full uppercase tracking-wider hover:bg-brand-gold hover:text-white transition-all shadow-lg flex items-center gap-2"
                                     >
                                         <Eye className="w-4 h-4" /> Read Online
-                                    </a>
+                                    </button>
                                     <button 
                                         onClick={handleDownload}
                                         className="px-8 py-3 border border-white/30 text-white font-bold text-sm rounded-full uppercase tracking-wider hover:bg-white hover:text-brand-brown-dark transition-all flex items-center gap-2"
