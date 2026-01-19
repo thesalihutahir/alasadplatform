@@ -4,32 +4,48 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import CustomSelect from '@/components/CustomSelect'; // Custom Dropdown
+import { useModal } from '@/context/ModalContext'; // Custom Modal
 // Firebase
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { ShieldCheck, Users, TrendingUp, Briefcase, Building2, Lightbulb, Handshake, Mail, User, Building, Loader2, CheckCircle } from 'lucide-react';
+import { ShieldCheck, Users, TrendingUp, Briefcase, Building2, Lightbulb, Handshake, Mail, User, Building, Loader2, CheckCircle, Target } from 'lucide-react';
 
 export default function PartnerPage() {
+    const { showSuccess } = useModal();
 
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitted, setSubmitted] = useState(false);
 
     const [formData, setFormData] = useState({
         organization: '',
         contactPerson: '',
         email: '',
-        type: 'Sponsorship',
+        type: 'Sponsorship', // Default
         message: ''
     });
+
+    // Dropdown Options
+    const partnershipTypes = [
+        "Sponsorship", 
+        "CSR Project Implementation", 
+        "Academic Collaboration", 
+        "Technical Partnership",
+        "Event Sponsorship",
+        "Other"
+    ];
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleSelectChange = (name, value) => {
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!formData.organization || !formData.email || !formData.message) {
             alert("Please fill in all required fields.");
             return;
@@ -44,13 +60,20 @@ export default function PartnerPage() {
                 submittedAt: serverTimestamp()
             });
 
-            setSubmitted(true);
+            // Reset Form
             setFormData({
                 organization: '',
                 contactPerson: '',
                 email: '',
                 type: 'Sponsorship',
                 message: ''
+            });
+
+            // Show Success Modal
+            showSuccess({
+                title: "Partnership Inquiry Sent!",
+                message: "Thank you for your interest in collaborating with Al-Asad Foundation. Our partnerships team will review your proposal and contact you shortly.",
+                confirmText: "Close"
             });
 
         } catch (error) {
@@ -197,11 +220,13 @@ export default function PartnerPage() {
 
                 {/* 4. PARTNERSHIP INQUIRY FORM */}
                 <section className="px-6 md:px-12 lg:px-24 mb-12 max-w-5xl mx-auto">
-                    <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-8 md:p-14 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-brand-brown-dark to-brand-gold"></div>
+                    <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8 md:p-14 relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-brown-dark to-brand-gold"></div>
 
                         <div className="text-center mb-10">
-                            <Handshake className="w-12 h-12 text-brand-brown-dark mx-auto mb-4" />
+                            <div className="w-16 h-16 bg-brand-gold/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Handshake className="w-8 h-8 text-brand-brown-dark" />
+                            </div>
                             <h2 className="font-agency text-3xl md:text-5xl text-brand-brown-dark mb-3">
                                 Become a Partner
                             </h2>
@@ -210,114 +235,91 @@ export default function PartnerPage() {
                             </p>
                         </div>
 
-                        {submitted ? (
-                            <div className="bg-green-50 border border-green-200 rounded-2xl p-8 text-center animate-in fade-in zoom-in duration-300">
-                                <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <CheckCircle className="w-8 h-8" />
-                                </div>
-                                <h3 className="font-agency text-2xl text-green-800 mb-2">Thank You!</h3>
-                                <p className="text-green-700 font-lato">
-                                    Your partnership inquiry has been received. Our team will review your proposal and contact you shortly.
-                                </p>
-                                <button 
-                                    onClick={() => setSubmitted(false)}
-                                    className="mt-6 px-6 py-2 bg-white border border-green-200 text-green-700 font-bold rounded-full hover:bg-green-50 transition-colors"
-                                >
-                                    Submit Another
-                                </button>
-                            </div>
-                        ) : (
-                            <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wide">Organization Name *</label>
-                                        <div className="relative">
-                                            <input 
-                                                type="text" 
-                                                name="organization"
-                                                value={formData.organization}
-                                                onChange={handleChange}
-                                                required
-                                                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-brand-brown-dark focus:ring-2 focus:ring-brand-gold/50 outline-none transition-all" 
-                                                placeholder="Company / NGO Name" 
-                                            />
-                                            <Building className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wide">Contact Person *</label>
-                                        <div className="relative">
-                                            <input 
-                                                type="text" 
-                                                name="contactPerson"
-                                                value={formData.contactPerson}
-                                                onChange={handleChange}
-                                                required
-                                                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-brand-brown-dark focus:ring-2 focus:ring-brand-gold/50 outline-none transition-all" 
-                                                placeholder="Full Name" 
-                                            />
-                                            <User className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wide">Email Address *</label>
-                                        <div className="relative">
-                                            <input 
-                                                type="email" 
-                                                name="email"
-                                                value={formData.email}
-                                                onChange={handleChange}
-                                                required
-                                                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-brand-brown-dark focus:ring-2 focus:ring-brand-gold/50 outline-none transition-all" 
-                                                placeholder="official@email.com" 
-                                            />
-                                            <Mail className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wide">Partnership Type</label>
-                                        <div className="relative">
-                                            <select 
-                                                name="type"
-                                                value={formData.type}
-                                                onChange={handleChange}
-                                                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-brand-brown-dark focus:ring-2 focus:ring-brand-gold/50 outline-none transition-all appearance-none cursor-pointer"
-                                            >
-                                                <option>Sponsorship</option>
-                                                <option>CSR Project</option>
-                                                <option>Academic Collaboration</option>
-                                                <option>Other</option>
-                                            </select>
-                                            <div className="absolute right-4 top-4 w-2 h-2 border-r-2 border-b-2 border-gray-400 transform rotate-45 pointer-events-none"></div>
-                                        </div>
-                                    </div>
-                                </div>
-
+                        <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-600 mb-2 uppercase tracking-wide">Proposal / Message *</label>
-                                    <textarea 
-                                        name="message"
-                                        value={formData.message}
-                                        onChange={handleChange}
-                                        required
-                                        rows="5" 
-                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-brand-brown-dark focus:ring-2 focus:ring-brand-gold/50 outline-none transition-all resize-none" 
-                                        placeholder="Briefly describe how you would like to partner with us..."
-                                    ></textarea>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Organization Name *</label>
+                                    <div className="relative">
+                                        <input 
+                                            type="text" 
+                                            name="organization"
+                                            value={formData.organization}
+                                            onChange={handleChange}
+                                            required
+                                            className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold transition-all" 
+                                            placeholder="Company / NGO Name" 
+                                        />
+                                        <Building className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+                                    </div>
                                 </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Contact Person *</label>
+                                    <div className="relative">
+                                        <input 
+                                            type="text" 
+                                            name="contactPerson"
+                                            value={formData.contactPerson}
+                                            onChange={handleChange}
+                                            required
+                                            className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold transition-all" 
+                                            placeholder="Full Name" 
+                                        />
+                                        <User className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+                                    </div>
+                                </div>
+                            </div>
 
-                                <button 
-                                    type="submit" 
-                                    disabled={isSubmitting}
-                                    className="w-full py-4 bg-brand-brown-dark text-white font-agency text-xl rounded-xl hover:bg-brand-gold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                                >
-                                    {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Submit Inquiry'}
-                                </button>
-                            </form>
-                        )}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Email Address *</label>
+                                    <div className="relative">
+                                        <input 
+                                            type="email" 
+                                            name="email"
+                                            value={formData.email}
+                                            onChange={handleChange}
+                                            required
+                                            className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold transition-all" 
+                                            placeholder="official@email.com" 
+                                        />
+                                        <Mail className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+                                    </div>
+                                </div>
+                                
+                                {/* Custom Select for Type */}
+                                <div>
+                                    <CustomSelect 
+                                        label="Partnership Type"
+                                        options={partnershipTypes}
+                                        value={formData.type}
+                                        onChange={(val) => handleSelectChange('type', val)}
+                                        icon={Target}
+                                        placeholder="Select Type"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Proposal / Message *</label>
+                                <textarea 
+                                    name="message"
+                                    value={formData.message}
+                                    onChange={handleChange}
+                                    required
+                                    rows="5" 
+                                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold transition-all resize-none placeholder-gray-400" 
+                                    placeholder="Briefly describe how you would like to partner with us..."
+                                ></textarea>
+                            </div>
+
+                            <button 
+                                type="submit" 
+                                disabled={isSubmitting}
+                                className="w-full py-4 bg-brand-brown-dark text-white font-agency text-xl rounded-xl hover:bg-brand-gold transition-all duration-300 shadow-lg flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                            >
+                                {isSubmitting ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Submit Inquiry'}
+                            </button>
+                        </form>
                     </div>
                 </section>
 
