@@ -13,7 +13,7 @@ import { doc, getDoc, updateDoc, increment, collection, query, where, orderBy, l
 
 import { 
     Book, Calendar, Download, Share2, Heart, Eye,
-    MessageCircle, Send, Check, ArrowLeft, Library, FileText 
+    MessageCircle, Send, Check, ArrowLeft, Library, FileText, Globe, Building2 
 } from 'lucide-react';
 
 // --- HELPER: Date Formatter ---
@@ -176,7 +176,6 @@ const CommentsSection = ({ bookId, isArabic }) => {
         </div>
     );
 };
-
 // ==========================================
 // MAIN PAGE COMPONENT
 // ==========================================
@@ -205,7 +204,7 @@ export default function BookReadPage() {
                     // Increment Reads/Views
                     updateDoc(docRef, { reads: increment(1) });
 
-                    // 2. Fetch Related (Same Collection OR Same Category)
+                    // 2. Fetch Related (Same Collection OR Same Language)
                     let qRelated;
                     if (data.collection) {
                         qRelated = query(
@@ -215,9 +214,10 @@ export default function BookReadPage() {
                             limit(5)
                         );
                     } else {
+                        // Fallback: Same Language if no collection
                         qRelated = query(
                             collection(db, "ebooks"), 
-                            where("category", "==", data.category),
+                            where("language", "==", data.language), // Replaced Genre/Category
                             orderBy("createdAt", "desc"),
                             limit(5)
                         );
@@ -244,13 +244,13 @@ export default function BookReadPage() {
 
     // Handle Download (and track it)
     const handleDownload = async () => {
-        if (!book?.pdfUrl) return;
+        if (!book?.fileUrl) return; 
         
         // 1. Trigger Download
         const link = document.createElement('a');
-        link.href = book.pdfUrl;
-        link.target = "_blank"; // Important for PDFs
-        link.download = book.fileName || 'book.pdf'; // Often overridden by browser for CORS, but good practice
+        link.href = book.fileUrl;
+        link.target = "_blank"; 
+        link.download = book.fileName || 'document'; 
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -308,28 +308,36 @@ export default function BookReadPage() {
                             {/* Details */}
                             <div className="flex-grow flex flex-col justify-center h-full pt-2 text-white" dir={isArabic ? 'rtl' : 'ltr'}>
                                 <div className={`flex flex-wrap items-center gap-3 mb-4 justify-center ${isArabic ? 'md:justify-end' : 'md:justify-start'}`} dir="ltr">
-                                    <span className="px-3 py-1 bg-brand-gold text-white rounded-md text-[10px] font-bold uppercase tracking-widest shadow-sm">
-                                        {book.category}
+                                    <span className="px-3 py-1 bg-brand-gold text-white rounded-md text-[10px] font-bold uppercase tracking-widest shadow-sm flex items-center gap-1">
+                                        <Globe className="w-3 h-3" /> {book.language}
                                     </span>
-                                    {book.collection && (
-                                        <span className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-md text-[10px] font-bold uppercase tracking-widest">
-                                            {book.collection}
+                                    {book.year && (
+                                        <span className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-md text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
+                                            <Calendar className="w-3 h-3" /> {book.year}
                                         </span>
                                     )}
+                                    <span className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 ${book.access === 'Members Only' ? 'bg-red-500/80' : 'bg-green-600/80'}`}>
+                                        {book.access || 'Free'}
+                                    </span>
                                 </div>
 
                                 <h1 className={`text-3xl md:text-5xl font-bold mb-4 leading-tight ${isArabic ? 'font-tajawal' : 'font-agency'}`}>
                                     {book.title}
                                 </h1>
 
-                                <p className="text-white/70 font-bold text-sm md:text-lg mb-6 uppercase tracking-wide">
-                                    Author: {book.author}
-                                </p>
+                                <div className={`flex flex-col gap-2 mb-6 ${isArabic ? 'items-end' : 'items-center md:items-start'}`}>
+                                    <p className="text-white/70 font-bold text-sm md:text-lg uppercase tracking-wide">
+                                        Author: {book.author}
+                                    </p>
+                                    <p className="text-white/50 text-xs flex items-center gap-1">
+                                        <Building2 className="w-3 h-3" /> {book.publisher || "Unknown Publisher"}
+                                    </p>
+                                </div>
 
                                 {/* Action Buttons */}
                                 <div className={`flex flex-wrap items-center gap-4 justify-center ${isArabic ? 'md:justify-end' : 'md:justify-start'}`}>
                                     <a 
-                                        href={book.pdfUrl} 
+                                        href={book.fileUrl} 
                                         target="_blank" 
                                         rel="noopener noreferrer"
                                         className="px-8 py-3 bg-white text-brand-brown-dark font-bold text-sm rounded-full uppercase tracking-wider hover:bg-brand-gold hover:text-white transition-all shadow-lg flex items-center gap-2"
@@ -340,7 +348,7 @@ export default function BookReadPage() {
                                         onClick={handleDownload}
                                         className="px-8 py-3 border border-white/30 text-white font-bold text-sm rounded-full uppercase tracking-wider hover:bg-white hover:text-brand-brown-dark transition-all flex items-center gap-2"
                                     >
-                                        <Download className="w-4 h-4" /> Download PDF
+                                        <Download className="w-4 h-4" /> Download ({book.fileFormat || 'PDF'})
                                     </button>
                                 </div>
                             </div>
@@ -383,7 +391,7 @@ export default function BookReadPage() {
                         <div className="bg-brand-sand/30 p-6 rounded-2xl border border-brand-sand">
                             <h3 className="font-agency text-xl text-brand-brown-dark mb-6 flex items-center gap-2">
                                 <Library className="w-5 h-5 text-brand-gold" /> 
-                                {book.collection ? 'From this Collection' : 'Related Books'}
+                                {book.collection ? 'From this Collection' : 'Similar Books'}
                             </h3>
                             
                             <div className="space-y-4">
@@ -399,7 +407,7 @@ export default function BookReadPage() {
                                                 </h4>
                                                 <p className="text-xs text-gray-500 mb-2 truncate">by {item.author}</p>
                                                 <span className="text-[10px] font-bold text-brand-brown bg-brand-sand px-2 py-0.5 rounded">
-                                                    {item.category}
+                                                    {item.year || item.language}
                                                 </span>
                                             </div>
                                         </Link>
