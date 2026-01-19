@@ -2,23 +2,32 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import Loader from '@/components/Loader';
 // Firebase Imports
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
-import { Book, Download, Library, Filter, Loader2 } from 'lucide-react';
+import { Book, Download, Library, Filter, Loader2, ChevronRight } from 'lucide-react';
 
 export default function EbooksPage() {
 
     // --- STATE ---
-    const [books, setBooks] = useState([]);
-    const [collections, setCollections] = useState([]); // Real Collections Data
+    const [allBooks, setAllBooks] = useState([]);
+    const [allCollections, setAllCollections] = useState([]);
+    
+    // Filtered State
+    const [filteredBooks, setFilteredBooks] = useState([]);
+    const [filteredCollections, setFilteredCollections] = useState([]);
+    
     const [loading, setLoading] = useState(true);
-    const [activeFilter, setActiveFilter] = useState("All Books");
+    const [activeLang, setActiveLang] = useState("English");
+    const [activeCategory, setActiveCategory] = useState("All");
     const [visibleCount, setVisibleCount] = useState(10);
 
-    const filters = ["All Books", "English", "Hausa", "Arabic", "Tafsir", "Fiqh", "History"];
+    const languages = ["English", "Hausa", "Arabic"];
+    const categories = ["All", "Tafsir", "Fiqh", "Aqeedah", "History", "General"];
 
     // --- FETCH DATA ---
     useEffect(() => {
@@ -31,7 +40,7 @@ export default function EbooksPage() {
                     id: doc.id,
                     ...doc.data()
                 }));
-                setBooks(fetchedBooks);
+                setAllBooks(fetchedBooks);
 
                 // 2. Fetch Collections
                 const qCollections = query(collection(db, "ebook_collections"), orderBy("createdAt", "desc"));
@@ -40,7 +49,7 @@ export default function EbooksPage() {
                     id: doc.id,
                     ...doc.data()
                 }));
-                setCollections(fetchedCollections);
+                setAllCollections(fetchedCollections);
 
             } catch (error) {
                 console.error("Error fetching library data:", error);
@@ -52,26 +61,35 @@ export default function EbooksPage() {
         fetchData();
     }, []);
 
-    // --- HELPER: Get Book Count per Collection ---
+    // --- FILTER LOGIC ---
+    useEffect(() => {
+        // 1. Filter by Language
+        const langBooks = allBooks.filter(b => b.language === activeLang);
+        const langCollections = allCollections.filter(c => c.category === activeLang); // Collection category maps to language in Admin
+
+        // 2. Filter Books by Category (if selected)
+        const finalBooks = activeCategory === "All" 
+            ? langBooks 
+            : langBooks.filter(b => b.category === activeCategory);
+
+        setFilteredBooks(finalBooks);
+        setFilteredCollections(langCollections);
+        setVisibleCount(10); // Reset pagination
+
+    }, [activeLang, activeCategory, allBooks, allCollections]);
+
+    // Helper: Get Book Count per Collection
     const getCollectionBookCount = (collectionTitle, storedCount) => {
-        if (books.length > 0) {
-            return books.filter(b => b.collection === collectionTitle).length;
+        if (allBooks.length > 0) {
+            return allBooks.filter(b => b.collection === collectionTitle).length;
         }
         return storedCount || 0;
     };
 
-    // --- FILTER LOGIC ---
-    const filteredBooks = activeFilter === "All Books" 
-        ? books 
-        : books.filter(book => 
-            book.language === activeFilter || 
-            book.category === activeFilter
-          );
-
     const visibleBooks = filteredBooks.slice(0, visibleCount);
 
     return (
-        <div className="min-h-screen flex flex-col bg-white font-lato">
+        <div className="min-h-screen flex flex-col bg-brand-sand font-lato">
             <Header />
 
             <main className="flex-grow pb-16">
@@ -102,27 +120,49 @@ export default function EbooksPage() {
 
                 {loading ? (
                     <div className="flex justify-center items-center py-20">
-                        <Loader2 className="w-10 h-10 text-brand-gold animate-spin" />
+                        <Loader size="md" />
                     </div>
                 ) : (
                     <>
-                        {/* 2. FEATURED COLLECTIONS */}
-                        {collections.length > 0 && (
-                            <section className="px-6 md:px-12 lg:px-24 mb-12 md:mb-20">
+                        {/* 2. LANGUAGE FILTER */}
+                        <section className="px-6 md:px-12 lg:px-24 mb-10 max-w-7xl mx-auto">
+                            <div className="flex justify-center">
+                                <div className="bg-white p-2 rounded-full shadow-sm border border-gray-100 flex gap-2">
+                                    {languages.map((lang) => (
+                                        <button 
+                                            key={lang} 
+                                            onClick={() => { setActiveLang(lang); setActiveCategory("All"); }}
+                                            className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${
+                                                activeLang === lang 
+                                                ? 'bg-brand-brown-dark text-white shadow-md' 
+                                                : 'bg-transparent text-gray-500 hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            {lang}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* 3. FEATURED COLLECTIONS */}
+                        {filteredCollections.length > 0 && (
+                            <section className="px-6 md:px-12 lg:px-24 mb-12 md:mb-20 max-w-7xl mx-auto">
                                 <div className="flex justify-between items-end mb-6 border-b border-gray-100 pb-2">
                                     <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark">
                                         Featured Collections
                                     </h2>
-                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest hidden md:block">
-                                        Curated Sets
-                                    </span>
+                                    <Link href="/media/ebooks/collections" className="text-xs font-bold text-gray-400 uppercase tracking-widest hidden md:flex items-center gap-1 hover:text-brand-gold transition-colors">
+                                        View All <ChevronRight className="w-3 h-3" />
+                                    </Link>
                                 </div>
 
                                 <div className="flex overflow-x-auto gap-4 pb-6 md:grid md:grid-cols-3 md:gap-8 scrollbar-hide snap-x pt-2 pl-2">
-                                    {collections.map((col) => (
-                                        <div 
+                                    {filteredCollections.slice(0, 3).map((col) => (
+                                        <Link 
+                                            href={`/media/ebooks/collections/${col.id}`}
                                             key={col.id} 
-                                            className="snap-center min-w-[240px] md:min-w-0 bg-brand-sand/20 rounded-2xl p-4 flex items-center gap-4 cursor-pointer group hover:bg-brand-sand/40 transition-colors border border-transparent hover:border-brand-gold/20"
+                                            className="snap-center min-w-[240px] md:min-w-0 bg-white rounded-2xl p-4 flex items-center gap-4 cursor-pointer group hover:bg-brand-sand/40 transition-colors border border-gray-100 hover:border-brand-gold/20 shadow-sm"
                                         >
                                             <div className="relative w-20 h-28 md:w-24 md:h-32 flex-shrink-0 shadow-lg group-hover:shadow-2xl transition-all duration-300 transform group-hover:-translate-y-1 group-hover:rotate-2">
                                                 <Image 
@@ -142,43 +182,36 @@ export default function EbooksPage() {
                                                 <p className="text-xs text-gray-500 mt-2 font-bold uppercase tracking-wider flex items-center gap-1">
                                                     <Library className="w-3 h-3" /> {getCollectionBookCount(col.title, col.bookCount)} Books
                                                 </p>
-                                                <span className="text-[10px] text-brand-brown underline mt-2 block opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    View Collection
-                                                </span>
                                             </div>
-                                        </div>
+                                        </Link>
                                     ))}
                                 </div>
                             </section>
                         )}
 
-                        {/* 3. FILTER BAR */}
-                        <section className="px-6 md:px-12 lg:px-24 mb-8">
-                             <div className="flex items-center gap-2 mb-4 md:hidden">
-                                <Filter className="w-4 h-4 text-brand-brown" />
-                                <span className="text-xs font-bold uppercase tracking-widest text-brand-brown">Filter Library</span>
-                            </div>
-                            <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-hide md:justify-center md:flex-wrap">
-                                {filters.map((filter, index) => (
+                        {/* 4. CATEGORY FILTER */}
+                        <section className="px-6 md:px-12 lg:px-24 mb-8 max-w-7xl mx-auto">
+                            <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-hide">
+                                {categories.map((cat, index) => (
                                     <button 
                                         key={index}
-                                        onClick={() => setActiveFilter(filter)}
-                                        className={`px-5 py-2 md:px-6 md:py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
-                                            activeFilter === filter 
-                                            ? 'bg-brand-gold text-white shadow-md transform md:scale-105' 
-                                            : 'bg-brand-sand text-brand-brown-dark hover:bg-brand-gold/10 hover:text-brand-gold'
+                                        onClick={() => setActiveCategory(cat)}
+                                        className={`px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-colors border ${
+                                            activeCategory === cat 
+                                            ? 'bg-brand-brown-dark text-white border-brand-brown-dark shadow-md' 
+                                            : 'bg-white text-gray-500 border-gray-200 hover:border-brand-gold hover:text-brand-gold'
                                         }`}
                                     >
-                                        {filter}
+                                        {cat}
                                     </button>
                                 ))}
                             </div>
                         </section>
 
-                        {/* 4. BOOK GRID */}
+                        {/* 5. BOOK GRID */}
                         <section className="px-6 md:px-12 lg:px-24 max-w-7xl mx-auto">
                              <div className="flex justify-between items-end mb-6 md:mb-8">
-                                <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark">
+                                <h2 className="font-agency text-2xl md:text-3xl text-brand-brown-dark">
                                     Recent Uploads
                                 </h2>
                             </div>
@@ -197,39 +230,38 @@ export default function EbooksPage() {
                                                     className="object-cover"
                                                 />
 
-                                                {/* Hover Overlay with Download Icon */}
-                                                <a 
-                                                    href={book.pdfUrl} 
-                                                    download 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer"
+                                                {/* Hover Overlay */}
+                                                <Link 
+                                                    href={`/media/ebooks/read/${book.id}`}
                                                     className="absolute inset-0 bg-brand-brown-dark/80 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3 backdrop-blur-[1px]"
                                                 >
                                                     <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-brand-brown-dark hover:bg-brand-gold hover:text-white transition-colors shadow-lg transform hover:scale-110">
-                                                        <Download className="w-5 h-5" />
+                                                        <Book className="w-5 h-5" />
                                                     </div>
-                                                    <span className="text-white text-xs font-bold uppercase tracking-widest">Download</span>
-                                                </a>
+                                                    <span className="text-white text-xs font-bold uppercase tracking-widest">Read Details</span>
+                                                </Link>
 
                                                 {/* Language Badge */}
-                                                <div className="absolute top-2 left-2 bg-black/70 text-white text-[9px] md:text-[10px] font-bold px-2 py-1 rounded backdrop-blur-md shadow-sm">
+                                                <div className="absolute top-2 left-2 bg-black/70 text-white text-[9px] md:text-[10px] font-bold px-2 py-1 rounded backdrop-blur-md shadow-sm pointer-events-none">
                                                     {book.language}
                                                 </div>
                                             </div>
 
                                             {/* Book Info */}
-                                            <h3 className="font-agency text-lg md:text-xl text-brand-brown-dark leading-tight mb-1 group-hover:text-brand-gold transition-colors line-clamp-2">
-                                                {book.title}
-                                            </h3>
-                                            <p className="font-lato text-xs md:text-sm text-gray-500 mb-3 line-clamp-1">
-                                                by {book.author}
-                                            </p>
+                                            <Link href={`/media/ebooks/read/${book.id}`} className="block w-full">
+                                                <h3 className="font-agency text-lg md:text-xl text-brand-brown-dark leading-tight mb-1 group-hover:text-brand-gold transition-colors line-clamp-2">
+                                                    {book.title}
+                                                </h3>
+                                                <p className="font-lato text-xs md:text-sm text-gray-500 mb-3 line-clamp-1">
+                                                    by {book.author}
+                                                </p>
 
-                                            <div className="mt-auto flex items-center gap-2">
-                                                <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded border border-gray-200">
-                                                    PDF • {book.fileSize || 'PDF'}
-                                                </span>
-                                            </div>
+                                                <div className="mt-auto flex items-center gap-2">
+                                                    <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded border border-gray-200">
+                                                        PDF • {book.fileSize || 'Unknown'}
+                                                    </span>
+                                                </div>
+                                            </Link>
                                         </div>
                                     ))}
                                 </div>
@@ -241,12 +273,12 @@ export default function EbooksPage() {
                             )}
                         </section>
 
-                        {/* 5. LOAD MORE */}
+                        {/* 6. LOAD MORE */}
                         {visibleCount < filteredBooks.length && (
                             <section className="py-12 text-center">
                                 <button 
-                                    onClick={() => setVisibleCount(prev => prev + 5)}
-                                    className="px-8 py-3 border-2 border-brand-sand text-brand-brown-dark rounded-full font-agency text-lg hover:bg-brand-brown-dark hover:text-white transition-colors uppercase tracking-wide"
+                                    onClick={() => setVisibleCount(prev => prev + 10)}
+                                    className="px-8 py-3 bg-white border border-gray-200 text-brand-brown-dark rounded-full font-bold text-sm hover:bg-brand-brown-dark hover:text-white transition-colors shadow-sm uppercase tracking-wide"
                                 >
                                     Load More Books
                                 </button>
