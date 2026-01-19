@@ -2,49 +2,53 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import Loader from '@/components/Loader';
 // Firebase Imports
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
-import { Play, Headphones, Clock, Calendar, Mic, Loader2, Filter } from 'lucide-react';
+import { collection, query, orderBy, getDocs, where } from 'firebase/firestore';
+import { Play, Headphones, Clock, Calendar, Mic, Loader2, Filter, Globe, ChevronRight } from 'lucide-react';
 
 export default function PodcastsPage() {
 
     // --- STATE ---
-    const [episodes, setEpisodes] = useState([]);
-    const [shows, setShows] = useState([]);
+    const [allEpisodes, setAllEpisodes] = useState([]);
+    const [allShows, setAllShows] = useState([]);
+    
+    // Filtered Data
+    const [filteredEpisodes, setFilteredEpisodes] = useState([]);
+    const [filteredShows, setFilteredShows] = useState([]);
     const [featuredEpisode, setFeaturedEpisode] = useState(null);
+
     const [loading, setLoading] = useState(true);
-    const [activeFilter, setActiveFilter] = useState("All Shows");
+    const [activeLang, setActiveLang] = useState('English'); // Default Language
     const [visibleCount, setVisibleCount] = useState(6);
+
+    const languages = ["English", "Hausa", "Arabic"];
 
     // --- FETCH DATA ---
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // 1. Fetch Episodes
-                const qEpisodes = query(collection(db, "podcasts"), orderBy("createdAt", "desc"));
-                const epSnapshot = await getDocs(qEpisodes);
-                const fetchedEpisodes = epSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                setEpisodes(fetchedEpisodes);
-
-                // Set Featured (Newest Episode)
-                if (fetchedEpisodes.length > 0) {
-                    setFeaturedEpisode(fetchedEpisodes[0]); 
-                }
-
-                // 2. Fetch Shows
+                // 1. Fetch All Shows
                 const qShows = query(collection(db, "podcast_shows"), orderBy("createdAt", "desc"));
                 const showSnapshot = await getDocs(qShows);
                 const fetchedShows = showSnapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
                 }));
-                setShows(fetchedShows);
+                setAllShows(fetchedShows);
+
+                // 2. Fetch All Episodes
+                const qEpisodes = query(collection(db, "podcasts"), orderBy("date", "desc"));
+                const epSnapshot = await getDocs(qEpisodes);
+                const fetchedEpisodes = epSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                setAllEpisodes(fetchedEpisodes);
 
             } catch (error) {
                 console.error("Error fetching podcasts:", error);
@@ -56,6 +60,28 @@ export default function PodcastsPage() {
         fetchData();
     }, []);
 
+    // --- FILTER LOGIC ---
+    useEffect(() => {
+        // 1. Filter Shows by Language
+        const langShows = allShows.filter(show => show.category === activeLang);
+        setFilteredShows(langShows);
+
+        // 2. Filter Episodes by Language
+        const langEpisodes = allEpisodes.filter(ep => ep.category === activeLang);
+        setFilteredEpisodes(langEpisodes);
+
+        // 3. Set Featured (Newest of the filtered list)
+        if (langEpisodes.length > 0) {
+            setFeaturedEpisode(langEpisodes[0]);
+        } else {
+            setFeaturedEpisode(null);
+        }
+
+        // Reset visibility
+        setVisibleCount(6);
+
+    }, [activeLang, allShows, allEpisodes]);
+
     // --- HELPER: Format Date ---
     const formatDate = (dateString) => {
         if (!dateString) return '';
@@ -63,17 +89,13 @@ export default function PodcastsPage() {
         return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     };
 
-    // --- FILTER LOGIC ---
-    // If "All Shows", we skip the first one (featured) to avoid duplication in the grid, 
-    // unless you prefer to show it again. For now, skipping index 0 is a common pattern.
-    const listEpisodes = activeFilter === "All Shows" 
-        ? episodes.slice(1) 
-        : episodes.filter(ep => ep.show === activeFilter);
-
-    const visibleEpisodes = listEpisodes.slice(0, visibleCount);
+    // Calculate Grid List (Skip the featured one to avoid duplicate)
+    const gridEpisodes = featuredEpisode 
+        ? filteredEpisodes.filter(ep => ep.id !== featuredEpisode.id).slice(0, visibleCount) 
+        : [];
 
     return (
-        <div className="min-h-screen flex flex-col bg-white font-lato">
+        <div className="min-h-screen flex flex-col bg-brand-sand font-lato">
             <Header />
 
             <main className="flex-grow pb-16">
@@ -88,7 +110,6 @@ export default function PodcastsPage() {
                             className="object-cover object-center"
                             priority
                         />
-                        {/* Gradient Overlay */}
                         <div className="absolute inset-0 bg-gradient-to-t from-white via-brand-gold/40 to-transparent "></div>
                     </div>
 
@@ -98,50 +119,58 @@ export default function PodcastsPage() {
                         </h1>
                         <div className="w-16 md:w-24 h-1 bg-brand-gold mx-auto rounded-full mb-6"></div>
                         <p className="font-lato text-brand-brown text-sm md:text-xl max-w-2xl mx-auto leading-relaxed font-medium">
-                            Engaging discussions on contemporary issues, spirituality, and lifestyle through the lens of Islam. Tune in anywhere, anytime.
+                            Engaging discussions on contemporary issues, spirituality, and lifestyle through the lens of Islam.
                         </p>
                     </div>
                 </section>
 
                 {loading ? (
                     <div className="flex justify-center items-center py-20">
-                        <Loader2 className="w-10 h-10 text-brand-gold animate-spin" />
+                        <Loader size="md" />
                     </div>
                 ) : (
                     <>
-                        {/* 2. BROWSE SERIES (SHOWS) */}
-                        {shows.length > 0 && (
-                            <section className="px-6 md:px-12 lg:px-24 mb-12 md:mb-20">
-                                <div className="flex justify-between items-end mb-6 border-b border-gray-100 pb-2">
-                                    <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark">
-                                        Shows & Series
+                        {/* 2. LANGUAGE FILTER */}
+                        <section className="px-6 md:px-12 lg:px-24 mb-10 max-w-7xl mx-auto">
+                            <div className="flex justify-center">
+                                <div className="bg-white p-2 rounded-full shadow-sm border border-gray-100 flex gap-2">
+                                    {languages.map((lang) => (
+                                        <button 
+                                            key={lang} 
+                                            onClick={() => setActiveLang(lang)}
+                                            className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${
+                                                activeLang === lang 
+                                                ? 'bg-brand-brown-dark text-white shadow-md' 
+                                                : 'bg-transparent text-gray-500 hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            {lang}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* 3. SHOWS CAROUSEL */}
+                        {filteredShows.length > 0 && (
+                            <section className="px-6 md:px-12 lg:px-24 mb-12 md:mb-20 max-w-7xl mx-auto">
+                                <div className="flex justify-between items-end mb-6">
+                                    <h2 className="font-agency text-2xl md:text-3xl text-brand-brown-dark">
+                                        {activeLang} Series
                                     </h2>
-                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest hidden md:block">
-                                        Browse Collections
-                                    </span>
+                                    <Link href="/media/podcasts/shows" className="text-xs font-bold text-gray-400 uppercase tracking-widest hover:text-brand-gold transition-colors flex items-center gap-1">
+                                        View All <ChevronRight className="w-3 h-3" />
+                                    </Link>
                                 </div>
 
-                                <div className="flex overflow-x-auto gap-4 pb-4 md:grid md:grid-cols-4 md:gap-8 scrollbar-hide snap-x">
-                                    {/* "All Shows" Card */}
-                                    <div 
-                                        onClick={() => setActiveFilter("All Shows")}
-                                        className={`snap-center min-w-[140px] md:min-w-0 group cursor-pointer text-center md:text-left ${activeFilter === "All Shows" ? 'opacity-100' : 'opacity-60 hover:opacity-100'}`}
-                                    >
-                                        <div className="relative w-full aspect-square rounded-xl overflow-hidden shadow-md bg-brand-brown-dark flex items-center justify-center text-white">
-                                            <Mic className="w-10 h-10" />
-                                        </div>
-                                        <div className="mt-3">
-                                            <h3 className="font-agency text-base md:text-lg text-brand-brown-dark leading-tight">All Episodes</h3>
-                                        </div>
-                                    </div>
-
-                                    {shows.map((show) => (
-                                        <div 
+                                <div className="flex overflow-x-auto gap-4 pb-6 scrollbar-hide snap-x">
+                                    {filteredShows.map((show) => (
+                                        <Link 
                                             key={show.id} 
-                                            onClick={() => setActiveFilter(show.title)}
-                                            className={`snap-center min-w-[140px] md:min-w-0 group cursor-pointer ${activeFilter === show.title ? 'opacity-100 ring-2 ring-brand-gold rounded-xl p-1' : 'opacity-100'}`}
+                                            href={`/media/podcasts/shows/${show.id}`}
+                                            className="snap-center min-w-[160px] md:min-w-[200px] group cursor-pointer"
                                         >
-                                            <div className="relative w-full aspect-square rounded-xl overflow-hidden shadow-md group-hover:shadow-xl transition-all bg-gray-200">
+                                            <div className="relative w-full aspect-square rounded-2xl overflow-hidden shadow-md group-hover:shadow-xl transition-all bg-gray-200 border border-transparent group-hover:border-brand-gold/30">
                                                 <Image 
                                                     src={show.cover || "/fallback.webp"} 
                                                     alt={show.title} 
@@ -154,61 +183,52 @@ export default function PodcastsPage() {
                                                     </div>
                                                 </div>
                                             </div>
-
-                                            <div className="mt-3 text-center md:text-left">
-                                                <h3 className="font-agency text-base md:text-lg text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors">
+                                            <div className="mt-3 text-center">
+                                                <h3 className="font-agency text-lg text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors truncate">
                                                     {show.title}
                                                 </h3>
-                                                <p className="text-[10px] md:text-xs text-gray-500 mt-1 uppercase tracking-wide">
+                                                <p className="text-[10px] text-gray-500 mt-1 uppercase tracking-wide truncate">
                                                     {show.host}
                                                 </p>
                                             </div>
-                                        </div>
+                                        </Link>
                                     ))}
                                 </div>
                             </section>
                         )}
 
-                        {/* 3. LATEST EPISODE CARD (FEATURED) */}
-                        {featuredEpisode && activeFilter === "All Shows" && (
-                            <section className="px-6 md:px-12 lg:px-24 mb-12 md:mb-20">
-                                <div className="flex justify-between items-end mb-6">
-                                    <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark">
-                                        New Release
-                                    </h2>
-                                </div>
-
-                                <div className="max-w-5xl mx-auto bg-brand-brown-dark rounded-3xl p-6 md:p-12 text-white flex flex-col md:flex-row items-center gap-8 md:gap-12 shadow-2xl relative overflow-hidden">
+                        {/* 4. FEATURED EPISODE */}
+                        {featuredEpisode && (
+                            <section className="px-6 md:px-12 lg:px-24 mb-16 max-w-7xl mx-auto">
+                                <div className="bg-brand-brown-dark rounded-3xl p-6 md:p-12 text-white flex flex-col md:flex-row items-center gap-8 md:gap-12 shadow-2xl relative overflow-hidden">
                                     {/* Background pattern */}
                                     <div className="absolute top-0 right-0 w-40 h-40 md:w-80 md:h-80 bg-brand-gold opacity-10 rounded-full blur-3xl -mr-10 -mt-10"></div>
 
                                     {/* Large Art */}
-                                    <div className="relative w-32 h-32 md:w-64 md:h-64 flex-shrink-0 rounded-2xl overflow-hidden shadow-2xl border-2 border-brand-gold/20 transform md:-rotate-3 transition-transform hover:rotate-0 bg-black">
-                                        <Image src={featuredEpisode.thumbnail || "/fallback.webp"} alt="Featured Podcast" fill className="object-cover" />
+                                    <div className="relative w-full md:w-1/3 aspect-square flex-shrink-0 rounded-2xl overflow-hidden shadow-2xl border-2 border-brand-gold/20 bg-black">
+                                        <Image src={featuredEpisode.thumbnail || "/fallback.webp"} alt={featuredEpisode.title} fill className="object-cover" />
                                     </div>
 
                                     {/* Text Content */}
-                                    <div className="text-center md:text-left relative z-10 flex-grow">
+                                    <div className="text-center md:text-left relative z-10 flex-grow" dir={activeLang === 'Arabic' ? 'rtl' : 'ltr'}>
                                         <span className="inline-block px-3 py-1 bg-brand-gold text-white text-[10px] md:text-xs font-bold uppercase rounded-md mb-4 shadow-sm">
                                             Latest Release
                                         </span>
-                                        <h2 className="font-agency text-3xl md:text-5xl mb-4 leading-tight">
+                                        <h2 className={`font-agency text-3xl md:text-5xl mb-4 leading-tight ${activeLang === 'Arabic' ? 'font-tajawal font-bold' : ''}`}>
                                             {featuredEpisode.title}
                                         </h2>
-                                        <p className="font-lato text-sm md:text-lg text-white/70 mb-8 max-w-xl mx-auto md:mx-0 leading-relaxed line-clamp-3">
-                                            {featuredEpisode.description || "Tune in to our latest discussion..."}
+                                        <p className={`font-lato text-sm md:text-lg text-white/70 mb-8 leading-relaxed line-clamp-3 ${activeLang === 'Arabic' ? 'font-arabic' : ''}`}>
+                                            {featuredEpisode.description || "Tune in to our latest discussion on this topic..."}
                                         </p>
-                                        <div className="flex flex-col md:flex-row items-center gap-4">
-                                            <a 
-                                                href={featuredEpisode.url} 
-                                                target="_blank" 
-                                                rel="noopener noreferrer"
+                                        <div className="flex flex-col md:flex-row items-center gap-4 justify-center md:justify-start">
+                                            <Link 
+                                                href={`/media/podcasts/play/${featuredEpisode.id}`}
                                                 className="px-8 py-3 bg-white text-brand-brown-dark font-bold text-sm rounded-full uppercase tracking-wider hover:bg-brand-gold hover:text-white transition-all shadow-lg flex items-center gap-2"
                                             >
                                                 <Play className="w-4 h-4 fill-current" /> Listen Now
-                                            </a>
-                                            <span className="text-xs text-white/50 font-lato">
-                                                EP {featuredEpisode.episodeNumber || '-'} • {featuredEpisode.show}
+                                            </Link>
+                                            <span className="text-xs text-white/50 font-lato flex items-center gap-1">
+                                                <Mic className="w-3 h-3" /> {featuredEpisode.show} • S{featuredEpisode.season || 1}:E{featuredEpisode.episodeNumber || 1}
                                             </span>
                                         </div>
                                     </div>
@@ -216,74 +236,69 @@ export default function PodcastsPage() {
                             </section>
                         )}
 
-                        {/* 4. RECENT EPISODES LIST */}
+                        {/* 5. EPISODES GRID */}
                         <section className="px-6 md:px-12 lg:px-24 max-w-7xl mx-auto">
-                            <h3 className="font-agency text-2xl md:text-4xl text-brand-brown-dark mb-6 md:mb-8 border-b border-gray-100 pb-2">
-                                {activeFilter === "All Shows" ? "Recent Episodes" : `${activeFilter} Episodes`}
+                            <h3 className="font-agency text-2xl md:text-3xl text-brand-brown-dark mb-8 border-b border-gray-200 pb-2">
+                                Recent Episodes
                             </h3>
 
-                            {visibleEpisodes.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                                    {visibleEpisodes.map((ep) => (
-                                        <a 
-                                            href={ep.url} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
+                            {gridEpisodes.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {gridEpisodes.map((ep) => (
+                                        <Link 
+                                            href={`/media/podcasts/play/${ep.id}`}
                                             key={ep.id} 
-                                            className="group bg-white rounded-2xl p-4 shadow-md border border-gray-100 flex items-center gap-4 md:gap-6 transition-all hover:-translate-y-1 hover:shadow-lg hover:border-brand-gold/30"
+                                            className="group bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-start gap-4 hover:shadow-lg hover:border-brand-gold/30 transition-all"
                                         >
                                             {/* Square Thumbnail */}
-                                            <div className="relative w-16 h-16 md:w-24 md:h-24 flex-shrink-0 rounded-xl overflow-hidden bg-brand-sand shadow-inner">
-                                                <Image src={ep.thumbnail || "/fallback.webp"} alt={ep.title} fill className="object-cover transition-transform duration-500 group-hover:scale-110" />
-                                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className="relative w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100">
+                                                <Image 
+                                                    src={ep.thumbnail || "/fallback.webp"} 
+                                                    alt={ep.title} 
+                                                    fill 
+                                                    className="object-cover transition-transform duration-500 group-hover:scale-110" 
+                                                />
+                                                <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <Play className="w-6 h-6 text-white fill-current" />
                                                 </div>
                                             </div>
 
                                             {/* Content */}
-                                            <div className="flex-grow min-w-0">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <span className="text-[9px] md:text-[10px] font-bold text-white bg-brand-brown px-2 py-0.5 rounded-full">
+                                            <div className="flex-grow min-w-0" dir={activeLang === 'Arabic' ? 'rtl' : 'ltr'}>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-[9px] font-bold text-white bg-brand-brown px-2 py-0.5 rounded-full">
                                                         EP {ep.episodeNumber || '0'}
                                                     </span>
-                                                    <span className="text-[10px] md:text-xs text-gray-400 font-lato flex items-center gap-1">
-                                                        <Clock className="w-3 h-3" /> Audio
+                                                    <span className="text-[10px] text-gray-400 font-bold truncate">
+                                                        {ep.show}
                                                     </span>
                                                 </div>
 
-                                                <h4 className="font-agency text-lg md:text-xl text-brand-brown-dark leading-tight truncate md:whitespace-normal mb-1 group-hover:text-brand-gold transition-colors line-clamp-1">
+                                                <h4 className={`text-base md:text-lg text-brand-brown-dark leading-tight mb-2 line-clamp-2 group-hover:text-brand-gold transition-colors ${activeLang === 'Arabic' ? 'font-tajawal font-bold' : 'font-agency'}`}>
                                                     {ep.title}
                                                 </h4>
-                                                <p className="text-xs md:text-sm text-brand-gold font-bold uppercase tracking-wide flex items-center gap-1">
-                                                    <Mic className="w-3 h-3" /> {ep.show}
-                                                </p>
 
-                                                <p className="hidden md:block text-xs text-gray-500 mt-2">
-                                                    Published: {formatDate(ep.date)}
+                                                <p className="text-[10px] text-gray-400 flex items-center gap-1">
+                                                    <Calendar className="w-3 h-3" /> {formatDate(ep.date)}
                                                 </p>
                                             </div>
-
-                                            {/* Mobile Date */}
-                                            <div className="md:hidden flex-shrink-0 flex flex-col items-end">
-                                                <Calendar className="w-4 h-4 text-gray-300 mb-1" />
-                                            </div>
-                                        </a>
+                                        </Link>
                                     ))}
                                 </div>
                             ) : (
                                 <div className="text-center py-12 text-gray-400">
                                     <Headphones className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                    <p>No episodes found for this selection.</p>
+                                    <p>No additional episodes found.</p>
                                 </div>
                             )}
                         </section>
 
-                        {/* 5. LOAD MORE */}
-                        {visibleCount < listEpisodes.length && (
+                        {/* 6. LOAD MORE */}
+                        {filteredEpisodes.length > visibleCount && (
                             <section className="py-12 text-center">
                                 <button 
                                     onClick={() => setVisibleCount(prev => prev + 6)}
-                                    className="px-8 py-3 border-2 border-brand-sand text-brand-brown-dark rounded-full font-agency text-lg hover:bg-brand-brown-dark hover:text-white transition-colors uppercase tracking-wide"
+                                    className="px-8 py-3 bg-white border border-gray-200 text-brand-brown-dark rounded-full font-bold text-sm hover:bg-brand-brown-dark hover:text-white transition-colors shadow-sm"
                                 >
                                     Load More Episodes
                                 </button>
@@ -293,7 +308,6 @@ export default function PodcastsPage() {
                 )}
 
             </main>
-
             <Footer />
         </div>
     );
