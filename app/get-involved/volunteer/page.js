@@ -31,7 +31,7 @@ export default function VolunteerPage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         // Simple Validation
         if (!formData.fullName || !formData.phone || !formData.location) {
             alert("Please fill in all required fields (Name, Phone, Location).");
@@ -48,7 +48,7 @@ export default function VolunteerPage() {
             });
 
             // Here you would trigger your API for Email/SMS (e.g., fetch('/api/notify', ...))
-            
+
             setSubmitted(true);
             setFormData({
                 fullName: '',
