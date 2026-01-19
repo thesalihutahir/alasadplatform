@@ -106,7 +106,7 @@ export default function TrainingInnovationPage() {
                         </div>
                         <div className="relative h-[400px] w-full rounded-3xl overflow-hidden shadow-2xl border-8 border-white">
                             <Image 
-                                src="/images/placeholders/tech-hub.webp" 
+                                src="/fallback.webp" 
                                 alt="Vocational Training" 
                                 fill 
                                 className="object-cover"
