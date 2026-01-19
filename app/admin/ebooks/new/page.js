@@ -21,7 +21,10 @@ import {
     X, 
     CheckCircle, 
     Image as ImageIcon,
-    AlertTriangle
+    AlertTriangle,
+    Calendar,
+    Globe,
+    Lock
 } from 'lucide-react';
 
 export default function UploadBookPage() {
@@ -45,13 +48,15 @@ export default function UploadBookPage() {
         title: '',
         author: 'Sheikh Goni Dr. Muneer Ja\'afar',
         collection: '',
-        category: 'Tafsir',
-        language: 'English', // Standardized Language
+        language: 'English', 
+        publisher: 'Al-Asad Foundation', // New Soft Filter
+        access: 'Free', // New Soft Filter
+        year: new Date().getFullYear().toString(), // New Soft Filter
         description: ''
     });
 
     // File States
-    const [pdfFile, setPdfFile] = useState(null);
+    const [docFile, setDocFile] = useState(null); // PDF or EPUB
     const [coverFile, setCoverFile] = useState(null);
     const [coverPreview, setCoverPreview] = useState(null);
 
@@ -90,7 +95,7 @@ export default function UploadBookPage() {
         if (allCollections.length > 0) {
             const filtered = allCollections.filter(c => c.category === formData.language);
             setFilteredCollections(filtered);
-            setFormData(prev => ({ ...prev, collection: '' })); // Reset selection
+            setFormData(prev => ({ ...prev, collection: '' })); 
         }
     }, [formData.language, allCollections]);
 
@@ -100,7 +105,6 @@ export default function UploadBookPage() {
             setDuplicateWarning(null);
             return;
         }
-        
         setIsChecking(true);
         try {
             const q = query(collection(db, "ebooks"), where("title", "==", title.trim()));
@@ -127,23 +131,24 @@ export default function UploadBookPage() {
         }
     };
 
-    // Handle PDF Selection
-    const handlePdfChange = (e) => {
+    // Handle Document Selection (PDF/EPUB)
+    const handleDocChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            if (file.type !== 'application/pdf') {
-                alert("Please upload a PDF file.");
+            const validTypes = ['application/pdf', 'application/epub+zip'];
+            if (!validTypes.includes(file.type) && !file.name.endsWith('.epub')) {
+                alert("Please upload a PDF or EPUB file.");
                 return;
             }
             if (file.size > 50 * 1024 * 1024) { // 50MB Limit
-                alert("PDF size exceeds 50MB limit.");
+                alert("File size exceeds 50MB limit.");
                 return;
             }
-            setPdfFile(file);
-            
-            // Auto-fill title if empty
+            setDocFile(file);
+
+            // Auto-fill title
             if (!formData.title) {
-                const autoTitle = file.name.replace(".pdf", "");
+                const autoTitle = file.name.replace(/\.(pdf|epub)$/i, "");
                 setFormData(prev => ({ ...prev, title: autoTitle }));
                 checkDuplicateTitle(autoTitle);
             }
@@ -163,17 +168,16 @@ export default function UploadBookPage() {
         }
     };
 
-    const removePdf = () => setPdfFile(null);
+    const removeDoc = () => setDocFile(null);
     const removeCover = () => {
         setCoverFile(null);
         setCoverPreview(null);
     };
-
-    const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
         e.preventDefault();
-        
-        if (!pdfFile || !coverFile) {
-            alert("Please upload both a PDF file and a Cover Image.");
+
+        if (!docFile || !coverFile) {
+            alert("Please upload both a Document (PDF/EPUB) and a Cover Image.");
             return;
         }
         if (!formData.title || duplicateWarning) {
@@ -183,33 +187,34 @@ export default function UploadBookPage() {
         setIsSubmitting(true);
 
         try {
-            // 1. Upload PDF
-            const pdfRef = ref(storage, `ebooks/pdfs/${Date.now()}_${pdfFile.name}`);
-            const pdfUploadTask = uploadBytesResumable(pdfRef, pdfFile);
-            
+            // 1. Upload Document
+            const docRef = ref(storage, `ebooks/docs/${Date.now()}_${docFile.name}`);
+            const docUploadTask = uploadBytesResumable(docRef, docFile);
+
             // 2. Upload Cover
             const coverRef = ref(storage, `ebooks/covers/${Date.now()}_${coverFile.name}`);
             const coverUploadTask = uploadBytesResumable(coverRef, coverFile);
 
-            // Track PDF progress as main indicator
-            pdfUploadTask.on('state_changed', (snapshot) => {
+            // Track Doc progress
+            docUploadTask.on('state_changed', (snapshot) => {
                 const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
                 setUploadProgress(progress);
             });
 
-            await Promise.all([pdfUploadTask, coverUploadTask]);
+            await Promise.all([docUploadTask, coverUploadTask]);
 
-            const pdfUrl = await getDownloadURL(pdfUploadTask.snapshot.ref);
+            const docUrl = await getDownloadURL(docUploadTask.snapshot.ref);
             const coverUrl = await getDownloadURL(coverUploadTask.snapshot.ref);
 
             // 3. Save Metadata
             await addDoc(collection(db, "ebooks"), {
                 ...formData,
                 title: formData.title.trim(),
-                pdfUrl: pdfUrl,
+                fileUrl: docUrl, // Renamed from pdfUrl to generic fileUrl
                 coverUrl: coverUrl,
-                fileName: pdfFile.name,
-                fileSize: (pdfFile.size / (1024 * 1024)).toFixed(2) + " MB",
+                fileName: docFile.name,
+                fileFormat: docFile.name.split('.').pop().toUpperCase(), // PDF or EPUB
+                fileSize: (docFile.size / (1024 * 1024)).toFixed(2) + " MB",
                 createdAt: serverTimestamp(),
                 downloads: 0,
                 reads: 0
@@ -217,7 +222,7 @@ export default function UploadBookPage() {
 
             showSuccess({
                 title: "eBook Published!",
-                message: "Your new book has been uploaded successfully.",
+                message: "Your new publication has been uploaded successfully.",
                 confirmText: "Return to Library",
                 onConfirm: () => router.push('/admin/ebooks')
             });
@@ -241,7 +246,7 @@ export default function UploadBookPage() {
                     </Link>
                     <div>
                         <h1 className="font-agency text-3xl text-brand-brown-dark">Upload eBook</h1>
-                        <p className="font-lato text-sm text-gray-500">Add a new book or paper to the library.</p>
+                        <p className="font-lato text-sm text-gray-500">Add a new publication to the library.</p>
                     </div>
                 </div>
                 <div className="flex gap-3 w-full md:w-auto">
@@ -252,9 +257,9 @@ export default function UploadBookPage() {
                     </Link>
                     <button 
                         type="submit" 
-                        disabled={isSubmitting || !pdfFile || !coverFile || !!duplicateWarning} 
+                        disabled={isSubmitting || !docFile || !coverFile || !!duplicateWarning} 
                         className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 font-bold rounded-xl shadow-md text-white transition-colors ${
-                            (pdfFile && coverFile && !duplicateWarning) 
+                            (docFile && coverFile && !duplicateWarning) 
                             ? 'bg-brand-gold hover:bg-brand-brown-dark' 
                             : 'bg-gray-300 cursor-not-allowed'
                         }`}
@@ -270,30 +275,30 @@ export default function UploadBookPage() {
                 {/* LEFT: Upload Zones */}
                 <div className="space-y-6">
 
-                    {/* PDF Upload */}
+                    {/* Document Upload */}
                     <div className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-colors h-48 flex flex-col items-center justify-center ${
-                        pdfFile ? 'bg-green-50 border-green-300' : 'bg-white border-gray-300 hover:border-brand-gold'
+                        docFile ? 'bg-green-50 border-green-300' : 'bg-white border-gray-300 hover:border-brand-gold'
                     }`}>
-                        {pdfFile ? (
+                        {docFile ? (
                             <div>
                                 <FileText className="w-10 h-10 text-green-600 mx-auto mb-2" />
-                                <p className="font-bold text-brand-brown-dark text-sm truncate w-48">{pdfFile.name}</p>
-                                <p className="text-xs text-gray-500 mb-2">{(pdfFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                                <p className="font-bold text-brand-brown-dark text-sm truncate w-48">{docFile.name}</p>
+                                <p className="text-xs text-gray-500 mb-2">{(docFile.size / (1024 * 1024)).toFixed(2)} MB</p>
                                 {!isSubmitting && (
-                                    <button type="button" onClick={removePdf} className="text-red-500 text-xs font-bold hover:underline mt-2">
-                                        Change PDF
+                                    <button type="button" onClick={removeDoc} className="text-red-500 text-xs font-bold hover:underline mt-2">
+                                        Change File
                                     </button>
                                 )}
                             </div>
                         ) : (
                             <div className="flex flex-col items-center w-full relative">
                                 <UploadCloud className="w-10 h-10 text-gray-400 mb-2" />
-                                <h3 className="font-bold text-gray-700 text-sm mb-2">Upload Book PDF</h3>
-                                <p className="text-xs text-gray-400">Max 50MB</p>
+                                <h3 className="font-bold text-gray-700 text-sm mb-2">Upload Book</h3>
+                                <p className="text-xs text-gray-400">PDF or EPUB (Max 50MB)</p>
                                 <input 
                                     type="file" 
-                                    accept="application/pdf"
-                                    onChange={handlePdfChange}
+                                    accept=".pdf,.epub"
+                                    onChange={handleDocChange}
                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                 />
                             </div>
@@ -336,40 +341,100 @@ export default function UploadBookPage() {
                 {/* RIGHT: Metadata */}
                 <div className="lg:col-span-2 space-y-6">
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-                        <h3 className="font-agency text-xl text-brand-brown-dark border-b border-gray-100 pb-2">Book Details</h3>
+                        <h3 className="font-agency text-xl text-brand-brown-dark border-b border-gray-100 pb-2">Publication Details</h3>
 
-                        {/* Title & Duplicate Warning */}
+                        {/* Title */}
                         <div>
-                            <label className="block text-xs font-bold text-brand-brown mb-1">Book Title</label>
+                            <label className="block text-xs font-bold text-brand-brown mb-1">Title</label>
                             <div className="relative">
                                 <input 
                                     type="text" 
                                     name="title" 
                                     value={formData.title} 
                                     onChange={handleChange} 
+                                    placeholder="e.g. Tafsir Surah Al-Baqarah"
                                     className={`w-full bg-gray-50 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 ${
                                         duplicateWarning ? 'border-orange-300 bg-orange-50' : 'border-gray-200'
                                     }`} 
                                     dir={getDir(formData.title)}
                                 />
-                                {isChecking && (
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                        <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-                                    </div>
-                                )}
+                                {isChecking && <div className="absolute right-3 top-1/2 -translate-y-1/2"><Loader2 className="w-4 h-4 animate-spin text-gray-400" /></div>}
                             </div>
                             {duplicateWarning && (
-                                <div className="mt-2 flex items-start gap-2 text-xs font-bold text-orange-700 animate-in fade-in slide-in-from-top-1">
-                                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                                    <span>{duplicateWarning}</span>
+                                <div className="mt-2 flex items-start gap-2 text-xs font-bold text-orange-700">
+                                    <AlertTriangle className="w-4 h-4 flex-shrink-0" /> <span>{duplicateWarning}</span>
                                 </div>
                             )}
+                        </div>
+
+                        {/* Filters Row 1 */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-brand-brown mb-1">Language</label>
+                                <div className="relative">
+                                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <select 
+                                        name="language" 
+                                        value={formData.language} 
+                                        onChange={handleChange} 
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50"
+                                    >
+                                        <option>English</option>
+                                        <option>Hausa</option>
+                                        <option>Arabic</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-brand-brown mb-1">Access Type</label>
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <select 
+                                        name="access" 
+                                        value={formData.access} 
+                                        onChange={handleChange} 
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50"
+                                    >
+                                        <option>Free</option>
+                                        <option>Members Only</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Filters Row 2 */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-brand-brown mb-1">Publisher</label>
+                                <select 
+                                    name="publisher" 
+                                    value={formData.publisher} 
+                                    onChange={handleChange} 
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50"
+                                >
+                                    <option>Al-Asad Foundation</option>
+                                    <option>External Publisher</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-brand-brown mb-1">Publication Year</label>
+                                <div className="relative">
+                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <input 
+                                        type="number" 
+                                        name="year" 
+                                        value={formData.year} 
+                                        onChange={handleChange} 
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50" 
+                                    />
+                                </div>
+                            </div>
                         </div>
 
                         {/* Collection Selector */}
                         <div className="bg-brand-sand/20 p-4 rounded-xl border border-brand-gold/20">
                             <label className="flex items-center gap-2 text-xs font-bold text-brand-brown-dark uppercase tracking-wider mb-2">
-                                <Library className="w-4 h-4" /> Add to Collection
+                                <Library className="w-4 h-4" /> Add to Collection (Series)
                             </label>
                             <select 
                                 name="collection" 
@@ -379,7 +444,7 @@ export default function UploadBookPage() {
                             >
                                 <option value="">Select a Collection (Optional)</option>
                                 {isLoadingCollections ? (
-                                    <option disabled>Loading collections...</option>
+                                    <option disabled>Loading...</option>
                                 ) : (
                                     filteredCollections.length > 0 ? (
                                         filteredCollections.map(col => <option key={col.id} value={col.title}>{col.title}</option>)
@@ -388,37 +453,6 @@ export default function UploadBookPage() {
                                     )
                                 )}
                             </select>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold text-brand-brown mb-1">Category (Topic)</label>
-                                <select 
-                                    name="category" 
-                                    value={formData.category} 
-                                    onChange={handleChange} 
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50"
-                                >
-                                    <option>Tafsir</option>
-                                    <option>Fiqh</option>
-                                    <option>Aqeedah</option>
-                                    <option>History</option>
-                                    <option>General</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-brand-brown mb-1">Language</label>
-                                <select 
-                                    name="language" 
-                                    value={formData.language} 
-                                    onChange={handleChange} 
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50"
-                                >
-                                    <option>English</option>
-                                    <option>Hausa</option>
-                                    <option>Arabic</option>
-                                </select>
-                            </div>
                         </div>
 
                         <div>
