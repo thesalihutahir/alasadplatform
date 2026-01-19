@@ -4,14 +4,26 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 // Firebase
 import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'; // Added serverTimestamp
-import { Save, Loader2, ArrowLeft, MapPin, Phone, Mail, Facebook, Twitter, Instagram, Youtube, MessageCircle } from 'lucide-react';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { 
+    Save, 
+    Loader2, 
+    ArrowLeft, 
+    MapPin, 
+    Phone, 
+    Mail, 
+    Facebook, 
+    Twitter, 
+    Instagram, 
+    Youtube, 
+    MessageCircle 
+} from 'lucide-react';
 
 export default function ContactSettingsPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
-    // Initial State
+    // Initial State - Defined explicitly to avoid 'undefined' errors
     const [data, setData] = useState({
         address: '',
         email: '',
@@ -27,10 +39,24 @@ export default function ContactSettingsPage() {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
+                if (!db) return; // Safety check
+
                 const docRef = doc(db, "general_settings", "contact_info");
                 const docSnap = await getDoc(docRef);
+                
                 if (docSnap.exists()) {
-                    setData(prev => ({ ...prev, ...docSnap.data() }));
+                    const savedData = docSnap.data();
+                    // Explicitly map fields to ensure state integrity
+                    setData({
+                        address: savedData.address || '',
+                        email: savedData.email || '',
+                        phone: savedData.phone || '',
+                        facebook: savedData.facebook || '',
+                        twitter: savedData.twitter || '',
+                        instagram: savedData.instagram || '',
+                        youtube: savedData.youtube || '',
+                        whatsapp: savedData.whatsapp || ''
+                    });
                 }
             } catch (error) {
                 console.error("Error fetching settings:", error);
@@ -43,7 +69,8 @@ export default function ContactSettingsPage() {
 
     // 2. Handle Input Change
     const handleChange = (e) => {
-        setData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+        const { name, value } = e.target;
+        setData(prev => ({ ...prev, [name]: value }));
     };
 
     // 3. Save Data
@@ -51,10 +78,11 @@ export default function ContactSettingsPage() {
         e.preventDefault();
         setSaving(true);
         try {
-            // Merge true allows us to add new fields later without overwriting everything
-            await setDoc(doc(db, "general_settings", "contact_info"), {
+            const docRef = doc(db, "general_settings", "contact_info");
+            
+            await setDoc(docRef, {
                 ...data,
-                updatedAt: serverTimestamp() // Track last update
+                updatedAt: serverTimestamp()
             }, { merge: true });
             
             alert("Contact details updated successfully!");
@@ -67,7 +95,11 @@ export default function ContactSettingsPage() {
     };
 
     if (loading) {
-        return <div className="h-[60vh] flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-brand-gold" /></div>;
+        return (
+            <div className="h-[60vh] flex items-center justify-center">
+                <Loader2 className="w-10 h-10 animate-spin text-brand-gold" />
+            </div>
+        );
     }
 
     return (
@@ -99,7 +131,7 @@ export default function ContactSettingsPage() {
                                 <input 
                                     type="text" 
                                     name="address" 
-                                    value={data.address} 
+                                    value={data.address || ''} 
                                     onChange={handleChange} 
                                     className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all" 
                                     placeholder="e.g. Mani Road, Katsina" 
@@ -113,7 +145,7 @@ export default function ContactSettingsPage() {
                                 <input 
                                     type="email" 
                                     name="email" 
-                                    value={data.email} 
+                                    value={data.email || ''} 
                                     onChange={handleChange} 
                                     className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all" 
                                     placeholder="info@alasad.org" 
@@ -127,7 +159,7 @@ export default function ContactSettingsPage() {
                                 <input 
                                     type="tel" 
                                     name="phone" 
-                                    value={data.phone} 
+                                    value={data.phone || ''} 
                                     onChange={handleChange} 
                                     className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all" 
                                     placeholder="+234..." 
@@ -141,42 +173,77 @@ export default function ContactSettingsPage() {
                 {/* 2. Social Media Section */}
                 <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
                     <h3 className="font-bold text-lg text-brand-brown-dark mb-6 border-b border-gray-100 pb-2 flex items-center gap-2">
-                        <Globe className="w-5 h-5 text-brand-gold" /> Social Media Links
+                        <MapPin className="w-5 h-5 text-brand-gold" /> Social Media Links
                     </h3>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Facebook URL</label>
                             <div className="relative">
-                                <input type="url" name="facebook" value={data.facebook} onChange={handleChange} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/50" placeholder="https://facebook.com/..." />
+                                <input 
+                                    type="url" 
+                                    name="facebook" 
+                                    value={data.facebook || ''} 
+                                    onChange={handleChange} 
+                                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/50" 
+                                    placeholder="https://facebook.com/..." 
+                                />
                                 <Facebook className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
                             </div>
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Twitter (X) URL</label>
                             <div className="relative">
-                                <input type="url" name="twitter" value={data.twitter} onChange={handleChange} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/50" placeholder="https://x.com/..." />
+                                <input 
+                                    type="url" 
+                                    name="twitter" 
+                                    value={data.twitter || ''} 
+                                    onChange={handleChange} 
+                                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/50" 
+                                    placeholder="https://x.com/..." 
+                                />
                                 <Twitter className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
                             </div>
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Instagram URL</label>
                             <div className="relative">
-                                <input type="url" name="instagram" value={data.instagram} onChange={handleChange} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/50" placeholder="https://instagram.com/..." />
+                                <input 
+                                    type="url" 
+                                    name="instagram" 
+                                    value={data.instagram || ''} 
+                                    onChange={handleChange} 
+                                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/50" 
+                                    placeholder="https://instagram.com/..." 
+                                />
                                 <Instagram className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
                             </div>
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-2">YouTube URL</label>
                             <div className="relative">
-                                <input type="url" name="youtube" value={data.youtube} onChange={handleChange} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/50" placeholder="https://youtube.com/..." />
+                                <input 
+                                    type="url" 
+                                    name="youtube" 
+                                    value={data.youtube || ''} 
+                                    onChange={handleChange} 
+                                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/50" 
+                                    placeholder="https://youtube.com/..." 
+                                />
                                 <Youtube className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
                             </div>
                         </div>
                         <div className="md:col-span-2">
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-2">WhatsApp Channel/Group</label>
                             <div className="relative">
-                                <input type="url" name="whatsapp" value={data.whatsapp} onChange={handleChange} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/50" placeholder="https://wa.me/..." />
+                                <input 
+                                    type="url" 
+                                    name="whatsapp" 
+                                    value={data.whatsapp || ''} 
+                                    onChange={handleChange} 
+                                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/50" 
+                                    placeholder="https://wa.me/..." 
+                                />
                                 <MessageCircle className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
                             </div>
                         </div>
