@@ -42,7 +42,6 @@ export default function UploadAudioPage() {
         title: '',
         speaker: 'Sheikh Goni Dr. Muneer Ja\'afar',
         category: 'English', // Changed to Language
-        genre: 'Friday Sermon', // Renamed old category to genre for clarity
         series: '', 
         date: new Date().toISOString().split('T')[0],
         description: '',
@@ -97,7 +96,7 @@ export default function UploadAudioPage() {
             setDuplicateWarning(null);
             return;
         }
-        
+
         setIsChecking(true);
         try {
             const q = query(collection(db, "audios"), where("title", "==", title.trim()));
@@ -138,7 +137,7 @@ export default function UploadAudioPage() {
 
             setAudioFile(file);
             setAudioPreviewUrl(URL.createObjectURL(file)); 
-            
+
             // Auto-fill title if empty
             if (!formData.title) {
                 const autoTitle = file.name.replace(/\.[^/.]+$/, "");
@@ -158,7 +157,7 @@ export default function UploadAudioPage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!audioFile) {
             alert("Please select an audio file first.");
             return;
@@ -187,7 +186,7 @@ export default function UploadAudioPage() {
                 async () => {
                     // Upload Complete
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    
+
                     // 2. Save Metadata to Firestore
                     await addDoc(collection(db, "audios"), {
                         ...formData,
@@ -252,7 +251,6 @@ export default function UploadAudioPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
                 {/* 2. LEFT COLUMN: FILE UPLOAD ZONE */}
                 <div className="space-y-6">
 
@@ -419,21 +417,6 @@ export default function UploadAudioPage() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold text-brand-brown mb-1">Genre</label>
-                                <select 
-                                    name="genre"
-                                    value={formData.genre}
-                                    onChange={handleChange}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                                >
-                                    <option>Friday Sermon</option>
-                                    <option>Tafsir Series</option>
-                                    <option>Fiqh Class</option>
-                                    <option>General Lecture</option>
-                                    <option>Seerah</option>
-                                </select>
-                            </div>
                             <div>
                                 <label className="block text-xs font-bold text-brand-brown mb-1">Date Recorded</label>
                                 <input 
