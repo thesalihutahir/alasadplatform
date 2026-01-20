@@ -1,7 +1,11 @@
 "use client";
 
+import React, { useState, useEffect } from 'react';
 import Link from "next/link";
 import Image from "next/image";
+// Firebase
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { 
     Lock, 
     Facebook, 
@@ -14,7 +18,42 @@ import {
 
 export default function Footer() {
 
-    // Navigation Links
+    // --- Dynamic Social Links Fetching ---
+    const [socialUrls, setSocialUrls] = useState({
+        facebook: "",
+        youtube: "",
+        instagram: "",
+        telegram: "",
+        twitter: "",
+        whatsapp: ""
+    });
+
+    useEffect(() => {
+        const fetchSocials = async () => {
+            try {
+                const docRef = doc(db, "general_settings", "contact_info");
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    setSocialUrls(docSnap.data());
+                }
+            } catch (error) {
+                console.error("Error fetching footer socials:", error);
+            }
+        };
+        fetchSocials();
+    }, []);
+
+    // Map data to icons and filter out empty links
+    const socialLinks = [
+        { name: "Facebook", icon: Facebook, href: socialUrls.facebook },
+        { name: "YouTube", icon: Youtube, href: socialUrls.youtube },
+        { name: "Instagram", icon: Instagram, href: socialUrls.instagram },
+        { name: "Telegram", icon: Send, href: socialUrls.telegram },
+        { name: "X", icon: Twitter, href: socialUrls.twitter },
+        { name: "WhatsApp", icon: MessageCircle, href: socialUrls.whatsapp },
+    ].filter(link => link.href && link.href.length > 5);
+
+    // Navigation Links (Static)
     const quickLinks = [
         { name: "Home", href: "/" },
         { name: "About Us", href: "/about" },
@@ -29,15 +68,6 @@ export default function Footer() {
         { name: "Partner With Us", href: "/get-involved/partner-with-us" },
         { name: "Contact & Team", href: "/contact" },
         { name: "FAQ", href: "/faq" },
-    ];
-
-    // Social Media Data with Lucide Icons
-    const socialLinks = [
-        { name: "Facebook", icon: Facebook, href: "https://www.facebook.com/share/1D438MVXpQ/" },
-        { name: "YouTube", icon: Youtube, href: "https://youtube.com/@alasadeducation" },
-        { name: "Instagram", icon: Instagram, href: "https://www.instagram.com/alasad_education_foundation" },
-        { name: "Telegram", icon: Send, href: "https://t.me/alasadeducation" }, 
-        { name: "X", icon: Twitter, href: "https://x.com/AsadEducation" }, 
     ];
 
     return (
@@ -111,7 +141,7 @@ export default function Footer() {
                 {/* --- 3. BOTTOM BAR --- */}
                 <div className="flex flex-col md:flex-row-reverse md:justify-between md:items-center w-full gap-6">
 
-                    {/* Social Icons (Centered on Mobile, Right on Desktop) */}
+                    {/* Social Icons (Dynamic) */}
                     <div className="flex justify-center md:justify-end flex-wrap items-center gap-2"> 
                         {socialLinks.map((social) => {
                             const Icon = social.icon;
