@@ -4,203 +4,283 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 // Firebase
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, onSnapshot, deleteDoc, doc, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
-
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { 
+    ArrowLeft, 
     Plus, 
     Trash2, 
     Loader2, 
-    Target,
-    CreditCard,
-    ToggleLeft,
-    ToggleRight
+    Pencil, 
+    Wallet, 
+    Target, 
+    CheckCircle, 
+    XCircle,
+    X
 } from 'lucide-react';
 
-export default function ManageDonationsPage() {
-
+export default function DonationsManagerPage() {
     const [projects, setProjects] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isCreating, setIsCreating] = useState(false);
-
+    const [loading, setLoading] = useState(true);
+    
     // Form State
+    const [showForm, setShowForm] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [editingId, setEditingId] = useState(null); // If null, we are adding. If set, we are editing.
+
     const [formData, setFormData] = useState({
         title: '',
         description: '',
         bankName: '',
         accountNumber: '',
-        status: 'Active'
+        status: 'Active' // Active or Inactive
     });
 
     // 1. Fetch Projects
     useEffect(() => {
-        setIsLoading(true);
         const q = query(collection(db, "donation_projects"), orderBy("createdAt", "desc"));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             setProjects(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-            setIsLoading(false);
+            setLoading(false);
         });
         return () => unsubscribe();
     }, []);
 
-    // 2. Create Project
-    const handleCreate = async (e) => {
-        e.preventDefault();
-        if(!formData.title) return alert("Title is required");
+    // 2. Form Handlers
+    const resetForm = () => {
+        setFormData({ title: '', description: '', bankName: '', accountNumber: '', status: 'Active' });
+        setEditingId(null);
+        setShowForm(false);
+    };
 
-        setIsCreating(true);
+    const handleEdit = (project) => {
+        setFormData({
+            title: project.title,
+            description: project.description,
+            bankName: project.bankName || '',
+            accountNumber: project.accountNumber || '',
+            status: project.status
+        });
+        setEditingId(project.id);
+        setShowForm(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!formData.title || !formData.description) {
+            alert("Title and Description are required.");
+            return;
+        }
+
+        setIsSubmitting(true);
         try {
-            await addDoc(collection(db, "donation_projects"), {
-                ...formData,
-                createdAt: serverTimestamp()
-            });
-            setFormData({ title: '', description: '', bankName: '', accountNumber: '', status: 'Active' });
-            alert("Project added successfully!");
+            if (editingId) {
+                // Update
+                const docRef = doc(db, "donation_projects", editingId);
+                await updateDoc(docRef, {
+                    ...formData,
+                    updatedAt: serverTimestamp()
+                });
+                alert("Project updated successfully!");
+            } else {
+                // Create
+                await addDoc(collection(db, "donation_projects"), {
+                    ...formData,
+                    createdAt: serverTimestamp()
+                });
+                alert("New cause added successfully!");
+            }
+            resetForm();
         } catch (error) {
-            console.error("Error adding project:", error);
+            console.error("Error saving project:", error);
+            alert("Failed to save project.");
         } finally {
-            setIsCreating(false);
+            setIsSubmitting(false);
         }
     };
 
-    // 3. Toggle Status
-    const toggleStatus = async (id, currentStatus) => {
-        const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
-        await updateDoc(doc(db, "donation_projects", id), { status: newStatus });
+    const handleDelete = async (id) => {
+        if (confirm("Are you sure? This will remove the cause from the donation page.")) {
+            await deleteDoc(doc(db, "donation_projects", id));
+        }
     };
 
-    // 4. Delete Project
-    const handleDelete = async (id) => {
-        if (!confirm("Delete this donation project?")) return;
-        await deleteDoc(doc(db, "donation_projects", id));
+    // Toggle Status directly from card
+    const toggleStatus = async (project) => {
+        const newStatus = project.status === "Active" ? "Inactive" : "Active";
+        const docRef = doc(db, "donation_projects", project.id);
+        await updateDoc(docRef, { status: newStatus });
     };
+
+    if (loading) return <div className="p-20 flex justify-center"><Loader2 className="w-10 h-10 animate-spin text-brand-gold" /></div>;
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-            {/* LEFT: Project List */}
-            <div className="lg:col-span-2 space-y-6">
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h1 className="font-agency text-3xl text-brand-brown-dark">Donation Projects</h1>
-                        <p className="font-lato text-sm text-gray-500">Manage active causes and bank details.</p>
-                    </div>
+        <div className="max-w-6xl mx-auto pb-12">
+            
+            {/* Header */}
+            <div className="flex justify-between items-center mb-8">
+                <div>
+                    <h1 className="font-agency text-3xl text-brand-brown-dark">Donation Causes</h1>
+                    <p className="text-gray-500 text-sm">Manage the active campaigns shown on the Donate page.</p>
                 </div>
-
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    {isLoading ? (
-                        <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-brand-gold" /></div>
-                    ) : (
-                        <table className="w-full text-left">
-                            <thead className="bg-gray-50 border-b border-gray-100">
-                                <tr>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Project Name</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Bank Details</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Status</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {projects.map((p) => (
-                                    <tr key={p.id} className="group hover:bg-gray-50">
-                                        <td className="px-6 py-4">
-                                            <span className="font-bold text-brand-brown-dark block">{p.title}</span>
-                                            <span className="text-xs text-gray-400 line-clamp-1">{p.description}</span>
-                                        </td>
-                                        <td className="px-6 py-4 text-xs">
-                                            {p.accountNumber ? (
-                                                <div className="flex flex-col text-gray-600">
-                                                    <span className="font-bold">{p.bankName}</span>
-                                                    <span className="font-mono">{p.accountNumber}</span>
-                                                </div>
-                                            ) : <span className="text-gray-300 italic">None</span>}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <button onClick={() => toggleStatus(p.id, p.status)} className="flex items-center gap-1">
-                                                {p.status === 'Active' ? (
-                                                    <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Active</span>
-                                                ) : (
-                                                    <span className="bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-1 rounded-full uppercase">Inactive</span>
-                                                )}
-                                            </button>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <button onClick={() => handleDelete(p.id)} className="p-2 text-gray-400 hover:text-red-600">
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {projects.length === 0 && (
-                                    <tr><td colSpan="4" className="text-center py-12 text-gray-400">No projects added yet.</td></tr>
-                                )}
-                            </tbody>
-                        </table>
-                    )}
-                </div>
+                <button 
+                    onClick={() => {
+                        if(showForm && editingId) resetForm(); // Cancel edit mode
+                        setShowForm(!showForm);
+                    }} 
+                    className="flex items-center gap-2 px-5 py-2 bg-brand-gold text-white rounded-xl font-bold hover:bg-brand-brown-dark transition-colors shadow-md"
+                >
+                    {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                    {showForm ? "Cancel" : "Add Cause"}
+                </button>
             </div>
 
-            {/* RIGHT: Add New Form */}
-            <div>
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 sticky top-6">
-                    <h2 className="font-agency text-xl text-brand-brown-dark mb-4 flex items-center gap-2">
-                        <Plus className="w-5 h-5 text-brand-gold" /> Add New Project
+            {/* FORM (Collapsible) */}
+            {showForm && (
+                <div className="bg-white p-8 rounded-2xl shadow-lg border border-brand-gold/20 mb-10 animate-in slide-in-from-top-4">
+                    <h2 className="font-bold text-lg text-brand-brown-dark mb-6 border-b pb-2">
+                        {editingId ? "Edit Cause" : "Create New Cause"}
                     </h2>
-                    
-                    <form onSubmit={handleCreate} className="space-y-4">
-                        <div>
-                            <label className="text-xs font-bold text-gray-500 uppercase">Project Title</label>
-                            <input 
-                                type="text" 
-                                value={formData.title}
-                                onChange={(e) => setFormData({...formData, title: e.target.value})}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50 outline-none"
-                                placeholder="e.g. Orphan Support"
-                            />
-                        </div>
-                        <div>
-                            <label className="text-xs font-bold text-gray-500 uppercase">Description</label>
-                            <textarea 
-                                rows="3"
-                                value={formData.description}
-                                onChange={(e) => setFormData({...formData, description: e.target.value})}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50 outline-none resize-none"
-                                placeholder="Short description..."
-                            ></textarea>
-                        </div>
-                        
-                        <div className="pt-2 border-t border-gray-100">
-                            <label className="text-xs font-bold text-brand-brown uppercase mb-2 block flex items-center gap-1">
-                                <CreditCard className="w-3 h-3" /> Account Details (Optional)
-                            </label>
-                            <div className="grid grid-cols-2 gap-3">
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="md:col-span-2">
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Project Title *</label>
                                 <input 
                                     type="text" 
-                                    placeholder="Bank Name"
-                                    value={formData.bankName}
-                                    onChange={(e) => setFormData({...formData, bankName: e.target.value})}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                                    value={formData.title} 
+                                    onChange={(e) => setFormData({...formData, title: e.target.value})} 
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/50" 
+                                    placeholder="e.g. Ramadan Feeding Program" 
+                                    required
                                 />
+                            </div>
+                            
+                            <div className="md:col-span-2">
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Description *</label>
+                                <textarea 
+                                    rows="3"
+                                    value={formData.description} 
+                                    onChange={(e) => setFormData({...formData, description: e.target.value})} 
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/50 resize-none" 
+                                    placeholder="Short description of the cause..." 
+                                    required
+                                ></textarea>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Bank Name (Optional)</label>
                                 <input 
                                     type="text" 
-                                    placeholder="Account Number"
-                                    value={formData.accountNumber}
-                                    onChange={(e) => setFormData({...formData, accountNumber: e.target.value})}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs focus:outline-none font-mono"
+                                    value={formData.bankName} 
+                                    onChange={(e) => setFormData({...formData, bankName: e.target.value})} 
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/50" 
+                                    placeholder="e.g. Jaiz Bank" 
                                 />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Account Number (Optional)</label>
+                                <input 
+                                    type="text" 
+                                    value={formData.accountNumber} 
+                                    onChange={(e) => setFormData({...formData, accountNumber: e.target.value})} 
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/50" 
+                                    placeholder="e.g. 00345..." 
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Status</label>
+                                <select 
+                                    value={formData.status} 
+                                    onChange={(e) => setFormData({...formData, status: e.target.value})} 
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer"
+                                >
+                                    <option value="Active">Active (Visible)</option>
+                                    <option value="Inactive">Inactive (Hidden)</option>
+                                </select>
                             </div>
                         </div>
 
-                        <button 
-                            type="submit" 
-                            disabled={isCreating}
-                            className="w-full py-3 bg-brand-brown-dark text-white font-bold rounded-xl hover:bg-brand-gold transition-colors flex justify-center items-center gap-2"
-                        >
-                            {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Project'}
-                        </button>
+                        <div className="flex gap-3 pt-2">
+                            <button 
+                                type="submit" 
+                                disabled={isSubmitting}
+                                className="px-8 py-3 bg-brand-brown-dark text-white font-bold rounded-xl hover:bg-brand-gold transition-colors shadow-lg flex items-center gap-2 disabled:opacity-70"
+                            >
+                                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (editingId ? "Update Cause" : "Create Cause")}
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={resetForm}
+                                className="px-6 py-3 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </div>
                     </form>
                 </div>
-            </div>
+            )}
 
+            {/* PROJECTS LIST */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {projects.map((project) => (
+                    <div key={project.id} className={`bg-white p-6 rounded-2xl border transition-all hover:shadow-md group relative ${project.status === 'Active' ? 'border-gray-200' : 'border-gray-200 bg-gray-50 opacity-75'}`}>
+                        
+                        {/* Status Badge */}
+                        <div className="flex justify-between items-start mb-4">
+                            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${project.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
+                                {project.status === 'Active' ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                                {project.status}
+                            </div>
+                            
+                            {/* Actions */}
+                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => handleEdit(project)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
+                                    <Pencil className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => handleDelete(project.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex items-start gap-4">
+                            <div className="w-12 h-12 rounded-full bg-brand-sand/30 flex items-center justify-center text-brand-brown-dark flex-shrink-0">
+                                <Target className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h3 className="font-agency text-xl text-brand-brown-dark leading-tight mb-1">{project.title}</h3>
+                                <p className="text-sm text-gray-500 line-clamp-2 mb-3">{project.description}</p>
+                                
+                                {project.bankName && (
+                                    <div className="flex items-center gap-2 text-xs font-mono text-gray-400 bg-gray-50 px-2 py-1 rounded-md w-fit">
+                                        <Wallet className="w-3 h-3" /> 
+                                        {project.bankName}: {project.accountNumber}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Quick Toggle Button */}
+                        <button 
+                            onClick={() => toggleStatus(project)}
+                            className="w-full mt-4 py-2 text-xs font-bold text-gray-400 border border-gray-100 rounded-lg hover:bg-gray-50 hover:text-brand-brown-dark transition-colors"
+                        >
+                            {project.status === 'Active' ? "Deactivate Cause" : "Activate Cause"}
+                        </button>
+                    </div>
+                ))}
+
+                {projects.length === 0 && !showForm && (
+                    <div className="col-span-full py-16 text-center bg-white rounded-3xl border border-dashed border-gray-300">
+                        <Wallet className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                        <h3 className="text-lg font-bold text-gray-500">No active causes</h3>
+                        <p className="text-sm text-gray-400 mb-4">Create a new donation campaign to get started.</p>
+                        <button onClick={() => setShowForm(true)} className="text-brand-gold font-bold hover:underline">Create Now</button>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
