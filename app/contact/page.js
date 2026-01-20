@@ -10,7 +10,7 @@ import { useModal } from '@/context/ModalContext';
 // Firebase
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, query, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
-import { MapPin, Phone, Mail, Globe, Facebook, Youtube, Instagram, Twitter, MessageCircle, Loader2, Send, Clock } from 'lucide-react';
+import { MapPin, Phone, Mail, Globe, Facebook, Youtube, Instagram, Twitter, MessageCircle, Loader2, Send, Info } from 'lucide-react';
 
 export default function ContactPage() {
     const { showSuccess } = useModal();
@@ -27,14 +27,9 @@ export default function ContactPage() {
         address: 'Loading address...',
         email: 'Loading email...',
         phone: 'Loading phone...',
-        facebook: '', 
-        twitter: '', 
-        instagram: '', 
-        youtube: '', 
-        whatsapp: '', 
-        telegram: '', // Included Telegram
-        mapLatitude: '12.970758', // Default Fallback
-        mapLongitude: '7.636398'
+        facebook: '', twitter: '', instagram: '', youtube: '', whatsapp: '', telegram: '',
+        mapLatitude: '12.970758', // Default: Katsina
+        mapLongitude: '7.636398'  // Default: Katsina
     });
 
     // Form State
@@ -69,7 +64,6 @@ export default function ContactPage() {
                 const teamSnap = await getDocs(teamQ);
                 const allMembers = teamSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                // Separate Lead
                 const lead = allMembers.find(m => m.isLead);
                 const rest = allMembers.filter(m => m.id !== lead?.id);
 
@@ -113,25 +107,25 @@ export default function ContactPage() {
 
         } catch (error) {
             console.error("Error sending message:", error);
-            alert("Failed to send message.");
+            alert("Failed to send message. Please try again.");
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // Helper to map dynamic links to icons
+    // Helper for Socials (Including Telegram)
     const socialLinks = [
         { icon: Facebook, href: contactInfo.facebook },
         { icon: Twitter, href: contactInfo.twitter },
         { icon: Instagram, href: contactInfo.instagram },
         { icon: Youtube, href: contactInfo.youtube },
         { icon: MessageCircle, href: contactInfo.whatsapp },
-        { icon: Send, href: contactInfo.telegram }, // Telegram Added
+        { icon: Send, href: contactInfo.telegram },
     ].filter(link => link.href && link.href.length > 2); 
 
     // Dynamic Map URL
     const mapEmbedUrl = `https://maps.google.com/maps?q=${contactInfo.mapLatitude},${contactInfo.mapLongitude}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
-    return (
+return (
         <div className="min-h-screen flex flex-col bg-white font-lato">
             <Header />
 
@@ -169,58 +163,36 @@ export default function ContactPage() {
                         <div className="flex-1 space-y-8 md:space-y-10">
 
                             <div className="bg-brand-sand/30 p-8 md:p-10 rounded-3xl border border-brand-gold/10 relative overflow-hidden shadow-sm">
-                                <h2 className="font-agency text-3xl text-brand-brown-dark mb-8">
-                                    Get in Touch
-                                </h2>
+                                <h2 className="font-agency text-3xl text-brand-brown-dark mb-8">Get in Touch</h2>
                                 <div className="space-y-8">
                                     {/* Address */}
                                     <div className="flex items-start gap-5">
-                                        <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-brand-gold shadow-sm mt-1 flex-shrink-0">
-                                            <MapPin className="w-6 h-6" />
-                                        </div>
+                                        <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-brand-gold shadow-sm mt-1 flex-shrink-0"><MapPin className="w-6 h-6" /></div>
                                         <div>
                                             <p className="font-agency text-xl text-brand-brown-dark leading-none mb-2">Office Address</p>
-                                            <p className="font-lato text-base text-gray-600 leading-relaxed whitespace-pre-wrap">
-                                                {contactInfo.address}
-                                            </p>
+                                            <p className="font-lato text-base text-gray-600 leading-relaxed whitespace-pre-wrap">{contactInfo.address}</p>
                                         </div>
                                     </div>
-
                                     {/* Phone/Email */}
                                     <div className="flex items-start gap-5">
-                                        <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-brand-gold shadow-sm mt-1 flex-shrink-0">
-                                            <Phone className="w-6 h-6" />
-                                        </div>
+                                        <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-brand-gold shadow-sm mt-1 flex-shrink-0"><Phone className="w-6 h-6" /></div>
                                         <div>
                                             <p className="font-agency text-xl text-brand-brown-dark leading-none mb-2">Direct Contacts</p>
-                                            <a href={`mailto:${contactInfo.email}`} className="block font-lato text-base text-gray-600 hover:text-brand-gold transition-colors break-all mb-1">
-                                                {contactInfo.email}
-                                            </a>
-                                            <a href={`tel:${contactInfo.phone}`} className="block font-lato text-base text-gray-600 hover:text-brand-gold transition-colors">
-                                                {contactInfo.phone}
-                                            </a>
+                                            <a href={`mailto:${contactInfo.email}`} className="block font-lato text-base text-gray-600 hover:text-brand-gold transition-colors break-all mb-1">{contactInfo.email}</a>
+                                            <a href={`tel:${contactInfo.phone}`} className="block font-lato text-base text-gray-600 hover:text-brand-gold transition-colors">{contactInfo.phone}</a>
                                         </div>
                                     </div>
-
                                     {/* Socials */}
                                     {socialLinks.length > 0 && (
                                         <div className="flex items-start gap-5 pt-2">
-                                            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-brand-gold shadow-sm mt-1 flex-shrink-0">
-                                                <Globe className="w-6 h-6" />
-                                            </div>
+                                            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-brand-gold shadow-sm mt-1 flex-shrink-0"><Globe className="w-6 h-6" /></div>
                                             <div>
                                                 <p className="font-agency text-xl text-brand-brown-dark leading-none mb-4">Connect Online</p>
                                                 <div className="flex gap-3 flex-wrap">
                                                     {socialLinks.map((social, idx) => {
                                                         const Icon = social.icon;
                                                         return (
-                                                            <Link 
-                                                                key={idx} 
-                                                                href={social.href}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="w-10 h-10 rounded-full bg-brand-gold text-white flex items-center justify-center hover:bg-brand-brown-dark transition-all transform hover:scale-110 shadow-sm"
-                                                            >
+                                                            <Link key={idx} href={social.href} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-brand-gold text-white flex items-center justify-center hover:bg-brand-brown-dark transition-all transform hover:scale-110 shadow-sm">
                                                                 <Icon className="w-5 h-5" />
                                                             </Link>
                                                         );
@@ -232,18 +204,15 @@ export default function ContactPage() {
                                 </div>
                             </div>
 
-                            {/* Office Hours */}
+                            {/* Vital Information (Replaced Office Hours) */}
                             <div className="p-8 rounded-3xl border border-gray-100 bg-white shadow-lg flex items-start gap-5">
-                                <div className="w-12 h-12 rounded-full bg-brand-sand/30 text-brand-brown-dark flex items-center justify-center flex-shrink-0">
-                                    <Clock className="w-6 h-6" />
+                                <div className="w-12 h-12 rounded-full bg-brand-brown-dark text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                                    <Info className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <h2 className="font-agency text-2xl text-brand-brown-dark mb-2">
-                                        Office Hours
-                                    </h2>
-                                    <p className="font-lato text-sm text-gray-500 leading-relaxed">
-                                        We are available <strong>Mon - Fri, 9:00 AM to 5:00 PM</strong>. 
-                                        For urgent inquiries, please visit our office or call the number above.
+                                    <h2 className="font-agency text-2xl text-brand-brown-dark mb-2">Important Notice</h2>
+                                    <p className="font-lato text-sm text-gray-600 leading-relaxed">
+                                        For <strong>School Admissions</strong> or urgent <strong>Welfare Cases</strong>, we recommend visiting our administrative office directly for faster processing.
                                     </p>
                                 </div>
                             </div>
@@ -251,26 +220,13 @@ export default function ContactPage() {
 
                         {/* RIGHT: Contact Form */}
                         <div className="flex-1 bg-white rounded-3xl shadow-2xl p-8 md:p-12 border-t-8 border-brand-gold h-fit relative">
-                            <h2 className="font-agency text-3xl md:text-4xl text-brand-brown-dark mb-6">
-                                Send us a Message
-                            </h2>
+                            <h2 className="font-agency text-3xl md:text-4xl text-brand-brown-dark mb-6">Send us a Message</h2>
                             <form onSubmit={handleFormSubmit} className="space-y-6">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Full Name</label>
-                                    <input type="text" className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-brand-brown-dark focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all focus:border-brand-gold" placeholder="Enter your name" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} required />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Email Address</label>
-                                    <input type="email" className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-brand-brown-dark focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all focus:border-brand-gold" placeholder="Enter your email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
-                                </div>
+                                <div><label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Full Name</label><input type="text" className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-brand-brown-dark focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all focus:border-brand-gold" placeholder="Enter your name" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} required /></div>
+                                <div><label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Email Address</label><input type="email" className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-brand-brown-dark focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all focus:border-brand-gold" placeholder="Enter your email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required /></div>
                                 <CustomSelect label="Subject" options={subjects} value={formData.subject} onChange={(val) => setFormData({...formData, subject: val})} placeholder="Select Subject" />
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Message</label>
-                                    <textarea rows="5" className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-brand-brown-dark focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all focus:border-brand-gold resize-none" placeholder="How can we help you?" value={formData.message} onChange={(e) => setFormData({...formData, message: e.target.value})} required></textarea>
-                                </div>
-                                <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-brand-brown-dark text-white font-agency text-xl rounded-xl hover:bg-brand-gold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
-                                    {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Send Message <Send className="w-4 h-4" /></>}
-                                </button>
+                                <div><label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Message</label><textarea rows="5" className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-brand-brown-dark focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all focus:border-brand-gold resize-none" placeholder="How can we help you?" value={formData.message} onChange={(e) => setFormData({...formData, message: e.target.value})} required></textarea></div>
+                                <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-brand-brown-dark text-white font-agency text-xl rounded-xl hover:bg-brand-gold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center gap-2 disabled:opacity-70">{isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Send Message <Send className="w-4 h-4" /></>}</button>
                             </form>
                         </div>
                     </div>
@@ -281,11 +237,9 @@ export default function ContactPage() {
                     <div className="text-center mb-12 md:mb-16">
                         <h2 className="font-agency text-3xl md:text-5xl text-brand-brown-dark mb-3">Meet Our Media Team</h2>
                         <div className="w-20 h-1.5 bg-brand-gold mx-auto rounded-full mb-6"></div>
-                        <p className="font-lato text-brand-brown text-base md:text-xl max-w-2xl mx-auto">The dedicated faces behind our digital presence, ensuring the message of Al-Asad Foundation reaches the world with excellence.</p>
+                        <p className="font-lato text-brand-brown text-base md:text-xl max-w-2xl mx-auto">The dedicated faces behind our digital presence.</p>
                     </div>
-                    {loading ? (
-                        <div className="flex justify-center py-12"><Loader2 className="w-10 h-10 animate-spin text-brand-gold" /></div>
-                    ) : (
+                    {loading ? <div className="flex justify-center py-12"><Loader2 className="w-10 h-10 animate-spin text-brand-gold" /></div> : (
                         <>
                             {teamLead && (
                                 <div className="flex justify-center mb-12 md:mb-16">
@@ -311,16 +265,15 @@ export default function ContactPage() {
                                         </div>
                                     ))}
                                 </div>
-                            ) : ( !teamLead && <p className="text-center text-gray-400 italic">Team members will be listed here.</p> )}
+                            ) : (!teamLead && <p className="text-center text-gray-400 italic">Team members will be listed here.</p>)}
                         </>
                     )}
                 </section>
 
-                {/* 4. DYNAMIC MAP (Light Card Design, 16:9 Mobile) */}
-                <section className="px-6 md:px-12 lg:px-24 mb-16 md:mb-24 max-w-7xl mx-auto">
-                    <div className="bg-white p-3 md:p-4 rounded-3xl shadow-xl border border-gray-100 relative">
-                        {/* Map Container */}
-                        <div className="relative w-full aspect-video md:h-[500px] rounded-2xl overflow-hidden border border-gray-100">
+                {/* 4. DYNAMIC 16:9 MAP ON LIGHT CARD */}
+                <section className="px-6 md:px-12 lg:px-24 mb-16 max-w-7xl mx-auto">
+                    <div className="bg-white p-4 rounded-3xl shadow-xl border border-gray-100">
+                        <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-100">
                             <iframe 
                                 src={mapEmbedUrl} 
                                 width="100%" 
@@ -329,23 +282,15 @@ export default function ContactPage() {
                                 allowFullScreen="" 
                                 loading="lazy" 
                                 referrerPolicy="no-referrer-when-downgrade"
-                                className="absolute inset-0 w-full h-full"
+                                className="absolute inset-0"
                             ></iframe>
-                        </div>
-
-                        {/* Floating Label (Bottom Right for cleaner look on Map) */}
-                        <div className="absolute bottom-8 right-8 pointer-events-none hidden md:block">
-                            <div className="bg-white/95 backdrop-blur-md px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 border border-gray-100 transform hover:scale-105 transition-transform">
-                                <div className="w-3 h-3 bg-brand-gold rounded-full animate-pulse"></div>
-                                <span className="font-agency text-brand-brown-dark text-lg whitespace-nowrap">Locate us on Map</span>
+                            
+                            <div className="absolute top-6 left-1/2 -translate-x-1/2 md:left-12 md:translate-x-0 pointer-events-none">
+                                <div className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 border border-gray-100 whitespace-nowrap">
+                                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                                    <span className="font-agency text-brand-brown-dark text-lg">Locate us on Map</span>
+                                </div>
                             </div>
-                        </div>
-                        {/* Mobile Label */}
-                        <div className="mt-4 flex justify-center md:hidden">
-                             <div className="bg-gray-50 px-4 py-2 rounded-full border border-gray-200 flex items-center gap-2">
-                                <MapPin className="w-4 h-4 text-brand-gold" />
-                                <span className="font-agency text-brand-brown-dark text-base">Mani Road, Katsina</span>
-                             </div>
                         </div>
                     </div>
                 </section>
