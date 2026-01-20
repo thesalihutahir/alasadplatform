@@ -7,8 +7,10 @@ import { useRouter } from 'next/navigation';
 // Firebase
 import { db } from '@/lib/firebase';
 import { collection, addDoc, getDocs, serverTimestamp, query, orderBy, where } from 'firebase/firestore'; 
-// Global Modal Context
+// Context & Components
 import { useModal } from '@/context/ModalContext';
+import CustomSelect from '@/components/CustomSelect'; 
+import CustomDatePicker from '@/components/CustomDatePicker'; 
 
 import { 
     ArrowLeft, 
@@ -20,7 +22,9 @@ import {
     Loader2,
     Play,
     Clock,
-    AlertTriangle 
+    AlertTriangle,
+    Globe,
+    Calendar as CalendarIcon
 } from 'lucide-react';
 
 export default function AddVideoPage() {
@@ -53,7 +57,14 @@ export default function AddVideoPage() {
     const [duplicateWarning, setDuplicateWarning] = useState(null);
     const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
 
-    // Helper: Auto-Detect Arabic for Preview
+    // Constants
+    const CATEGORY_OPTIONS = [
+        { value: 'English', label: 'English' },
+        { value: 'Hausa', label: 'Hausa' },
+        { value: 'Arabic', label: 'Arabic' }
+    ];
+
+    // Helper: Auto-Detect Arabic
     const getDir = (text) => {
         if (!text) return 'ltr';
         const arabicPattern = /[\u0600-\u06FF]/;
@@ -86,7 +97,11 @@ export default function AddVideoPage() {
         if (allPlaylists.length > 0) {
             const filtered = allPlaylists.filter(p => p.category === formData.category);
             setFilteredPlaylists(filtered);
-            setFormData(prev => ({ ...prev, playlist: '' }));
+            // Reset playlist selection if current selection doesn't match new category
+            const currentPlaylistValid = filtered.some(p => p.title === formData.playlist);
+            if (!currentPlaylistValid) {
+                setFormData(prev => ({ ...prev, playlist: '' }));
+            }
         }
     }, [formData.category, allPlaylists]);
 
@@ -125,14 +140,14 @@ export default function AddVideoPage() {
         const url = e.target.value;
         setFormData(prev => ({ ...prev, url }));
         setIsPlayingPreview(false);
-        setDuplicateWarning(null); // Reset warning immediately on type
+        setDuplicateWarning(null); 
 
         const id = extractVideoId(url);
         if (id) {
             setVideoId(id);
             setThumbnail(`https://img.youtube.com/vi/${id}/hqdefault.jpg`);
             setIsValid(true);
-            checkDuplicate(id); // Trigger smart check
+            checkDuplicate(id); 
         } else {
             setVideoId(null);
             setThumbnail(null);
@@ -145,13 +160,15 @@ export default function AddVideoPage() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    // Handler for Custom Selects
+    const handleSelectChange = (name, value) => {
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Prevent submission if invalid or duplicate exists
-        if (!isValid || !videoId || duplicateWarning) {
-            return;
-        }
+        if (!isValid || !videoId || duplicateWarning) return;
 
         setIsSubmitting(true);
 
@@ -175,22 +192,21 @@ export default function AddVideoPage() {
 
         } catch (error) {
             console.error("Error saving video:", error);
-            alert("Failed to save video. Check console.");
+            alert("Failed to save video.");
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // Format Date for Preview
-    const formatDate = (dateString) => {
-        if (!dateString) return 'Date';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-    };
-return (
-        <form onSubmit={handleSubmit} className="space-y-6 max-w-5xl mx-auto pb-12">
+    // Generate Playlist Options for CustomSelect
+    const playlistOptions = filteredPlaylists.map(pl => ({
+        value: pl.title,
+        label: pl.title
+    }));
+    return (
+        <form onSubmit={handleSubmit} className="space-y-6 max-w-6xl mx-auto pb-12">
 
-            {/* 1. HEADER & ACTIONS */}
+            {/* 1. HEADER */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-0 bg-gray-50 z-20 py-4 border-b border-gray-200">
                 <div className="flex items-center gap-4">
                     <Link href="/admin/videos" className="p-2 hover:bg-gray-200 rounded-lg transition-colors">
@@ -209,7 +225,6 @@ return (
                     </Link>
                     <button 
                         type="submit" 
-                        // UPDATED: Disabled if Duplicate Warning exists
                         disabled={!isValid || isSubmitting || !!duplicateWarning}
                         className={`flex items-center gap-2 px-6 py-2.5 font-bold rounded-xl transition-colors shadow-md ${
                             isValid && !duplicateWarning 
@@ -223,18 +238,18 @@ return (
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                {/* 2. LEFT COLUMN: INPUT FIELDS */}
-                <div className="space-y-6">
+                {/* 2. LEFT COLUMN: INPUTS */}
+                <div className="lg:col-span-2 space-y-6">
 
-                    {/* YouTube URL Input & DUPLICATE CHECKER */}
+                    {/* YouTube URL Input & Validation */}
                     <div className={`p-6 rounded-2xl shadow-sm border transition-colors ${
                         duplicateWarning ? 'bg-orange-50 border-orange-200' : 
                         isValid ? 'bg-green-50 border-green-200' : 'bg-white border-gray-100'
                     }`}>
                         <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                            YouTube Link
+                            YouTube Link <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
                             <Youtube className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${isValid ? 'text-red-600' : 'text-gray-400'}`} />
@@ -255,7 +270,7 @@ return (
                             </p>
                         </div>
 
-                        {/* SMART DUPLICATE ALERT */}
+                        {/* Duplicate Alert */}
                         {duplicateWarning && (
                             <div className="mt-3 flex items-start gap-2 text-xs font-bold text-orange-700 bg-orange-100 p-2 rounded-lg border border-orange-200 animate-in fade-in slide-in-from-top-1">
                                 <AlertTriangle className="w-4 h-4 flex-shrink-0" />
@@ -264,108 +279,91 @@ return (
                         )}
                     </div>
 
-                    {/* Video Details */}
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                    {/* Details Form */}
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-5">
                         <h3 className="font-agency text-xl text-brand-brown-dark border-b border-gray-100 pb-2">Video Details</h3>
 
-                        {/* Category & Date Row */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold text-brand-brown mb-1">Category (Language)</label>
-                                <select 
-                                    name="category"
-                                    value={formData.category}
-                                    onChange={handleChange}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                                >
-                                    <option>English</option>
-                                    <option>Hausa</option>
-                                    <option>Arabic</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-brand-brown mb-1">Date Recorded</label>
-                                <input 
-                                    type="date" 
-                                    name="date"
-                                    value={formData.date}
-                                    onChange={handleChange}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                                />
-                            </div>
-                        </div>
-
+                        {/* Title */}
                         <div>
-                            <label className="block text-xs font-bold text-brand-brown mb-1">Video Title</label>
+                            <label className="block text-xs font-bold text-brand-brown mb-2">Video Title</label>
                             <input 
                                 type="text" 
                                 name="title"
                                 value={formData.title}
                                 onChange={handleChange}
                                 placeholder="Enter video title" 
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                                dir={getDir(formData.title)} // Auto-RTL Input
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
+                                dir={getDir(formData.title)}
                             />
                         </div>
 
-                        {/* Playlist Selection */}
-                        <div className="bg-brand-sand/20 p-4 rounded-xl border border-brand-gold/20">
-                            <label className="flex items-center gap-2 text-xs font-bold text-brand-brown-dark uppercase tracking-wider mb-2">
-                                <ListVideo className="w-4 h-4" /> Add to Series / Playlist
-                            </label>
-                            <select 
-                                name="playlist"
-                                value={formData.playlist}
-                                onChange={handleChange}
-                                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer"
-                            >
-                                <option value="">Select a Playlist (Optional)</option>
-                                {isLoadingPlaylists ? (
-                                    <option disabled>Loading playlists...</option>
-                                ) : (
-                                    filteredPlaylists.length > 0 ? (
-                                        filteredPlaylists.map(pl => (
-                                            <option key={pl.id} value={pl.title}>{pl.title}</option>
-                                        ))
-                                    ) : (
-                                        <option disabled>No playlists found for {formData.category}</option>
-                                    )
-                                )}
-                            </select>
-                            <p className="text-[10px] text-gray-500 mt-1">
-                                Only playlists matching the selected category ({formData.category}) are shown.
-                            </p>
-                        </div>
-
+                        {/* Description */}
                         <div>
-                            <label className="block text-xs font-bold text-brand-brown mb-1">Short Description</label>
+                            <label className="block text-xs font-bold text-brand-brown mb-2">Short Description</label>
                             <textarea 
                                 name="description"
                                 value={formData.description}
                                 onChange={handleChange}
                                 rows="3"
                                 placeholder="Briefly describe what this video is about..." 
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                                dir={getDir(formData.description)} // Auto-RTL Input
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
+                                dir={getDir(formData.description)}
                             ></textarea>
                         </div>
                     </div>
-
                 </div>
 
-                {/* 3. RIGHT COLUMN: LIVE PREVIEW */}
+                {/* 3. RIGHT COLUMN: META & PREVIEW */}
                 <div className="space-y-6">
+                    
+                    {/* Meta Controls */}
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+                        <h3 className="font-agency text-xl text-brand-brown-dark border-b border-gray-100 pb-2">Classification</h3>
+                        
+                        <CustomSelect 
+                            label="Category (Language)"
+                            options={CATEGORY_OPTIONS}
+                            value={formData.category}
+                            onChange={(val) => handleSelectChange('category', val)}
+                            icon={Globe}
+                            placeholder="Select Language"
+                        />
+
+                        <CustomDatePicker 
+                            label="Date Recorded"
+                            value={formData.date}
+                            onChange={(val) => handleSelectChange('date', val)}
+                            icon={CalendarIcon}
+                        />
+
+                        <div className="pt-2 border-t border-gray-100">
+                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Playlist (Optional)</label>
+                            {isLoadingPlaylists ? (
+                                <div className="p-3 text-xs text-gray-400 text-center bg-gray-50 rounded-xl">Loading playlists...</div>
+                            ) : (
+                                <CustomSelect 
+                                    options={playlistOptions}
+                                    value={formData.playlist}
+                                    onChange={(val) => handleSelectChange('playlist', val)}
+                                    icon={ListVideo}
+                                    placeholder={playlistOptions.length > 0 ? "Select Playlist" : "No playlists found"}
+                                />
+                            )}
+                            <p className="text-[10px] text-gray-400 mt-2 text-center">
+                                Showing playlists for: <span className="font-bold text-brand-gold">{formData.category}</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Preview */}
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 sticky top-24">
                         <h3 className="font-agency text-xl text-brand-brown-dark mb-4 flex items-center gap-2">
                             <PlayCircle className="w-5 h-5 text-brand-gold" />
                             Live Preview
                         </h3>
 
-                        {/* Preview Card */}
-                        <div className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100 transform transition-all hover:scale-[1.02]">
-
-                            {/* Thumbnail / Video Area */}
-                            <div className="relative w-full aspect-video bg-black group">
+                        <div className="bg-black rounded-xl overflow-hidden shadow-lg border border-gray-800 transform transition-all hover:scale-[1.02]">
+                            <div className="relative w-full aspect-video group">
                                 {isValid && videoId ? (
                                     isPlayingPreview ? (
                                         <iframe 
@@ -403,52 +401,11 @@ return (
                                     </div>
                                 )}
                             </div>
-
-                            {/* Info Area - RTL ENABLED */}
-                            <div className="p-5" dir={getDir(formData.title)}>
-                                <div className="flex justify-between items-start mb-2" dir="ltr">
-                                    <div className="flex gap-2">
-                                        <span className="text-[10px] font-bold text-brand-brown-dark bg-brand-sand px-2 py-1 rounded uppercase tracking-wider">
-                                            {formData.category}
-                                        </span>
-                                        {formData.playlist && (
-                                            <span className="text-[10px] font-bold text-brand-gold border border-brand-gold/30 px-2 py-1 rounded uppercase tracking-wider">
-                                                Series
-                                            </span>
-                                        )}
-                                    </div>
-                                    <span className="text-[10px] text-gray-400 font-lato">
-                                        {formatDate(formData.date)}
-                                    </span>
-                                </div>
-
-                                <h3 className={`font-agency text-xl text-brand-brown-dark mb-2 leading-tight ${getDir(formData.title) === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
-                                    {formData.title || "Video Title Placeholder"}
-                                </h3>
-
-                                {formData.playlist && (
-                                    <p className="text-xs text-brand-gold font-bold uppercase tracking-wide mb-2" dir="ltr">
-                                        Part of: {formData.playlist}
-                                    </p>
-                                )}
-
-                                <p className={`text-sm text-brand-brown line-clamp-2 opacity-80 ${getDir(formData.description) === 'rtl' ? 'font-arabic' : 'font-lato'}`}>
-                                    {formData.description || "The description you enter will appear here, giving users a quick summary of the lecture content."}
-                                </p>
-                            </div>
                         </div>
-
-                        {isValid && !isPlayingPreview && (
-                            <p className="text-xs text-center text-gray-400 mt-4">
-                                Click the thumbnail to test video playback
-                            </p>
-                        )}
-
                     </div>
+
                 </div>
-
             </div>
-
         </form>
     );
 }
