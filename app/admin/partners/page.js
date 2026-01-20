@@ -14,7 +14,8 @@ import {
     User,
     Mail,
     Building2,
-    Briefcase
+    Briefcase,
+    Filter
 } from 'lucide-react';
 
 export default function ManagePartnersPage() {
@@ -22,12 +23,14 @@ export default function ManagePartnersPage() {
     const [partners, setPartners] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('All'); 
+    const [searchTerm, setSearchTerm] = useState('');
 
     // 1. Fetch Partners (Real-time)
     useEffect(() => {
         setIsLoading(true);
+        // Ensure "partners" collection matches public page submission
         const q = query(collection(db, "partners"), orderBy("submittedAt", "desc"));
-        
+
         const unsubscribe = onSnapshot(q, (snapshot) => {
             setPartners(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
             setIsLoading(false);
@@ -47,11 +50,11 @@ export default function ManagePartnersPage() {
             let body = "";
 
             if (newStatus === 'Contacted') {
-                subject = `Partnership Inquiry - Al-Asad Foundation`;
-                body = `Dear ${partner.contactPerson},%0D%0A%0D%0AThank you for your interest in partnering with Al-Asad Foundation. We have received your inquiry regarding ${partner.type} and would like to schedule a meeting to discuss further.%0D%0A%0D%0ABest regards,`;
+                subject = `Partnership Inquiry: ${partner.type} - Al-Asad Foundation`;
+                body = `Dear ${partner.contactPerson},%0D%0A%0D%0AThank you for reaching out to Al-Asad Foundation regarding a potential partnership in "${partner.type}".%0D%0A%0D%0AWe have reviewed your proposal from ${partner.organization} and would like to schedule a brief meeting to discuss how we can collaborate effectively.%0D%0A%0D%0APlease let us know your availability.%0D%0A%0D%0ABest regards,%0D%0APartnerships Team`;
             } else if (newStatus === 'Partnered') {
-                subject = `Welcome Aboard - Al-Asad Foundation Partnership`;
-                body = `Dear ${partner.contactPerson},%0D%0A%0D%0AWe are thrilled to officially welcome ${partner.organization} as a partner. We look forward to a fruitful collaboration.%0D%0A%0D%0ABest regards,`;
+                subject = `Official Partnership Welcome - Al-Asad Foundation`;
+                body = `Dear ${partner.contactPerson},%0D%0A%0D%0AWe are thrilled to officially welcome ${partner.organization} as a partner of Al-Asad Foundation!%0D%0A%0D%0AWe look forward to a fruitful collaboration that drives meaningful impact.%0D%0A%0D%0ABest regards,%0D%0AAl-Asad Education Foundation`;
             }
 
             // Open Email Client
@@ -76,20 +79,24 @@ export default function ManagePartnersPage() {
         }
     };
 
-    // Filter Logic
-    const filteredPartners = statusFilter === 'All' 
-        ? partners 
-        : partners.filter(p => p.status === statusFilter);
+    // 4. Robust Filtering Logic
+    const filteredPartners = partners.filter(p => {
+        const matchesStatus = statusFilter === 'All' || p.status === statusFilter;
+        const matchesSearch = p.organization?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                              p.contactPerson?.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchesStatus && matchesSearch;
+    });
 
-    // Helper: Format Date
+    // Helper: Safe Date Formatting
     const formatDate = (timestamp) => {
         if (!timestamp) return 'N/A';
+        // Handle Firestore Timestamp or standard Date object
         const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
         return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-7xl mx-auto pb-12">
 
             {/* 1. HEADER */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -97,13 +104,13 @@ export default function ManagePartnersPage() {
                     <h1 className="font-agency text-3xl text-brand-brown-dark">Partnership Inquiries</h1>
                     <p className="font-lato text-sm text-gray-500">Manage collaboration requests from organizations.</p>
                 </div>
-                
+
                 <div className="flex gap-2">
-                    <div className="bg-white border border-gray-100 px-4 py-2 rounded-xl text-center shadow-sm">
+                    <div className="bg-white border border-gray-100 px-4 py-2 rounded-xl text-center shadow-sm min-w-[80px]">
                         <span className="block text-lg font-bold text-brand-gold">{partners.length}</span>
                         <span className="text-[10px] text-gray-400 uppercase tracking-wider">Total</span>
                     </div>
-                    <div className="bg-white border border-gray-100 px-4 py-2 rounded-xl text-center shadow-sm">
+                    <div className="bg-white border border-gray-100 px-4 py-2 rounded-xl text-center shadow-sm min-w-[80px]">
                         <span className="block text-lg font-bold text-blue-600">
                             {partners.filter(p => p.status === 'New').length}
                         </span>
@@ -112,14 +119,16 @@ export default function ManagePartnersPage() {
                 </div>
             </div>
 
-            {/* 2. FILTERS */}
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-2 rounded-xl border border-gray-100 shadow-sm">
-                <div className="flex bg-gray-100 p-1 rounded-lg">
+            {/* 2. FILTERS & SEARCH */}
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
+                
+                {/* Status Tabs */}
+                <div className="flex bg-gray-50 p-1 rounded-xl w-full md:w-auto overflow-x-auto">
                     {['All', 'New', 'Contacted', 'Partnered'].map(status => (
                         <button 
                             key={status}
                             onClick={() => setStatusFilter(status)}
-                            className={`px-6 py-2 rounded-md text-sm font-bold transition-all ${
+                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                                 statusFilter === status 
                                 ? 'bg-white text-brand-brown-dark shadow-sm' 
                                 : 'text-gray-500 hover:text-brand-brown-dark'
@@ -129,21 +138,29 @@ export default function ManagePartnersPage() {
                         </button>
                     ))}
                 </div>
+
+                {/* Search Bar */}
                 <div className="relative w-full md:w-auto md:min-w-[300px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input type="text" placeholder="Search organization..." className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50" />
+                    <input 
+                        type="text" 
+                        placeholder="Search organization or contact person..." 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50" 
+                    />
                 </div>
             </div>
 
             {/* 3. CONTENT LIST */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[300px]">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px]">
                 {isLoading ? (
                     <div className="flex items-center justify-center h-64">
                         <Loader2 className="w-8 h-8 text-brand-gold animate-spin" />
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left">
+                        <table className="w-full text-left whitespace-nowrap">
                             <thead className="bg-gray-50 border-b border-gray-100">
                                 <tr>
                                     <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Organization</th>
@@ -156,20 +173,20 @@ export default function ManagePartnersPage() {
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {filteredPartners.length === 0 ? (
-                                    <tr><td colSpan="6" className="px-6 py-12 text-center text-gray-400">No inquiries found.</td></tr>
+                                    <tr><td colSpan="6" className="px-6 py-20 text-center text-gray-400 font-medium">No inquiries found matching your filters.</td></tr>
                                 ) : (
                                     filteredPartners.map((p) => (
                                         <tr key={p.id} className="hover:bg-gray-50 transition-colors group">
-                                            
+
                                             {/* Organization */}
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-brand-sand/50 rounded-full flex items-center justify-center text-brand-brown-dark flex-shrink-0">
+                                                    <div className="w-10 h-10 bg-brand-sand/30 rounded-full flex items-center justify-center text-brand-brown-dark flex-shrink-0">
                                                         <Building2 className="w-5 h-5" />
                                                     </div>
                                                     <div>
-                                                        <span className="font-bold text-brand-brown-dark block">{p.organization}</span>
-                                                        <span className="text-xs text-gray-400 line-clamp-1 max-w-[200px]" title={p.message}>{p.message}</span>
+                                                        <span className="font-bold text-brand-brown-dark block text-sm">{p.organization}</span>
+                                                        <span className="text-xs text-gray-400 line-clamp-1 max-w-[180px] overflow-hidden text-ellipsis" title={p.message}>{p.message}</span>
                                                     </div>
                                                 </div>
                                             </td>
@@ -177,10 +194,10 @@ export default function ManagePartnersPage() {
                                             {/* Contact Person */}
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-bold text-gray-600 flex items-center gap-1">
-                                                        <User className="w-3 h-3" /> {p.contactPerson}
+                                                    <span className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
+                                                        <User className="w-3 h-3 text-gray-400" /> {p.contactPerson}
                                                     </span>
-                                                    <a href={`mailto:${p.email}`} className="text-xs text-brand-gold hover:underline flex items-center gap-1 mt-1">
+                                                    <a href={`mailto:${p.email}`} className="text-xs text-brand-gold hover:underline flex items-center gap-1.5 mt-1">
                                                         <Mail className="w-3 h-3" /> {p.email}
                                                     </a>
                                                 </div>
@@ -188,17 +205,17 @@ export default function ManagePartnersPage() {
 
                                             {/* Type */}
                                             <td className="px-6 py-4">
-                                                <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-200">
-                                                    <Briefcase className="w-3 h-3" /> {p.type}
+                                                <span className="inline-flex items-center gap-1.5 text-xs text-gray-600 bg-gray-100 px-2.5 py-1 rounded-md border border-gray-200">
+                                                    <Briefcase className="w-3 h-3 text-gray-400" /> {p.type}
                                                 </span>
                                             </td>
 
                                             {/* Status Badge */}
                                             <td className="px-6 py-4">
-                                                <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
-                                                    p.status === 'Partnered' ? 'bg-green-100 text-green-700' :
-                                                    p.status === 'Contacted' ? 'bg-blue-100 text-blue-700' :
-                                                    'bg-orange-100 text-orange-700'
+                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border ${
+                                                    p.status === 'Partnered' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                    p.status === 'Contacted' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                    'bg-orange-50 text-orange-700 border-orange-200'
                                                 }`}>
                                                     <span className={`w-1.5 h-1.5 rounded-full ${
                                                         p.status === 'Partnered' ? 'bg-green-500' :
@@ -210,15 +227,15 @@ export default function ManagePartnersPage() {
                                             </td>
 
                                             {/* Date */}
-                                            <td className="px-6 py-4 text-xs text-gray-400">{formatDate(p.submittedAt)}</td>
+                                            <td className="px-6 py-4 text-xs text-gray-500 font-mono">{formatDate(p.submittedAt)}</td>
 
                                             {/* Actions */}
                                             <td className="px-6 py-4 text-right">
-                                                <div className="flex justify-end gap-2">
+                                                <div className="flex justify-end gap-1">
                                                     {p.status === 'New' && (
                                                         <button 
                                                             onClick={() => handleStatusUpdate(p, 'Contacted')} 
-                                                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-100"
                                                             title="Mark Contacted & Email"
                                                         >
                                                             <MessageCircle className="w-4 h-4" />
@@ -227,7 +244,7 @@ export default function ManagePartnersPage() {
                                                     {p.status !== 'Partnered' && (
                                                         <button 
                                                             onClick={() => handleStatusUpdate(p, 'Partnered')} 
-                                                            className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                                            className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-transparent hover:border-green-100"
                                                             title="Mark as Partner"
                                                         >
                                                             <CheckCircle className="w-4 h-4" />
@@ -235,8 +252,8 @@ export default function ManagePartnersPage() {
                                                     )}
                                                     <button 
                                                         onClick={() => handleDelete(p.id)}
-                                                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                        title="Delete"
+                                                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                                                        title="Delete Inquiry"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>
