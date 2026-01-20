@@ -7,8 +7,10 @@ import { useRouter } from 'next/navigation';
 import { db, storage } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, query, orderBy, getDocs, where } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-// Global Modal
+// Global Modal & Components
 import { useModal } from '@/context/ModalContext';
+import CustomSelect from '@/components/CustomSelect'; 
+import CustomDatePicker from '@/components/CustomDatePicker'; 
 
 import { 
     ArrowLeft, 
@@ -18,7 +20,10 @@ import {
     Loader2, 
     Trash2, 
     ListMusic,
-    AlertTriangle
+    AlertTriangle,
+    Globe,
+    User,
+    Calendar as CalendarIcon
 } from 'lucide-react';
 
 export default function UploadAudioPage() {
@@ -41,7 +46,7 @@ export default function UploadAudioPage() {
     const [formData, setFormData] = useState({
         title: '',
         speaker: 'Sheikh Goni Dr. Muneer Ja\'afar',
-        category: 'English', // Changed to Language
+        category: 'English', 
         series: '', 
         date: new Date().toISOString().split('T')[0],
         description: '',
@@ -50,6 +55,13 @@ export default function UploadAudioPage() {
     // File State
     const [audioFile, setAudioFile] = useState(null);
     const [audioPreviewUrl, setAudioPreviewUrl] = useState(null);
+
+    // Constants
+    const CATEGORY_OPTIONS = [
+        { value: 'English', label: 'English' },
+        { value: 'Hausa', label: 'Hausa' },
+        { value: 'Arabic', label: 'Arabic' }
+    ];
 
     // Helper: Auto-Detect Arabic
     const getDir = (text) => {
@@ -86,7 +98,12 @@ export default function UploadAudioPage() {
         if (allSeries.length > 0) {
             const filtered = allSeries.filter(s => s.category === formData.category);
             setFilteredSeries(filtered);
-            setFormData(prev => ({ ...prev, series: '' })); // Reset series selection
+            
+            // Reset series selection if current series doesn't match new category
+            const currentSeriesValid = filtered.some(s => s.title === formData.series);
+            if (!currentSeriesValid) {
+                setFormData(prev => ({ ...prev, series: '' }));
+            }
         }
     }, [formData.category, allSeries]);
 
@@ -121,6 +138,11 @@ export default function UploadAudioPage() {
         if (name === 'title') {
             checkDuplicateTitle(value);
         }
+    };
+
+    // Custom Select Handler
+    const handleSelectChange = (name, value) => {
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleFileChange = (e) => {
@@ -215,6 +237,11 @@ export default function UploadAudioPage() {
         }
     };
 
+    // Generate Options for Series Select
+    const seriesOptions = filteredSeries.map(s => ({
+        value: s.title,
+        label: s.title
+    }));
     return (
         <form onSubmit={handleSubmit} className="space-y-6 max-w-5xl mx-auto pb-12">
 
@@ -251,6 +278,7 @@ export default function UploadAudioPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                
                 {/* 2. LEFT COLUMN: FILE UPLOAD ZONE */}
                 <div className="space-y-6">
 
@@ -361,73 +389,55 @@ export default function UploadAudioPage() {
                         </div>
 
                         {/* Category (Language) */}
-                        <div>
-                            <label className="block text-xs font-bold text-brand-brown mb-1">Category (Language)</label>
-                            <select 
-                                name="category"
-                                value={formData.category}
-                                onChange={handleChange}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                            >
-                                <option>English</option>
-                                <option>Hausa</option>
-                                <option>Arabic</option>
-                            </select>
-                        </div>
+                        <CustomSelect 
+                            label="Category (Language)"
+                            options={CATEGORY_OPTIONS}
+                            value={formData.category}
+                            onChange={(val) => handleSelectChange('category', val)}
+                            icon={Globe}
+                            placeholder="Select Language"
+                        />
 
                         {/* Series Selection (Dynamic Filter) */}
-                        <div className="bg-brand-sand/20 p-4 rounded-xl border border-brand-gold/20">
-                            <label className="flex items-center gap-2 text-xs font-bold text-brand-brown-dark uppercase tracking-wider mb-2">
-                                <ListMusic className="w-4 h-4" /> Add to Series (Playlist)
-                            </label>
-                            <select 
-                                name="series"
-                                value={formData.series}
-                                onChange={handleChange}
-                                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer"
-                            >
-                                <option value="">Select a Series (Optional)</option>
-                                {isLoadingSeries ? (
-                                    <option disabled>Loading...</option>
-                                ) : (
-                                    filteredSeries.length > 0 ? (
-                                        filteredSeries.map(s => (
-                                            <option key={s.id} value={s.title}>{s.title}</option>
-                                        ))
-                                    ) : (
-                                        <option disabled>No series found for {formData.category}</option>
-                                    )
-                                )}
-                            </select>
-                            <p className="text-[10px] text-gray-500 mt-1">
-                                Group this track with others (e.g., "Tafsir Part 1" goes into "Tafsir Series").
+                        <div className="pt-2 border-t border-gray-100">
+                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Series / Playlist (Optional)</label>
+                            {isLoadingSeries ? (
+                                <div className="p-3 text-xs text-gray-400 text-center bg-gray-50 rounded-xl">Loading series...</div>
+                            ) : (
+                                <CustomSelect 
+                                    options={seriesOptions}
+                                    value={formData.series}
+                                    onChange={(val) => handleSelectChange('series', val)}
+                                    icon={ListMusic}
+                                    placeholder={seriesOptions.length > 0 ? "Select Series" : "No series found"}
+                                />
+                            )}
+                            <p className="text-[10px] text-gray-400 mt-2 text-center">
+                                Showing series for: <span className="font-bold text-brand-gold">{formData.category}</span>
                             </p>
                         </div>
 
                         {/* Speaker */}
                         <div>
                             <label className="block text-xs font-bold text-brand-brown mb-1">Speaker / Author</label>
-                            <input 
-                                type="text" 
-                                name="speaker"
-                                value={formData.speaker}
-                                onChange={handleChange}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold text-brand-brown mb-1">Date Recorded</label>
+                            <div className="relative">
                                 <input 
-                                    type="date" 
-                                    name="date"
-                                    value={formData.date}
+                                    type="text" 
+                                    name="speaker"
+                                    value={formData.speaker}
                                     onChange={handleChange}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
+                                    className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
                                 />
+                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                             </div>
                         </div>
+
+                        <CustomDatePicker 
+                            label="Date Recorded"
+                            value={formData.date}
+                            onChange={(val) => handleSelectChange('date', val)}
+                            icon={CalendarIcon}
+                        />
 
                         <div>
                             <label className="block text-xs font-bold text-brand-brown mb-1">Description (Optional)</label>
