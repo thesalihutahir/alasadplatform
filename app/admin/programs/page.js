@@ -18,7 +18,13 @@ import {
     Users, 
     Target, 
     Loader2, 
-    AlertTriangle
+    AlertTriangle,
+    X,
+    Eye,
+    Calendar,
+    MapPin,
+    FileText,
+    Layers
 } from 'lucide-react';
 
 export default function ManageProgramsPage() {
@@ -31,7 +37,8 @@ export default function ManageProgramsPage() {
     const [pillarFilter, setPillarFilter] = useState('All'); 
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Modal State for Delete
+    // Modal States
+    const [viewProgram, setViewProgram] = useState(null); // For View Details
     const [deleteConfig, setDeleteConfig] = useState(null); // { id: string }
     const [isDeleting, setIsDeleting] = useState(false);
 
@@ -64,6 +71,7 @@ export default function ManageProgramsPage() {
             await deleteDoc(doc(db, "programs", deleteConfig.id));
             showSuccess({ title: "Deleted", message: "Program has been removed successfully." });
             setDeleteConfig(null);
+            if (viewProgram) setViewProgram(null); // Close view modal if deleted from there
         } catch (error) {
             console.error("Error deleting program:", error);
             alert("Failed to delete program.");
@@ -80,6 +88,12 @@ export default function ManageProgramsPage() {
         return matchesStatus && matchesPillar && matchesSearch;
     });
 
+    // Format Date Helper
+    const formatDate = (timestamp) => {
+        if (!timestamp) return 'N/A';
+        const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
+        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    };
     return (
         <div className="space-y-6 max-w-7xl mx-auto pb-12 relative">
 
@@ -94,7 +108,6 @@ export default function ManageProgramsPage() {
                         <span className="block text-lg font-bold text-brand-gold">{programs.length}</span>
                         <span className="text-[10px] text-gray-400 uppercase tracking-wider">Total</span>
                     </div>
-                    {/* UPDATED CREATE PATH */}
                     <Link 
                         href="/admin/programs/new" 
                         className="flex items-center gap-2 px-5 py-2 bg-brand-gold text-white rounded-xl text-sm font-bold hover:bg-brand-brown-dark transition-colors shadow-md"
@@ -164,7 +177,11 @@ export default function ManageProgramsPage() {
                                     <tr><td colSpan="4" className="px-6 py-20 text-center text-gray-400">No programs found.</td></tr>
                                 ) : (
                                     filteredPrograms.map((program) => (
-                                        <tr key={program.id} className="hover:bg-gray-50 transition-colors group">
+                                        <tr 
+                                            key={program.id} 
+                                            className="hover:bg-gray-50 transition-colors group cursor-pointer"
+                                            onClick={() => setViewProgram(program)}
+                                        >
 
                                             {/* Program Info */}
                                             <td className="px-6 py-4 max-w-sm">
@@ -216,9 +233,11 @@ export default function ManageProgramsPage() {
                                             </td>
 
                                             {/* Actions */}
-                                            <td className="px-6 py-4 text-right">
+                                            <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                                                 <div className="flex justify-end gap-2">
-                                                    {/* UPDATED EDIT PATH */}
+                                                    <button onClick={() => setViewProgram(program)} className="p-2 text-gray-400 hover:text-brand-brown-dark hover:bg-gray-100 rounded-lg transition-colors" title="View Details">
+                                                        <Eye className="w-4 h-4" />
+                                                    </button>
                                                     <Link href={`/admin/programs/edit/${program.id}`}>
                                                         <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
                                                             <Edit className="w-4 h-4" />
@@ -242,6 +261,69 @@ export default function ManageProgramsPage() {
                     </div>
                 )}
             </div>
+
+            {/* --- VIEW DETAILS MODAL --- */}
+            {viewProgram && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                        {/* Header */}
+                        <div className="bg-brand-brown-dark px-6 py-4 flex justify-between items-center text-white flex-shrink-0">
+                            <h3 className="font-agency text-xl">Program Details</h3>
+                            <button onClick={() => setViewProgram(null)} className="p-1 hover:bg-white/10 rounded-full transition-colors"><X className="w-5 h-5" /></button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-0 overflow-y-auto">
+                            {/* Cover Image */}
+                            <div className="relative w-full aspect-video bg-gray-100">
+                                <Image src={viewProgram.coverImage || "/fallback.webp"} alt={viewProgram.title} fill className="object-cover" />
+                                <div className="absolute top-4 left-4">
+                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase shadow-md ${
+                                        viewProgram.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-white text-gray-700'
+                                    }`}>
+                                        <span className={`w-2 h-2 rounded-full ${viewProgram.status === 'Active' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                                        {viewProgram.status}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="p-6 space-y-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-brand-brown-dark mb-2">{viewProgram.title}</h2>
+                                    <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                                        <div className="flex items-center gap-1"><Layers className="w-4 h-4 text-brand-gold" /> {viewProgram.category}</div>
+                                        <div className="flex items-center gap-1"><MapPin className="w-4 h-4 text-brand-gold" /> {viewProgram.location || "N/A"}</div>
+                                        <div className="flex items-center gap-1"><Users className="w-4 h-4 text-brand-gold" /> {viewProgram.beneficiaries || "N/A"}</div>
+                                        <div className="flex items-center gap-1"><Calendar className="w-4 h-4 text-brand-gold" /> Created: {formatDate(viewProgram.createdAt)}</div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Short Summary</h4>
+                                    <p className="text-sm text-gray-600 leading-relaxed italic">{viewProgram.excerpt}</p>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-2"><FileText className="w-4 h-4"/> Full Description</h4>
+                                    <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                                        {viewProgram.content}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex justify-end gap-3 flex-shrink-0">
+                            <button onClick={() => confirmDelete(viewProgram.id)} className="px-4 py-2 text-red-600 font-bold text-sm hover:bg-red-50 rounded-lg transition-colors">Delete Program</button>
+                            <Link href={`/admin/programs/edit/${viewProgram.id}`}>
+                                <button className="px-6 py-2 bg-brand-gold text-white font-bold text-sm rounded-lg hover:bg-brand-brown-dark transition-colors shadow-sm">
+                                    Edit Program
+                                </button>
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* --- DELETE CONFIRMATION MODAL --- */}
             {deleteConfig && (
