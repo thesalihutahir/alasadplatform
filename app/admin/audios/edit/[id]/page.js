@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 // Firebase
 import { db, storage } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, query, orderBy, getDocs, where } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-// Global Modal
+// Global Modal & Components
 import { useModal } from '@/context/ModalContext';
+import CustomSelect from '@/components/CustomSelect'; 
+import CustomDatePicker from '@/components/CustomDatePicker'; 
 
 import { 
     ArrowLeft, 
@@ -17,9 +19,12 @@ import {
     CheckCircle, 
     Loader2, 
     FileAudio, 
-    X,
-    ListMusic,
-    AlertTriangle
+    X, 
+    ListMusic, 
+    AlertTriangle,
+    Globe,
+    User,
+    Calendar as CalendarIcon
 } from 'lucide-react';
 
 export default function EditAudioPage() {
@@ -35,6 +40,7 @@ export default function EditAudioPage() {
     // Duplicate Check State
     const [duplicateWarning, setDuplicateWarning] = useState(null);
     const [isChecking, setIsChecking] = useState(false);
+    const [originalTitle, setOriginalTitle] = useState('');
 
     // Data State
     const [allSeries, setAllSeries] = useState([]);
@@ -43,16 +49,23 @@ export default function EditAudioPage() {
     const [formData, setFormData] = useState({
         title: '',
         speaker: '',
-        category: 'English', // Language
+        category: 'English', 
         series: '', 
         date: new Date().toISOString().split('T')[0],
         description: '',
     });
 
     // File State
-    const [audioFile, setAudioFile] = useState(null); // New file to upload
-    const [existingAudioUrl, setExistingAudioUrl] = useState(null); // Current file URL
+    const [audioFile, setAudioFile] = useState(null); 
+    const [existingAudioUrl, setExistingAudioUrl] = useState(null); 
     const [existingFileName, setExistingFileName] = useState('');
+
+    // Constants
+    const CATEGORY_OPTIONS = [
+        { value: 'English', label: 'English' },
+        { value: 'Hausa', label: 'Hausa' },
+        { value: 'Arabic', label: 'Arabic' }
+    ];
 
     // Helper: Auto-Detect Arabic
     const getDir = (text) => {
@@ -87,6 +100,7 @@ export default function EditAudioPage() {
                         date: data.date || new Date().toISOString().split('T')[0],
                         description: data.description || '',
                     });
+                    setOriginalTitle(data.title);
 
                     // Set initial filter based on loaded category
                     const initialFiltered = seriesData.filter(s => s.category === (data.category || 'English'));
@@ -117,14 +131,46 @@ export default function EditAudioPage() {
         }
     }, [formData.category, allSeries]);
 
+    // Check Duplicate Title (Excluding self)
+    const checkDuplicateTitle = async (title) => {
+        if (!title.trim() || title.trim() === originalTitle) {
+            setDuplicateWarning(null);
+            return;
+        }
+
+        setIsChecking(true);
+        try {
+            const q = query(collection(db, "audios"), where("title", "==", title.trim()));
+            const snapshot = await getDocs(q);
+
+            if (!snapshot.empty) {
+                setDuplicateWarning(`A track named "${title}" already exists.`);
+            } else {
+                setDuplicateWarning(null);
+            }
+        } catch (error) {
+            console.error("Error checking duplicate:", error);
+        } finally {
+            setIsChecking(false);
+        }
+    };
+
     // Handle Input Changes
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
 
-        // Reset series if category changes (optional UX choice)
+        if (name === 'title') {
+            checkDuplicateTitle(value);
+        }
+    };
+
+    // Custom Select Handler
+    const handleSelectChange = (name, value) => {
+        setFormData(prev => ({ ...prev, [name]: value }));
+        
         if (name === 'category') {
-            setFormData(prev => ({ ...prev, series: '' }));
+            setFormData(prev => ({ ...prev, series: '' })); 
         }
     };
 
@@ -147,17 +193,14 @@ export default function EditAudioPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!formData.title) {
-            alert("Please enter a title.");
-            return;
-        }
+        if (!formData.title || duplicateWarning) return;
 
         setIsSubmitting(true);
 
         try {
             let downloadURL = existingAudioUrl;
             let fileName = existingFileName;
-            let fileSize = null; // Don't update size if we don't change file
+            let fileSize = null; 
 
             // 1. Upload New File (if selected)
             if (audioFile) {
@@ -165,12 +208,12 @@ export default function EditAudioPage() {
                 const uploadTask = uploadBytesResumable(storageRef, audioFile);
 
                 await new Promise((resolve, reject) => {
-                    uploadTask.on('state_changed',
+                    uploadTask.on('state_changed', 
                         (snapshot) => {
                             const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
                             setUploadProgress(progress);
-                        },
-                        (error) => reject(error),
+                        }, 
+                        (error) => reject(error), 
                         async () => {
                             downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                             fileName = audioFile.name;
@@ -190,7 +233,6 @@ export default function EditAudioPage() {
                 updatedAt: new Date().toISOString()
             };
 
-            // Only update fileSize if a new file was uploaded
             if (fileSize) {
                 updateData.fileSize = fileSize;
             }
@@ -215,6 +257,11 @@ export default function EditAudioPage() {
         }
     };
 
+    // Series Options
+    const seriesOptions = filteredSeries.map(s => ({
+        value: s.title,
+        label: s.title
+    }));
     if (isLoading) return <div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 text-brand-gold animate-spin" /></div>;
 
     return (
@@ -239,8 +286,12 @@ export default function EditAudioPage() {
                     </Link>
                     <button 
                         type="submit"
-                        disabled={isSubmitting} 
-                        className="flex items-center gap-2 px-6 py-2.5 bg-brand-gold text-white font-bold rounded-xl hover:bg-brand-brown-dark transition-colors shadow-md disabled:opacity-50"
+                        disabled={isSubmitting || !!duplicateWarning || !formData.title} 
+                        className={`flex items-center gap-2 px-6 py-2.5 font-bold rounded-xl transition-colors shadow-md ${
+                            !duplicateWarning && formData.title
+                            ? 'bg-brand-gold text-white hover:bg-brand-brown-dark' 
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
                     >
                         {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         {isSubmitting ? 'Saving...' : 'Save Changes'}
@@ -328,9 +379,6 @@ export default function EditAudioPage() {
                             <Music className="w-5 h-5 text-brand-gold" />
                             File Preview
                         </h3>
-                        {/* If a new file is selected, we create a temporary URL.
-                           Otherwise, we play the existing URL.
-                        */}
                         <audio controls className="w-full rounded-lg" key={audioFile ? audioFile.name : existingAudioUrl}>
                             <source src={audioFile ? URL.createObjectURL(audioFile) : existingAudioUrl} />
                             Your browser does not support the audio element.
@@ -339,89 +387,87 @@ export default function EditAudioPage() {
 
                 </div>
 
-                {/* RIGHT: Metadata Inputs */}
+                {/* RIGHT COLUMN: METADATA */}
                 <div className="space-y-6">
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
                         <h3 className="font-agency text-xl text-brand-brown-dark border-b border-gray-100 pb-2">Audio Details</h3>
 
-                        {/* Title */}
+                        {/* Title & Duplicate Warning */}
                         <div>
                             <label className="block text-xs font-bold text-brand-brown mb-1">Title</label>
-                            <input 
-                                type="text" 
-                                name="title"
-                                value={formData.title}
-                                onChange={handleChange}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                                dir={getDir(formData.title)}
-                            />
+                            <div className="relative">
+                                <input 
+                                    type="text" 
+                                    name="title"
+                                    value={formData.title}
+                                    onChange={handleChange}
+                                    placeholder="e.g. The Importance of Zakat" 
+                                    className={`w-full bg-gray-50 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 ${
+                                        duplicateWarning ? 'border-orange-300 bg-orange-50' : 'border-gray-200'
+                                    }`}
+                                    dir={getDir(formData.title)}
+                                />
+                                {isChecking && (
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                        <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                                    </div>
+                                )}
+                            </div>
+                            {duplicateWarning && (
+                                <div className="mt-2 flex items-start gap-2 text-xs font-bold text-orange-700 animate-in fade-in slide-in-from-top-1">
+                                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                                    <span>{duplicateWarning}</span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Category (Language) */}
-                        <div>
-                            <label className="block text-xs font-bold text-brand-brown mb-1">Category (Language)</label>
-                            <select 
-                                name="category"
-                                value={formData.category}
-                                onChange={handleChange}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                            >
-                                <option>English</option>
-                                <option>Hausa</option>
-                                <option>Arabic</option>
-                            </select>
-                        </div>
+                        <CustomSelect 
+                            label="Category (Language)"
+                            options={CATEGORY_OPTIONS}
+                            value={formData.category}
+                            onChange={(val) => handleSelectChange('category', val)}
+                            icon={Globe}
+                            placeholder="Select Language"
+                        />
 
                         {/* Series Selection (Dynamic Filter) */}
-                        <div className="bg-brand-sand/20 p-4 rounded-xl border border-brand-gold/20">
-                            <label className="flex items-center gap-2 text-xs font-bold text-brand-brown-dark uppercase tracking-wider mb-2">
-                                <ListMusic className="w-4 h-4" /> Add to Series (Playlist)
-                            </label>
-                            <select 
-                                name="series"
+                        <div className="pt-2 border-t border-gray-100">
+                            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Series / Playlist (Optional)</label>
+                            <CustomSelect 
+                                options={seriesOptions}
                                 value={formData.series}
-                                onChange={handleChange}
-                                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer"
-                            >
-                                <option value="">Select a Series (Optional)</option>
-                                {filteredSeries.length > 0 ? (
-                                    filteredSeries.map(s => (
-                                        <option key={s.id} value={s.title}>{s.title}</option>
-                                    ))
-                                ) : (
-                                    <option disabled>No series found for {formData.category}</option>
-                                )}
-                            </select>
-                            <p className="text-[10px] text-gray-500 mt-1">
-                                Group this track with others (e.g., "Tafsir Part 1" goes into "Tafsir Series").
+                                onChange={(val) => handleSelectChange('series', val)}
+                                icon={ListMusic}
+                                placeholder={seriesOptions.length > 0 ? "Select Series" : "No series found"}
+                            />
+                            <p className="text-[10px] text-gray-400 mt-2 text-center">
+                                Showing series for: <span className="font-bold text-brand-gold">{formData.category}</span>
                             </p>
                         </div>
 
                         {/* Speaker */}
                         <div>
                             <label className="block text-xs font-bold text-brand-brown mb-1">Speaker / Author</label>
-                            <input 
-                                type="text" 
-                                name="speaker"
-                                value={formData.speaker}
-                                onChange={handleChange}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                            />
+                            <div className="relative">
+                                <input 
+                                    type="text" 
+                                    name="speaker"
+                                    value={formData.speaker}
+                                    onChange={handleChange}
+                                    className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
+                                />
+                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            </div>
                         </div>
 
-                        {/* Date Recorded */}
-                        <div>
-                            <label className="block text-xs font-bold text-brand-brown mb-1">Date Recorded</label>
-                            <input 
-                                type="date" 
-                                name="date"
-                                value={formData.date}
-                                onChange={handleChange}
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                            />
-                        </div>
+                        <CustomDatePicker 
+                            label="Date Recorded"
+                            value={formData.date}
+                            onChange={(val) => handleSelectChange('date', val)}
+                            icon={CalendarIcon}
+                        />
 
-                        {/* Description */}
                         <div>
                             <label className="block text-xs font-bold text-brand-brown mb-1">Description (Optional)</label>
                             <textarea 
@@ -429,6 +475,7 @@ export default function EditAudioPage() {
                                 value={formData.description}
                                 onChange={handleChange}
                                 rows="3"
+                                placeholder="Brief context about the lecture..." 
                                 className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
                                 dir={getDir(formData.description)}
                             ></textarea>
