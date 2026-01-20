@@ -156,11 +156,13 @@ return (
                 </section>
 
                 {/* 2. CONTACT INFO & FORM GRID */}
-                <section className="px-6 md:px-12 lg:px-24 mb-16 md:mb-20 max-w-7xl mx-auto">
+                <section className="px-6 md:px-12 lg:px-24 mb-16 md:mb-24 max-w-7xl mx-auto">
                     <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
 
-                        {/* LEFT: Contact Information */}
-                        <div className="flex-1 space-y-8 md:space-y-10">
+                        {/* LEFT: Contact Information & Map */}
+                        <div className="flex-1 space-y-8">
+
+                            {/* Contact Details Card */}
                             <div className="bg-brand-sand/30 p-8 md:p-10 rounded-3xl border border-brand-gold/10 relative overflow-hidden shadow-sm">
                                 <h2 className="font-agency text-3xl text-brand-brown-dark mb-8">Get in Touch</h2>
                                 <div className="space-y-8">
@@ -202,6 +204,30 @@ return (
                                     )}
                                 </div>
                             </div>
+
+                            {/* 16:9 Map (Moved Here) */}
+                            <div className="bg-white p-2 rounded-3xl shadow-lg border border-gray-100">
+                                <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-100">
+                                    <iframe 
+                                        src={mapEmbedUrl} 
+                                        width="100%" 
+                                        height="100%" 
+                                        style={{ border: 0 }} 
+                                        allowFullScreen="" 
+                                        loading="lazy" 
+                                        referrerPolicy="no-referrer-when-downgrade"
+                                        className="absolute inset-0"
+                                    ></iframe>
+                                    
+                                    <div className="absolute top-4 left-4 pointer-events-none">
+                                        <div className="bg-white/95 backdrop-blur-md px-4 py-2 rounded-full shadow-lg flex items-center gap-2 border border-gray-100">
+                                            <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></div>
+                                            <span className="font-agency text-brand-brown-dark text-base whitespace-nowrap">Locate us on Map</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
 
                         {/* RIGHT: Contact Form */}
@@ -217,18 +243,18 @@ return (
                                     {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Send Message <Send className="w-4 h-4" /></>}
                                 </button>
 
-                                {/* IMPORTANT NOTICE (Moved inside form, below button) */}
-                                <div className="mt-6 bg-gray-50 border border-gray-100 rounded-2xl p-5 flex gap-4">
+                                {/* Important Notice (Integrated Here) */}
+                                <div className="bg-brand-sand/10 border border-brand-gold/20 rounded-xl p-4 mt-6 flex gap-3 items-start">
                                     <Info className="w-5 h-5 text-brand-gold flex-shrink-0 mt-0.5" />
                                     <div className="space-y-2">
-                                        <p className="font-lato text-xs text-gray-500 leading-relaxed">
-                                            This contact form is intended for <strong>general inquiries, feedback, and non-urgent communication</strong>.
+                                        <p className="text-xs text-brand-brown leading-relaxed">
+                                            This contact form is intended for general inquiries, feedback, and non-urgent communication.
                                         </p>
-                                        <p className="font-lato text-xs text-gray-500 leading-relaxed">
-                                            For <strong>time-sensitive matters</strong>, we recommend visiting our administrative office or contacting us directly by phone to ensure faster resolution.
+                                        <p className="text-xs text-brand-brown font-bold leading-relaxed">
+                                            For time-sensitive matters, we recommend visiting our administrative office or contacting us directly by phone to ensure faster resolution.
                                         </p>
-                                        <p className="font-lato text-xs text-gray-500 italic">
-                                            Thank you for your understanding and cooperation.
+                                        <p className="text-[10px] text-gray-400 uppercase tracking-wide pt-1">
+                                            Thank you for your understanding.
                                         </p>
                                     </div>
                                 </div>
@@ -237,37 +263,12 @@ return (
                     </div>
                 </section>
 
-                {/* 3. DYNAMIC 16:9 MAP ON LIGHT CARD (Moved here) */}
-                <section className="px-6 md:px-12 lg:px-24 mb-16 max-w-7xl mx-auto">
-                    <div className="bg-white p-4 rounded-3xl shadow-xl border border-gray-100">
-                        <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-100">
-                            <iframe 
-                                src={mapEmbedUrl} 
-                                width="100%" 
-                                height="100%" 
-                                style={{ border: 0 }} 
-                                allowFullScreen="" 
-                                loading="lazy" 
-                                referrerPolicy="no-referrer-when-downgrade"
-                                className="absolute inset-0"
-                            ></iframe>
-                            
-                            <div className="absolute top-6 left-1/2 -translate-x-1/2 md:left-12 md:translate-x-0 pointer-events-none">
-                                <div className="bg-white/90 backdrop-blur-md px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 border border-gray-100 whitespace-nowrap">
-                                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                                    <span className="font-agency text-brand-brown-dark text-lg">Locate us on Map</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                {/* 4. MEDIA TEAM */}
+                {/* 3. MEDIA TEAM */}
                 <section className="px-6 md:px-12 lg:px-24 mb-16 md:mb-24 max-w-7xl mx-auto">
                     <div className="text-center mb-12 md:mb-16">
                         <h2 className="font-agency text-3xl md:text-5xl text-brand-brown-dark mb-3">Meet Our Media Team</h2>
                         <div className="w-20 h-1.5 bg-brand-gold mx-auto rounded-full mb-6"></div>
-                        <p className="font-lato text-brand-brown text-base md:text-xl max-w-2xl mx-auto">The dedicated faces behind our digital presence, ensuring the message of Al-Asad Foundation reaches the world with excellence.</p>
+                        <p className="font-lato text-brand-brown text-base md:text-xl max-w-2xl mx-auto">The dedicated faces behind our digital presence.</p>
                     </div>
                     {loading ? <div className="flex justify-center py-12"><Loader2 className="w-10 h-10 animate-spin text-brand-gold" /></div> : (
                         <>
