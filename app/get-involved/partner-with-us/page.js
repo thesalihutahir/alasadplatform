@@ -1,54 +1,73 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import CustomSelect from '@/components/CustomSelect'; // Custom Dropdown
-import { useModal } from '@/context/ModalContext'; // Custom Modal
-// Firebase
+import CustomSelect from '@/components/CustomSelect'; 
+import { useModal } from '@/context/ModalContext'; 
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { 
     ShieldCheck, Users, TrendingUp, Briefcase, Building2, Lightbulb, Handshake, 
-    Mail, User, Building, Loader2, Target, Phone, Globe, Warehouse 
+    Mail, User, Building, Loader2, Target, Phone, Globe, Warehouse, MessageCircle 
 } from 'lucide-react';
+
+// --- DATA: Countries List (Truncated for performance, includes major global + African nations) ---
+const COUNTRIES = [
+    { name: "Nigeria", code: "NG", dial: "+234", flag: "🇳🇬" },
+    { name: "United Kingdom", code: "GB", dial: "+44", flag: "🇬🇧" },
+    { name: "United States", code: "US", dial: "+1", flag: "🇺🇸" },
+    { name: "Saudi Arabia", code: "SA", dial: "+966", flag: "🇸🇦" },
+    { name: "United Arab Emirates", code: "AE", dial: "+971", flag: "🇦🇪" },
+    { name: "Ghana", code: "GH", dial: "+233", flag: "🇬🇭" },
+    { name: "Canada", code: "CA", dial: "+1", flag: "🇨🇦" },
+    { name: "Egypt", code: "EG", dial: "+20", flag: "🇪🇬" },
+    { name: "South Africa", code: "ZA", dial: "+27", flag: "🇿🇦" },
+    { name: "Qatar", code: "QA", dial: "+974", flag: "🇶🇦" },
+    { name: "India", code: "IN", dial: "+91", flag: "🇮🇳" },
+    { name: "China", code: "CN", dial: "+86", flag: "🇨🇳" },
+    { name: "Germany", code: "DE", dial: "+49", flag: "🇩🇪" },
+    { name: "France", code: "FR", dial: "+33", flag: "🇫🇷" },
+    { name: "Turkey", code: "TR", dial: "+90", flag: "🇹🇷" },
+    { name: "Malaysia", code: "MY", dial: "+60", flag: "🇲🇾" },
+    { name: "Kenya", code: "KE", dial: "+254", flag: "🇰🇪" },
+    { name: "Niger", code: "NE", dial: "+227", flag: "🇳🇪" },
+    { name: "Benin", code: "BJ", dial: "+229", flag: "🇧🇯" },
+    { name: "Cameroon", code: "CM", dial: "+237", flag: "🇨🇲" },
+    // Add more as needed...
+].sort((a, b) => a.name.localeCompare(b.name));
 
 export default function PartnerPage() {
     const { showSuccess } = useModal();
-
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Form State
+    const [phoneCode, setPhoneCode] = useState("+234");
+    const [phoneNumber, setPhoneNumber] = useState("");
+    
     const [formData, setFormData] = useState({
         organization: '',
-        orgType: '', // New Field
+        orgType: '', 
         contactPerson: '',
         email: '',
-        phone: '', // New Field
-        country: '', // New Field
-        type: 'Sponsorship', // Default partnership type
+        country: '', 
+        type: 'Sponsorship',
         message: ''
     });
 
-    // Dropdown Options
     const partnershipTypes = [
-        "Sponsorship", 
-        "CSR Project Implementation", 
-        "Academic Collaboration", 
-        "Technical Partnership",
-        "Event Sponsorship",
-        "Other"
+        "Sponsorship", "CSR Project Implementation", "Academic Collaboration", 
+        "Technical Partnership", "Event Sponsorship", "Other"
     ];
 
     const organizationTypes = [
-        "Corporate Company",
-        "NGO / Non-Profit",
-        "Government Agency",
-        "Academic Institution",
-        "Start-up / SME",
-        "Community Group",
-        "Other"
+        "Corporate Company", "NGO / Non-Profit", "Government Agency", 
+        "Academic Institution", "Start-up / SME", "Community Group", "Other"
     ];
+
+    // Helper for Country Dropdown
+    const countryNames = useMemo(() => COUNTRIES.map(c => c.name), []);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -63,7 +82,7 @@ export default function PartnerPage() {
         e.preventDefault();
 
         // Validation
-        if (!formData.organization || !formData.email || !formData.message || !formData.phone || !formData.country || !formData.orgType) {
+        if (!formData.organization || !formData.email || !formData.message || !phoneNumber || !formData.country || !formData.orgType) {
             alert("Please fill in all required fields.");
             return;
         }
@@ -73,32 +92,28 @@ export default function PartnerPage() {
         try {
             await addDoc(collection(db, "partners"), {
                 ...formData,
-                status: "New", // New, Contacted, Partnered, Declined
+                phone: `${phoneCode} ${phoneNumber}`, // Combine Code + Number
+                status: "New",
                 submittedAt: serverTimestamp()
             });
 
             // Reset Form
             setFormData({
-                organization: '',
-                orgType: '',
-                contactPerson: '',
-                email: '',
-                phone: '',
-                country: '',
-                type: 'Sponsorship',
-                message: ''
+                organization: '', orgType: '', contactPerson: '',
+                email: '', country: '', type: 'Sponsorship', message: ''
             });
+            setPhoneNumber("");
+            setPhoneCode("+234");
 
-            // Show Success Modal
             showSuccess({
                 title: "Partnership Inquiry Sent!",
-                message: "Thank you for your interest in collaborating with Al-Asad Foundation. Our partnerships team will review your proposal and contact you shortly.",
+                message: "Thank you for your interest. Our team will review your proposal and contact you shortly.",
                 confirmText: "Close"
             });
 
         } catch (error) {
-            console.error("Error submitting partnership inquiry:", error);
-            alert("Failed to submit inquiry. Please try again.");
+            console.error("Error submitting:", error);
+            alert("Failed to submit inquiry.");
         } finally {
             setIsSubmitting(false);
         }
@@ -118,7 +133,7 @@ export default function PartnerPage() {
                     <div className="relative -mt-16 md:-mt-32 text-center px-6 z-10 max-w-4xl mx-auto">
                         <h1 className="font-agency text-4xl md:text-6xl lg:text-7xl text-brand-brown-dark mb-4 drop-shadow-md">Partner For Impact</h1>
                         <div className="w-16 md:w-24 h-1 bg-brand-gold mx-auto rounded-full mb-6"></div>
-                        <p className="font-lato text-brand-brown text-sm md:text-xl max-w-2xl mx-auto leading-relaxed font-medium">Collaborate with Al-Asad Foundation to amplify reach, empower communities, and build a lasting legacy through strategic partnership.</p>
+                        <p className="font-lato text-brand-brown text-sm md:text-xl max-w-2xl mx-auto leading-relaxed font-medium">Collaborate with Al-Asad Foundation to amplify reach, empower communities, and build a lasting legacy.</p>
                     </div>
                 </section>
 
@@ -126,42 +141,28 @@ export default function PartnerPage() {
                 <section className="px-6 md:px-12 lg:px-24 mb-16 md:mb-24 max-w-7xl mx-auto">
                     <div className="text-center mb-10 md:mb-16">
                         <h2 className="font-agency text-3xl md:text-4xl text-brand-brown-dark mb-4">Why Partner With Us?</h2>
-                        <p className="font-lato text-sm md:text-lg text-brand-brown max-w-3xl mx-auto leading-relaxed">We offer a trusted platform for organizations to fulfill their Corporate Social Responsibility (CSR) and community engagement goals through structured, transparent, and high-impact initiatives.</p>
+                        <p className="font-lato text-sm md:text-lg text-brand-brown max-w-3xl mx-auto leading-relaxed">We offer a trusted platform for organizations to fulfill their Corporate Social Responsibility (CSR) and community engagement goals.</p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-10">
                         <div className="bg-brand-sand/30 p-8 rounded-3xl border border-transparent hover:border-brand-gold/30 hover:bg-white hover:shadow-xl transition-all duration-300 group">
                             <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-brand-gold shadow-md mb-6 group-hover:bg-brand-brown-dark group-hover:text-white transition-colors"><ShieldCheck className="w-7 h-7" /></div>
                             <h3 className="font-agency text-2xl text-brand-brown-dark mb-3">Structure & Credibility</h3>
-                            <p className="font-lato text-sm text-gray-600 leading-relaxed">Leveraging our established community trust and administrative structure ensures your resources are deployed effectively, ethically, and transparently.</p>
+                            <p className="font-lato text-sm text-gray-600 leading-relaxed">Leveraging our established community trust ensures your resources are deployed effectively.</p>
                         </div>
                         <div className="bg-brand-sand/30 p-8 rounded-3xl border border-transparent hover:border-brand-gold/30 hover:bg-white hover:shadow-xl transition-all duration-300 group">
                             <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-brand-gold shadow-md mb-6 group-hover:bg-brand-brown-dark group-hover:text-white transition-colors"><Users className="w-7 h-7" /></div>
                             <h3 className="font-agency text-2xl text-brand-brown-dark mb-3">Deep Community Reach</h3>
-                            <p className="font-lato text-sm text-gray-600 leading-relaxed">Gain access to grassroots networks where help is needed most, ensuring your support reaches the intended beneficiaries directly without middlemen.</p>
+                            <p className="font-lato text-sm text-gray-600 leading-relaxed">Gain access to grassroots networks where help is needed most directly without middlemen.</p>
                         </div>
                         <div className="bg-brand-sand/30 p-8 rounded-3xl border border-transparent hover:border-brand-gold/30 hover:bg-white hover:shadow-xl transition-all duration-300 group">
                             <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-brand-gold shadow-md mb-6 group-hover:bg-brand-brown-dark group-hover:text-white transition-colors"><TrendingUp className="w-7 h-7" /></div>
                             <h3 className="font-agency text-2xl text-brand-brown-dark mb-3">Measurable Impact</h3>
-                            <p className="font-lato text-sm text-gray-600 leading-relaxed">We provide clear reporting and documentation (media & data) on how every partnership milestone is achieved, giving you clear visibility on ROI.</p>
+                            <p className="font-lato text-sm text-gray-600 leading-relaxed">We provide clear reporting and media documentation on how every partnership milestone is achieved.</p>
                         </div>
                     </div>
                 </section>
 
-                {/* 3. PARTNERSHIP MODELS */}
-                <section className="px-6 md:px-12 lg:px-24 mb-16 md:mb-24 bg-brand-brown-dark py-16 md:py-20 text-white relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-brand-gold opacity-5 rounded-full blur-3xl -mr-20 -mt-20"></div>
-                    <div className="absolute bottom-0 left-0 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl -ml-20 -mb-20"></div>
-                    <div className="max-w-7xl mx-auto relative z-10">
-                        <div className="text-center mb-12"><h2 className="font-agency text-3xl md:text-5xl mb-4">Ways to Collaborate</h2><p className="text-white/70 max-w-xl mx-auto font-lato">We offer flexible partnership models tailored to your organization's goals.</p></div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-                            <div className="flex flex-col gap-4 bg-white/5 p-8 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors"><div className="flex justify-between items-start"><span className="font-agency text-4xl text-brand-gold font-bold opacity-50">01</span><Briefcase className="w-8 h-8 text-brand-gold" /></div><div><h3 className="font-agency text-2xl mb-2">Project Sponsorship</h3><p className="font-lato text-sm md:text-base text-white/70 leading-relaxed">Adopt a specific initiative (e.g., "Build a Classroom" or "Ramadan Feeding") and fully brand it as your organization's contribution.</p></div></div>
-                            <div className="flex flex-col gap-4 bg-white/5 p-8 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors"><div className="flex justify-between items-start"><span className="font-agency text-4xl text-brand-gold font-bold opacity-50">02</span><Building2 className="w-8 h-8 text-brand-gold" /></div><div><h3 className="font-agency text-2xl mb-2">CSR Implementation</h3><p className="font-lato text-sm md:text-base text-white/70 leading-relaxed">Let us be the implementation arm for your company's annual Corporate Social Responsibility projects, ensuring compliance and impact.</p></div></div>
-                            <div className="flex flex-col gap-4 bg-white/5 p-8 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors"><div className="flex justify-between items-start"><span className="font-agency text-4xl text-brand-gold font-bold opacity-50">03</span><Lightbulb className="w-8 h-8 text-brand-gold" /></div><div><h3 className="font-agency text-2xl mb-2">Knowledge Exchange</h3><p className="font-lato text-sm md:text-base text-white/70 leading-relaxed">Partner with our schools for curriculum development, teacher training workshops, or establishing tech innovation hubs.</p></div></div>
-                        </div>
-                    </div>
-                </section>
-
-                {/* 4. PARTNERSHIP INQUIRY FORM */}
+                {/* 3. INQUIRY FORM */}
                 <section className="px-6 md:px-12 lg:px-24 mb-12 max-w-5xl mx-auto">
                     <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8 md:p-14 relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-brand-brown-dark to-brand-gold"></div>
@@ -172,6 +173,7 @@ export default function PartnerPage() {
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
+                            
                             {/* Row 1 */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                                 <div>
@@ -195,15 +197,42 @@ export default function PartnerPage() {
                                 </div>
                             </div>
 
-                            {/* Row 3 (New) */}
+                            {/* Row 3: Country & Phone */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                                
+                                {/* Country Dropdown */}
+                                <div>
+                                    <CustomSelect label="Country *" options={countryNames} value={formData.country} onChange={(val) => handleSelectChange('country', val)} icon={Globe} placeholder="Select Country" />
+                                </div>
+
+                                {/* Phone with Code */}
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Phone Number *</label>
-                                    <div className="relative"><input type="tel" name="phone" value={formData.phone} onChange={handleChange} required className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold transition-all" placeholder="+234..." /><Phone className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" /></div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Country *</label>
-                                    <div className="relative"><input type="text" name="country" value={formData.country} onChange={handleChange} required className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold transition-all" placeholder="e.g. Nigeria" /><Globe className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" /></div>
+                                    <div className="flex bg-white border border-gray-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-brand-gold/20 focus-within:border-brand-gold transition-all">
+                                        <select 
+                                            value={phoneCode} 
+                                            onChange={(e) => setPhoneCode(e.target.value)} 
+                                            className="bg-gray-50 text-gray-700 text-sm px-2 py-3 border-r border-gray-200 focus:outline-none cursor-pointer w-[90px]"
+                                        >
+                                            {COUNTRIES.map((c) => (
+                                                <option key={c.code} value={c.dial}>{c.flag} {c.dial}</option>
+                                            ))}
+                                        </select>
+                                        <div className="relative flex-grow">
+                                            <input 
+                                                type="tel" 
+                                                value={phoneNumber} 
+                                                onChange={(e) => setPhoneNumber(e.target.value)} 
+                                                required 
+                                                className="w-full h-full pl-3 pr-4 text-sm focus:outline-none" 
+                                                placeholder="806 716 8669" 
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 mt-1.5 flex items-center gap-1">
+                                        <MessageCircle className="w-3 h-3 text-green-500" /> 
+                                        Please use a number available on WhatsApp.
+                                    </p>
                                 </div>
                             </div>
 
