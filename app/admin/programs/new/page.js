@@ -8,22 +8,27 @@ import { useRouter } from 'next/navigation';
 import { db, storage } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+// Context
+import { useModal } from '@/context/ModalContext';
 
 import { 
     ArrowLeft, 
     Save, 
-    UploadCloud, 
     X,
     MapPin,
     Users,
     Loader2,
     Image as ImageIcon,
-    Target
+    AlertTriangle
 } from 'lucide-react';
 
 export default function CreateProgramPage() {
     const router = useRouter();
+    const { showSuccess } = useModal();
+    
+    // State
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
 
     const [formData, setFormData] = useState({
@@ -39,6 +44,7 @@ export default function CreateProgramPage() {
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
 
+    // Handlers
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -57,14 +63,19 @@ export default function CreateProgramPage() {
         setImagePreview(null);
     };
 
-    const handleSubmit = async (e) => {
+    // Pre-Submit Validation
+    const handlePreSubmit = (e) => {
         e.preventDefault();
-
         if (!formData.title || !formData.excerpt) {
             alert("Title and Short Summary are required.");
             return;
         }
+        setShowConfirm(true); // Open Confirmation Modal
+    };
 
+    // Final Execution
+    const executePublish = async () => {
+        setShowConfirm(false);
         setIsSubmitting(true);
 
         try {
@@ -97,8 +108,16 @@ export default function CreateProgramPage() {
                 createdAt: serverTimestamp()
             });
 
-            alert("Program published successfully!");
-            router.push('/admin/programs');
+            showSuccess({
+                title: "Program Published!",
+                message: "Your new initiative is now live on the platform.",
+                confirmText: "View Programs"
+            });
+
+            // Redirect after slight delay
+            setTimeout(() => {
+                router.push('/admin/programs');
+            }, 2000);
 
         } catch (error) {
             console.error("Error creating program:", error);
@@ -107,8 +126,8 @@ export default function CreateProgramPage() {
             setIsSubmitting(false);
         }
     };
-return (
-        <form onSubmit={handleSubmit} className="space-y-6 max-w-6xl mx-auto pb-12">
+    return (
+        <form onSubmit={handlePreSubmit} className="space-y-6 max-w-6xl mx-auto pb-12 relative">
 
             {/* 1. HEADER */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-0 bg-gray-50 z-20 py-4 border-b border-gray-200">
@@ -290,6 +309,30 @@ return (
 
                 </div>
             </div>
+
+            {/* --- CONFIRMATION MODAL --- */}
+            {showConfirm && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full border border-gray-100 transform scale-100 animate-in zoom-in-95 duration-200">
+                        <div className="flex flex-col items-center text-center">
+                            <div className="w-14 h-14 bg-brand-gold/20 rounded-full flex items-center justify-center mb-4 text-brand-gold">
+                                <AlertTriangle className="w-7 h-7" />
+                            </div>
+                            <h3 className="font-agency text-2xl text-brand-brown-dark mb-2">Ready to Publish?</h3>
+                            <p className="text-gray-500 font-lato text-sm mb-6">
+                                This program will be immediately visible on the public website.
+                            </p>
+                            <div className="flex gap-3 w-full">
+                                <button type="button" onClick={() => setShowConfirm(false)} className="flex-1 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors">Cancel</button>
+                                <button type="button" onClick={executePublish} className="flex-1 py-2.5 bg-brand-gold text-white font-bold rounded-xl shadow-lg hover:bg-brand-brown-dark transition-colors flex justify-center items-center gap-2">
+                                    Confirm
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </form>
     );
 }
