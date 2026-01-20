@@ -13,7 +13,7 @@ import {
     Trash2, 
     Loader2, 
     CheckCircle,
-    XCircle, // New: Decline Icon
+    XCircle, 
     MessageCircle,
     User,
     Mail,
@@ -26,8 +26,7 @@ import {
     Calendar,
     FileText,
     Phone,
-    Globe,
-    Warehouse
+    Globe
 } from 'lucide-react';
 
 export default function ManagePartnersPage() {
@@ -97,7 +96,6 @@ export default function ManagePartnersPage() {
             else if (type === 'update') {
                 await updateDoc(doc(db, "partners", partner.id), { status: payload });
                 
-                // Open Email
                 const mailUrl = generateEmailUrl(partner, payload);
                 if (mailUrl) window.location.href = mailUrl;
 
@@ -119,7 +117,6 @@ export default function ManagePartnersPage() {
         }
     };
 
-    // Filter Logic
     const filteredPartners = partners.filter(p => {
         const matchesStatus = statusFilter === 'All' || p.status === statusFilter;
         const matchesSearch = p.organization?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -267,14 +264,12 @@ export default function ManagePartnersPage() {
                         
                         {/* Content Scrollable */}
                         <div className="p-6 space-y-6 overflow-y-auto">
-                            <div className="flex items-start gap-4">
-                                <div className="w-14 h-14 bg-brand-sand/30 rounded-full flex items-center justify-center text-brand-brown-dark text-xl font-bold flex-shrink-0">
-                                    {viewPartner.organization.charAt(0)}
-                                </div>
-                                <div>
-                                    <h2 className="text-xl font-bold text-gray-800">{viewPartner.organization}</h2>
-                                    <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded mt-1 mr-2">{viewPartner.orgType}</span>
-                                    <span className="inline-block bg-brand-gold/10 text-brand-gold text-xs px-2 py-1 rounded mt-1">{viewPartner.type}</span>
+                            {/* Updated Header Layout: No Avatar */}
+                            <div className="border-b border-gray-100 pb-4">
+                                <h2 className="text-2xl font-bold text-gray-800 mb-2">{viewPartner.organization}</h2>
+                                <div className="flex flex-wrap gap-2">
+                                    <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded border border-gray-200">{viewPartner.orgType}</span>
+                                    <span className="inline-block bg-brand-gold/10 text-brand-gold text-xs px-2 py-1 rounded border border-brand-gold/20">{viewPartner.type}</span>
                                 </div>
                             </div>
 
