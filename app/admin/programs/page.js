@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 // Firebase
@@ -24,8 +24,62 @@ import {
     Calendar,
     MapPin,
     FileText,
-    Layers
+    Layers,
+    Filter,
+    Activity,
+    ChevronDown, 
+    Check
 } from 'lucide-react';
+
+// --- CUSTOM DROPDOWN COMPONENT (Internal for consistent style in list view) ---
+const CustomSelect = ({ options, value, onChange, placeholder, icon: Icon, className }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const selectedOption = options.find(opt => opt.value === value);
+
+    return (
+        <div className={`relative ${className || ''}`} ref={dropdownRef}>
+            <div 
+                onClick={() => setIsOpen(!isOpen)}
+                className={`w-full pl-3 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm flex justify-between items-center cursor-pointer transition-all hover:border-brand-gold/50 ${isOpen ? 'ring-2 ring-brand-gold/20 border-brand-gold' : ''}`}
+            >
+                <div className="flex items-center gap-2 overflow-hidden">
+                    {Icon && <Icon className="w-4 h-4 text-brand-gold flex-shrink-0" />}
+                    <span className={`truncate ${!selectedOption ? 'text-gray-500' : 'text-gray-700 font-medium'}`}>
+                        {selectedOption ? selectedOption.label : placeholder}
+                    </span>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
+            </div>
+
+            {isOpen && (
+                <div className="absolute z-20 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-100 min-w-[180px]">
+                    {options.map((opt) => (
+                        <div 
+                            key={opt.value}
+                            onClick={() => { onChange(opt.value); setIsOpen(false); }}
+                            className={`px-4 py-3 text-sm cursor-pointer hover:bg-brand-sand/10 flex justify-between items-center ${value === opt.value ? 'bg-brand-sand/20 text-brand-brown-dark font-bold' : 'text-gray-600'}`}
+                        >
+                            {opt.label}
+                            {value === opt.value && <Check className="w-3 h-3 text-brand-gold" />}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
 
 export default function ManageProgramsPage() {
     const { showSuccess } = useModal();
@@ -41,6 +95,22 @@ export default function ManageProgramsPage() {
     const [viewProgram, setViewProgram] = useState(null); // For View Details
     const [deleteConfig, setDeleteConfig] = useState(null); // { id: string }
     const [isDeleting, setIsDeleting] = useState(false);
+
+    // Options for Filters
+    const statusOptions = [
+        { value: "All", label: "All Statuses" },
+        { value: "Active", label: "Active" },
+        { value: "Upcoming", label: "Upcoming" },
+        { value: "Completed", label: "Completed" },
+        { value: "Paused", label: "Paused" }
+    ];
+
+    const pillarOptions = [
+        { value: "All", label: "All Pillars" },
+        { value: "Educational Support", label: "Education" },
+        { value: "Community Development", label: "Community" },
+        { value: "Training & Innovation", label: "Innovation" }
+    ];
 
     // 1. Fetch Programs
     useEffect(() => {
@@ -120,29 +190,27 @@ export default function ManageProgramsPage() {
 
             {/* 2. FILTERS */}
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
+                
+                {/* Custom Selects */}
                 <div className="flex bg-gray-50 p-1 rounded-xl w-full md:w-auto overflow-x-auto gap-2">
-                    <select 
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="px-4 py-2 bg-transparent text-sm font-bold text-gray-600 focus:outline-none cursor-pointer border-r border-gray-200 pr-8"
-                    >
-                        <option value="All">All Statuses</option>
-                        <option value="Active">Active</option>
-                        <option value="Upcoming">Upcoming</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Paused">Paused</option>
-                    </select>
-
-                    <select 
-                        value={pillarFilter}
-                        onChange={(e) => setPillarFilter(e.target.value)}
-                        className="px-4 py-2 bg-transparent text-sm font-bold text-gray-600 focus:outline-none cursor-pointer"
-                    >
-                        <option value="All">All Pillars</option>
-                        <option value="Educational Support">Education</option>
-                        <option value="Community Development">Community</option>
-                        <option value="Training & Innovation">Innovation</option>
-                    </select>
+                    <div className="min-w-[150px]">
+                        <CustomSelect 
+                            options={statusOptions}
+                            value={statusFilter}
+                            onChange={setStatusFilter}
+                            icon={Activity}
+                            placeholder="Status"
+                        />
+                    </div>
+                    <div className="min-w-[160px]">
+                        <CustomSelect 
+                            options={pillarOptions}
+                            value={pillarFilter}
+                            onChange={setPillarFilter}
+                            icon={Filter}
+                            placeholder="Pillar"
+                        />
+                    </div>
                 </div>
 
                 <div className="relative w-full md:w-auto md:min-w-[300px]">
