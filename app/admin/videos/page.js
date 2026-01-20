@@ -9,13 +9,13 @@ import { db } from '@/lib/firebase';
 import { collection, query, orderBy, onSnapshot, deleteDoc, doc, writeBatch, where, getDocs } from 'firebase/firestore';
 // Global Modal Context
 import { useModal } from '@/context/ModalContext';
-// Custom Loader (LogoReveal)
-import Loader from '@/components/Loader'; 
+// Custom Loader
+import LogoReveal from '@/components/logo-reveal'; 
 
 import { 
     PlusCircle, Search, Edit, Trash2, PlayCircle, ListVideo, 
     LayoutList, Filter, X, ArrowUpDown, CalendarClock, 
-    Info, ChevronRight, AlertTriangle
+    Info, ChevronRight, AlertTriangle, Eye, Video
 } from 'lucide-react';
 
 export default function ManageVideosPage() {
@@ -107,6 +107,7 @@ export default function ManageVideosPage() {
     };
 
     const filteredContent = getProcessedContent();
+
     // 3. ACTIONS
     const handleDelete = (id, type) => {
         // Standard Delete (Playlist Only or Single Video)
@@ -123,7 +124,10 @@ export default function ManageVideosPage() {
             onConfirm: async () => {
                 try {
                     if (type === 'video') await deleteDoc(doc(db, "videos", id));
-                    else await deleteDoc(doc(db, "video_playlists", id));
+                    else {
+                        await deleteDoc(doc(db, "video_playlists", id));
+                        setSelectedPlaylist(null); // Close modal if open
+                    }
                     
                     showSuccess({ title: "Deleted!", message: "Item deleted successfully.", confirmText: "Okay" });
                 } catch (error) {
@@ -180,22 +184,25 @@ export default function ManageVideosPage() {
     // Quick View Modal (Video)
     const handleQuickView = (item) => {
         showSuccess({
-            title: "Quick Info",
+            title: "Video Details",
             message: (
-                <div className="text-left space-y-3 mt-2 text-sm">
-                    <div dir={getDir(item.title)}>
-                        <p className="text-xs font-bold text-gray-400 uppercase">Title</p>
-                        <p className="font-bold text-brand-brown-dark">{item.title}</p>
+                <div className="text-left space-y-4 mt-4 w-full">
+                    <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black shadow-md">
+                         <iframe 
+                            src={`https://www.youtube.com/embed/${item.videoId}`} 
+                            title="Preview"
+                            className="absolute inset-0 w-full h-full"
+                            allowFullScreen
+                        ></iframe>
                     </div>
-                    {item.date && (
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase">Recorded Date</p>
-                            <p className="font-medium">{item.date}</p>
-                        </div>
-                    )}
-                    <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase">Uploaded On</p>
-                        <p className="font-medium">{formatUploadTime(item.createdAt)}</p>
+                    <div dir={getDir(item.title)}>
+                        <h4 className="font-bold text-lg text-brand-brown-dark">{item.title}</h4>
+                        <p className="text-sm text-gray-500 mt-1">{item.description || "No description provided."}</p>
+                    </div>
+                    <div className="flex gap-4 text-xs font-mono text-gray-400 border-t border-gray-100 pt-3">
+                        <span>{item.category}</span>
+                        <span>•</span>
+                        <span>{item.date}</span>
                     </div>
                 </div>
             ),
@@ -203,20 +210,20 @@ export default function ManageVideosPage() {
         });
     };
 return (
-        <div className="space-y-6 relative">
+        <div className="space-y-6 relative max-w-7xl mx-auto pb-12">
 
-            {/* --- NEW: PLAYLIST DETAILS MODAL --- */}
+            {/* --- PLAYLIST DETAILS MODAL --- */}
             {selectedPlaylist && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-brown-dark/60 backdrop-blur-sm animate-in fade-in duration-200">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
                         
                         {/* Modal Header */}
                         <div className="p-6 border-b border-gray-100 flex justify-between items-start bg-gray-50/50">
-                            <div className="flex gap-4">
-                                <div className="relative w-24 aspect-video rounded-lg overflow-hidden bg-gray-200 shadow-sm border border-white">
+                            <div className="flex gap-4 w-full">
+                                <div className="relative w-24 aspect-video rounded-lg overflow-hidden bg-gray-200 shadow-sm border border-white flex-shrink-0">
                                     <Image src={selectedPlaylist.cover || "/fallback.webp"} alt="Cover" fill className="object-cover" />
                                 </div>
-                                <div dir={getDir(selectedPlaylist.title)}>
+                                <div className="flex-grow" dir={getDir(selectedPlaylist.title)}>
                                     <h3 className="font-agency text-2xl text-brand-brown-dark leading-none mb-2">{selectedPlaylist.title}</h3>
                                     <div className="flex gap-2" dir="ltr">
                                         <span className="px-2 py-0.5 bg-brand-gold/10 text-brand-gold text-[10px] font-bold uppercase rounded-md">
@@ -226,19 +233,23 @@ return (
                                             {selectedPlaylist.realCount} Videos
                                         </span>
                                     </div>
+                                    {selectedPlaylist.description && (
+                                        <p className="text-xs text-gray-500 mt-2 line-clamp-2">{selectedPlaylist.description}</p>
+                                    )}
                                 </div>
                             </div>
-                            <button onClick={() => setSelectedPlaylist(null)} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                            <button onClick={() => setSelectedPlaylist(null)} className="p-2 hover:bg-gray-200 rounded-full transition-colors flex-shrink-0">
                                 <X className="w-5 h-5 text-gray-500" />
                             </button>
                         </div>
 
                         {/* Modal Body: Scrollable Video List */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                        <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-white">
+                            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 ml-1">Videos in this Series</h4>
                             {videos.filter(v => v.playlist === selectedPlaylist.title).length > 0 ? (
                                 videos.filter(v => v.playlist === selectedPlaylist.title).map((vid, idx) => (
                                     <div key={vid.id} className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl border border-transparent hover:border-gray-100 transition-all group">
-                                        <span className="text-xs font-bold text-gray-300 w-6">{idx + 1}</span>
+                                        <span className="text-xs font-bold text-gray-300 w-6 text-center">{idx + 1}</span>
                                         <div className="relative w-16 aspect-video rounded-md overflow-hidden bg-black flex-shrink-0">
                                             <Image src={vid.thumbnail || "/fallback.webp"} alt="Thumb" fill className="object-cover opacity-80" />
                                         </div>
@@ -247,17 +258,17 @@ return (
                                             <p className="text-[10px] text-gray-400 font-lato" dir="ltr">{formatUploadTime(vid.createdAt)}</p>
                                         </div>
                                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => handleEdit(vid.id, 'video')} className="p-2 text-gray-400 hover:text-brand-gold hover:bg-brand-sand rounded-lg">
+                                            <button onClick={() => handleEdit(vid.id, 'video')} className="p-2 text-gray-400 hover:text-brand-gold hover:bg-brand-sand rounded-lg" title="Edit Video">
                                                 <Edit className="w-3 h-3" />
                                             </button>
-                                            <button onClick={() => handleDelete(vid.id, 'video')} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                                            <button onClick={() => handleDelete(vid.id, 'video')} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg" title="Remove Video">
                                                 <Trash2 className="w-3 h-3" />
                                             </button>
                                         </div>
                                     </div>
                                 ))
                             ) : (
-                                <div className="text-center py-10 text-gray-400">
+                                <div className="text-center py-10 text-gray-400 border-2 border-dashed border-gray-100 rounded-xl">
                                     <ListVideo className="w-10 h-10 mx-auto mb-2 opacity-20" />
                                     <p className="text-sm">No videos in this playlist yet.</p>
                                 </div>
@@ -267,16 +278,22 @@ return (
                         {/* Modal Footer: Actions */}
                         <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
                             <button 
-                                onClick={() => handleDeleteSeries(selectedPlaylist)}
-                                className="flex items-center gap-2 text-red-500 hover:text-red-700 text-xs font-bold uppercase tracking-wider px-4 py-2 hover:bg-red-50 rounded-lg transition-colors"
+                                onClick={() => handleDelete(selectedPlaylist.id, 'playlist')}
+                                className="text-xs font-bold text-gray-500 hover:text-red-600 transition-colors"
                             >
-                                <Trash2 className="w-4 h-4" /> Delete Entire Series
+                                Delete Playlist Only
                             </button>
                             
-                            <div className="flex gap-2">
+                            <div className="flex gap-3">
+                                <button 
+                                    onClick={() => handleDeleteSeries(selectedPlaylist)}
+                                    className="flex items-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg text-xs font-bold uppercase transition-colors"
+                                >
+                                    <Trash2 className="w-4 h-4" /> Delete All
+                                </button>
                                 <button 
                                     onClick={() => handleEdit(selectedPlaylist.id, 'playlist')}
-                                    className="px-6 py-2.5 bg-brand-gold text-white text-xs font-bold rounded-xl hover:bg-brand-brown-dark transition-colors shadow-sm"
+                                    className="px-6 py-2 bg-brand-gold text-white text-xs font-bold rounded-lg hover:bg-brand-brown-dark transition-colors shadow-sm"
                                 >
                                     Edit Playlist
                                 </button>
@@ -286,39 +303,36 @@ return (
                 </div>
             )}
 
-            {/* --- MAIN PAGE CONTENT --- */}
-
+            {/* --- HEADER SECTION --- */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="font-agency text-3xl text-brand-brown-dark">Video Manager</h1>
                     <p className="font-lato text-sm text-gray-500">Manage your library, playlists, and lecture series.</p>
                 </div>
                 <div className="flex gap-3">
-                    {activeTab === 'videos' ? (
-                        <Link 
-                            href="/admin/videos/new" 
-                            className="flex items-center gap-2 px-5 py-2.5 bg-brand-gold text-white rounded-xl text-sm font-bold hover:bg-brand-brown-dark transition-colors shadow-md"
-                        >
-                            <PlusCircle className="w-4 h-4" />
-                            Upload Video
-                        </Link>
-                    ) : (
-                        <Link 
-                            href="/admin/videos/playlists/new"
-                            className="flex items-center gap-2 px-5 py-2.5 bg-brand-brown-dark text-white rounded-xl text-sm font-bold hover:bg-brand-gold transition-colors shadow-md"
-                        >
-                            <ListVideo className="w-4 h-4" />
-                            Create Playlist
-                        </Link>
-                    )}
+                    <Link 
+                        href="/admin/videos/new" 
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-md ${activeTab === 'videos' ? 'bg-brand-gold text-white hover:bg-brand-brown-dark' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                    >
+                        <PlusCircle className="w-4 h-4" /> Upload Video
+                    </Link>
+                    <Link 
+                        href="/admin/videos/playlists/new"
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-md ${activeTab === 'playlists' ? 'bg-brand-gold text-white hover:bg-brand-brown-dark' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                    >
+                        <ListVideo className="w-4 h-4" /> Create Playlist
+                    </Link>
                 </div>
             </div>
 
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-                <div className="flex bg-gray-100 p-1 rounded-lg w-full md:w-auto">
+            {/* --- FILTERS TOOLBAR --- */}
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
+                
+                {/* Tabs */}
+                <div className="flex bg-gray-50 p-1 rounded-xl w-full md:w-auto overflow-x-auto">
                     <button 
                         onClick={() => { setActiveTab('videos'); setSearchTerm(''); }}
-                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-md text-sm font-bold transition-all ${
+                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${
                             activeTab === 'videos' ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'
                         }`}
                     >
@@ -326,7 +340,7 @@ return (
                     </button>
                     <button 
                         onClick={() => { setActiveTab('playlists'); setSearchTerm(''); }}
-                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-md text-sm font-bold transition-all ${
+                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${
                             activeTab === 'playlists' ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'
                         }`}
                     >
@@ -334,53 +348,54 @@ return (
                     </button>
                 </div>
 
-                <div className="flex flex-col w-full xl:w-auto gap-3">
-                    <div className="flex flex-row gap-2 w-full">
-                        <div className="relative flex-1 md:flex-none">
-                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-gold" />
-                            <select 
-                                value={categoryFilter}
-                                onChange={(e) => setCategoryFilter(e.target.value)}
-                                className="w-full md:w-40 pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer"
-                            >
-                                <option value="All">All</option>
-                                <option value="English">English</option>
-                                <option value="Hausa">Hausa</option>
-                                <option value="Arabic">Arabic</option>
-                            </select>
-                        </div>
-                        <button 
-                            onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
-                            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors flex-1 md:flex-none"
+                {/* Search & Filter */}
+                <div className="flex flex-col sm:flex-row w-full xl:w-auto gap-3">
+                    <div className="relative flex-1 sm:flex-none sm:w-40">
+                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-gold" />
+                        <select 
+                            value={categoryFilter}
+                            onChange={(e) => setCategoryFilter(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer appearance-none"
                         >
-                            <ArrowUpDown className="w-4 h-4" />
-                            <span className="hidden sm:inline">{sortOrder === 'desc' ? 'Newest' : 'Oldest'}</span>
-                        </button>
+                            <option value="All">All Categories</option>
+                            <option value="English">English</option>
+                            <option value="Hausa">Hausa</option>
+                            <option value="Arabic">Arabic</option>
+                        </select>
                     </div>
-                    <div className="relative w-full md:w-72">
+                    
+                    <button 
+                        onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors"
+                    >
+                        <ArrowUpDown className="w-4 h-4" />
+                        <span className="hidden sm:inline">{sortOrder === 'desc' ? 'Newest' : 'Oldest'}</span>
+                    </button>
+
+                    <div className="relative flex-grow sm:w-64">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input 
                             type="text" 
-                            placeholder={`Search by title...`}
+                            placeholder={`Search ${activeTab}...`}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all" 
+                            className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all" 
                         />
                         {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>}
                     </div>
                 </div>
             </div>
 
+            {/* --- LIST VIEW --- */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px]">
                 {isLoading ? (
-                    <div className="flex items-center justify-center h-64">
-                        <Loader />
-                    </div>
+                    <div className="flex items-center justify-center h-64 scale-75"><LogoReveal /></div>
                 ) : (
                     <>
+                        {/* VIDEOS LIST */}
                         {activeTab === 'videos' && (
                             <div className="overflow-x-auto">
-                                <table className="w-full text-left">
+                                <table className="w-full text-left whitespace-nowrap">
                                     <thead className="bg-gray-50 border-b border-gray-100">
                                         <tr>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Video</th>
@@ -391,16 +406,19 @@ return (
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
                                         {filteredContent.length === 0 ? (
-                                            <tr><td colSpan="5" className="px-6 py-12 text-center text-gray-400">No videos found.</td></tr>
+                                            <tr><td colSpan="4" className="px-6 py-20 text-center text-gray-400">No videos found.</td></tr>
                                         ) : (
                                             filteredContent.map((video) => (
-                                                <tr key={video.id} className="hover:bg-gray-50 transition-colors group">
+                                                <tr key={video.id} className="hover:bg-gray-50 transition-colors group cursor-pointer" onClick={() => handleQuickView(video)}>
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-4">
-                                                            <div className="relative w-16 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-black cursor-pointer" onClick={() => handleQuickView(video)}>
+                                                            <div className="relative w-16 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-black">
                                                                 <Image src={video.thumbnail || "/fallback.webp"} alt={video.title} fill className="object-cover opacity-80" />
+                                                                <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-transparent transition-colors">
+                                                                    <PlayCircle className="w-4 h-4 text-white opacity-80" />
+                                                                </div>
                                                             </div>
-                                                            <h3 className={`font-bold text-brand-brown-dark text-sm min-w-[150px] cursor-pointer hover:text-brand-gold ${getDir(video.title) === 'rtl' ? 'font-tajawal' : ''}`} onClick={() => handleQuickView(video)}>
+                                                            <h3 className={`font-bold text-brand-brown-dark text-sm min-w-[150px] group-hover:text-brand-gold transition-colors ${getDir(video.title) === 'rtl' ? 'font-tajawal' : ''}`}>
                                                                 {video.title}
                                                             </h3>
                                                         </div>
@@ -414,13 +432,13 @@ return (
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4 hidden md:table-cell">
-                                                        {video.playlist ? <span className="text-xs font-bold text-brand-brown bg-brand-sand px-2 py-1 rounded-md">{video.playlist}</span> : <span className="text-xs text-gray-400">-</span>}
+                                                        {video.playlist ? <span className="text-xs font-bold text-brand-brown bg-brand-sand px-2 py-1 rounded-md border border-brand-gold/20">{video.playlist}</span> : <span className="text-xs text-gray-400">-</span>}
                                                     </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <div className="flex items-center justify-end gap-2">
-                                                            <button onClick={() => handleQuickView(video)} className="p-2 text-gray-400 hover:text-brand-gold hover:bg-brand-sand rounded-lg md:hidden"><Info className="w-4 h-4" /></button>
-                                                            <button onClick={() => handleEdit(video.id, 'video')} className="p-2 text-gray-400 hover:text-brand-gold hover:bg-brand-sand rounded-lg"><Edit className="w-4 h-4" /></button>
-                                                            <button onClick={() => handleDelete(video.id, 'video')} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                                                    <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                                                        <div className="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button onClick={() => handleQuickView(video)} className="p-2 text-gray-400 hover:text-brand-brown-dark bg-gray-100 rounded-lg"><Eye className="w-4 h-4" /></button>
+                                                            <button onClick={() => handleEdit(video.id, 'video')} className="p-2 text-gray-400 hover:text-brand-gold bg-gray-100 rounded-lg"><Edit className="w-4 h-4" /></button>
+                                                            <button onClick={() => handleDelete(video.id, 'video')} className="p-2 text-gray-400 hover:text-red-600 bg-gray-100 rounded-lg"><Trash2 className="w-4 h-4" /></button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -431,6 +449,7 @@ return (
                             </div>
                         )}
 
+                        {/* PLAYLISTS GRID */}
                         {activeTab === 'playlists' && (
                             <div className="p-6">
                                 {filteredContent.length === 0 ? (
@@ -443,12 +462,12 @@ return (
                                         {filteredContent.map((list) => (
                                             <div 
                                                 key={list.id} 
-                                                onClick={() => setSelectedPlaylist(list)} // CLICK TO OPEN MODAL
-                                                className="group border border-gray-100 rounded-2xl overflow-hidden hover:shadow-lg transition-all hover:border-brand-gold/30 cursor-pointer"
+                                                onClick={() => setSelectedPlaylist(list)}
+                                                className="group border border-gray-100 rounded-2xl overflow-hidden hover:shadow-lg transition-all hover:border-brand-gold/30 cursor-pointer bg-white"
                                             >
                                                 <div className="relative w-full aspect-video bg-gray-100">
-                                                    <Image src={list.cover || "/fallback.webp"} alt={list.title} fill className="object-cover" />
-                                                    <div className="absolute top-2 left-2">
+                                                    <Image src={list.cover || "/fallback.webp"} alt={list.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
+                                                    <div className="absolute top-2 left-2 flex gap-1">
                                                         <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase shadow-sm ${
                                                             list.category === 'English' ? 'bg-blue-600 text-white' :
                                                             list.category === 'Hausa' ? 'bg-green-600 text-white' : 'bg-orange-600 text-white'
@@ -456,27 +475,20 @@ return (
                                                             {list.category}
                                                         </span>
                                                     </div>
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                        <span className="text-white font-bold text-sm bg-black/50 px-3 py-1 rounded-full border border-white/20">View Details</span>
+                                                    </div>
                                                 </div>
                                                 <div className="p-4" dir={getDir(list.title)}>
                                                     <div className="flex justify-between items-start gap-4" dir="ltr">
-                                                        <div>
-                                                            <h3 className={`font-agency text-lg text-brand-brown-dark leading-tight line-clamp-2 ${getDir(list.title) === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
+                                                        <div className="flex-grow">
+                                                            <h3 className={`font-agency text-lg text-brand-brown-dark leading-tight line-clamp-2 mb-2 ${getDir(list.title) === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
                                                                 {list.title}
                                                             </h3>
-                                                            <div className="mt-2 space-y-1">
-                                                                <p className="text-xs text-brand-gold font-bold flex items-center gap-1">
-                                                                    <ListVideo className="w-3 h-3" /> {list.realCount} Videos
-                                                                </p>
-                                                                <p className="text-[10px] text-gray-400 flex items-center gap-1">
-                                                                    <CalendarClock className="w-3 h-3" /> {formatUploadTime(list.createdAt)}
-                                                                </p>
+                                                            <div className="flex items-center gap-3 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                                                                <span className="flex items-center gap-1 text-brand-gold"><ListVideo className="w-3 h-3" /> {list.realCount} Videos</span>
+                                                                <span className="flex items-center gap-1"><CalendarClock className="w-3 h-3" /> {formatUploadTime(list.createdAt).split('•')[0]}</span>
                                                             </div>
-                                                        </div>
-                                                        <div className="flex gap-1">
-                                                            {/* Delete Icon (Safe Delete) */}
-                                                            <button onClick={(e) => { e.stopPropagation(); handleDelete(list.id, 'playlist'); }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
                                                         </div>
                                                     </div>
                                                 </div>
