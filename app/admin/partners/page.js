@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 // Context
 import { useModal } from '@/context/ModalContext';
-import LogoReveal from '@/components/LogoReveal'; // Custom Loader
+import LogoReveal from '@/components/logo-reveal'; // Custom Loader
 
 import { 
     Search, 
