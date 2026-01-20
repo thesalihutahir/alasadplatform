@@ -20,20 +20,22 @@ import {
     MessageCircle,
     Send,
     AlertTriangle,
-    X
+    Navigation // Icon for Map
 } from 'lucide-react';
 
 export default function ContactSettingsPage() {
-    const { showSuccess } = useModal(); // Use Custom Success Modal
+    const { showSuccess } = useModal(); 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [showConfirm, setShowConfirm] = useState(false); // State for Verification Modal
+    const [showConfirm, setShowConfirm] = useState(false); 
 
     // Initial State
     const [data, setData] = useState({
         address: '',
         email: '',
         phone: '',
+        mapLatitude: '', // New: Map Lat
+        mapLongitude: '', // New: Map Lng
         facebook: '',
         twitter: '',
         instagram: '',
@@ -57,6 +59,8 @@ export default function ContactSettingsPage() {
                         address: savedData.address || '',
                         email: savedData.email || '',
                         phone: savedData.phone || '',
+                        mapLatitude: savedData.mapLatitude || '',
+                        mapLongitude: savedData.mapLongitude || '',
                         facebook: savedData.facebook || '',
                         twitter: savedData.twitter || '',
                         instagram: savedData.instagram || '',
@@ -101,7 +105,7 @@ export default function ContactSettingsPage() {
             // Trigger Custom Success Modal
             showSuccess({
                 title: "Settings Saved",
-                message: "Public contact information has been successfully updated.",
+                message: "Public contact information and map location have been updated.",
                 confirmText: "Okay, Great"
             });
 
@@ -131,7 +135,7 @@ export default function ContactSettingsPage() {
                 </Link>
                 <div>
                     <h1 className="font-agency text-3xl text-brand-brown-dark leading-none">Edit Contact Details</h1>
-                    <p className="text-gray-500 text-sm mt-1">Update address, phone, and social links visible on the website.</p>
+                    <p className="text-gray-500 text-sm mt-1">Update contact info, map location, and social links.</p>
                 </div>
             </div>
 
@@ -189,7 +193,42 @@ export default function ContactSettingsPage() {
                     </div>
                 </div>
 
-                {/* 2. Social Media Section */}
+                {/* 2. Map Configuration (New Section) */}
+                <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+                    <h3 className="font-bold text-lg text-brand-brown-dark mb-6 border-b border-gray-100 pb-2 flex items-center gap-2">
+                        <Navigation className="w-5 h-5 text-brand-gold" /> Map Configuration
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Latitude</label>
+                            <input 
+                                type="text" 
+                                name="mapLatitude" 
+                                value={data.mapLatitude || ''} 
+                                onChange={handleChange} 
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all" 
+                                placeholder="e.g. 12.970758" 
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Longitude</label>
+                            <input 
+                                type="text" 
+                                name="mapLongitude" 
+                                value={data.mapLongitude || ''} 
+                                onChange={handleChange} 
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all" 
+                                placeholder="e.g. 7.636398" 
+                            />
+                        </div>
+                        <div className="md:col-span-2 text-xs text-gray-400 bg-gray-50 p-3 rounded-lg">
+                            <span className="font-bold">Tip:</span> Go to Google Maps, right-click on your location, and click the numbers (e.g., 12.97..., 7.63...) to copy them. Paste the first number in Latitude and the second in Longitude.
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. Social Media Section */}
                 <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
                     <h3 className="font-bold text-lg text-brand-brown-dark mb-6 border-b border-gray-100 pb-2 flex items-center gap-2">
                         <MessageCircle className="w-5 h-5 text-brand-gold" /> Social Media Links
