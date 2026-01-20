@@ -8,22 +8,24 @@ import { useRouter, useParams } from 'next/navigation';
 import { db, storage } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-// Global Modal
+// Global Modal & Components
 import { useModal } from '@/context/ModalContext';
+import CustomSelect from '@/components/CustomSelect'; 
 
 import { 
     ArrowLeft, 
     Save, 
     X, 
     Image as ImageIcon, 
-    Loader2
+    Loader2,
+    Globe
 } from 'lucide-react';
 
 export default function EditSeriesPage() {
     const router = useRouter();
     const params = useParams();
     const id = params?.id;
-    const { showSuccess } = useModal();
+    const { showSuccess } = useModal(); 
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -42,6 +44,13 @@ export default function EditSeriesPage() {
     // Image File State
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
+
+    // Constants
+    const CATEGORY_OPTIONS = [
+        { value: 'English', label: 'English' },
+        { value: 'Hausa', label: 'Hausa' },
+        { value: 'Arabic', label: 'Arabic' }
+    ];
 
     // Helper: Auto-Detect Arabic
     const getDir = (text) => {
@@ -83,6 +92,11 @@ export default function EditSeriesPage() {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    // Custom Select Handler
+    const handleSelectChange = (name, value) => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
@@ -140,7 +154,6 @@ export default function EditSeriesPage() {
             // 2. Update Series Doc
             const seriesRef = doc(db, "audio_series", id);
             await updateDoc(seriesRef, {
-                ...formData,
                 title: formData.title.trim(),
                 description: formData.description.trim(),
                 category: formData.category,
@@ -150,18 +163,17 @@ export default function EditSeriesPage() {
 
             // 3. SPECIAL: Update all child audios if Title changed
             let message = "Series updated successfully.";
-            
+
             if (originalTitle && originalTitle !== formData.title) {
-                // Assuming collection is named 'audios' based on typical pattern
                 const qAudios = query(collection(db, "audios"), where("series", "==", originalTitle));
                 const audioSnaps = await getDocs(qAudios);
-                
+
                 const batch = writeBatch(db);
                 audioSnaps.forEach((audioDoc) => {
                     batch.update(audioDoc.ref, { series: formData.title.trim() });
                 });
                 await batch.commit();
-                
+
                 console.log(`Updated ${audioSnaps.size} audio tracks to new series name.`);
                 message = `Series updated! Also renamed series for ${audioSnaps.size} linked audio tracks.`;
             }
@@ -180,7 +192,6 @@ export default function EditSeriesPage() {
             setIsSubmitting(false);
         }
     };
-
     if (isLoading) return <div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 text-brand-gold animate-spin" /></div>;
 
     return (
@@ -232,17 +243,14 @@ export default function EditSeriesPage() {
 
                 {/* Category */}
                 <div>
-                    <label className="block text-xs font-bold text-brand-brown mb-1">Category (Language)</label>
-                    <select 
-                        name="category"
+                    <CustomSelect 
+                        label="Category (Language)"
+                        options={CATEGORY_OPTIONS}
                         value={formData.category}
-                        onChange={handleChange}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                    >
-                        <option>English</option>
-                        <option>Hausa</option>
-                        <option>Arabic</option>
-                    </select>
+                        onChange={(val) => handleSelectChange('category', val)}
+                        icon={Globe}
+                        placeholder="Select Language"
+                    />
                 </div>
 
                 {/* Cover Image Upload */}
@@ -294,7 +302,7 @@ export default function EditSeriesPage() {
                     </Link>
                     <button 
                         type="submit" 
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || !formData.title}
                         className="flex-1 flex items-center justify-center gap-2 py-3 bg-brand-gold text-white font-bold rounded-xl hover:bg-brand-brown-dark transition-colors shadow-md disabled:opacity-50"
                     >
                         {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
