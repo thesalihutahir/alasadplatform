@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 // Firebase
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
@@ -11,27 +12,12 @@ import { useModal } from '@/context/ModalContext';
 import LogoReveal from '@/components/logo-reveal'; 
 
 import { 
-    PlusCircle, 
-    Search, 
-    Edit, 
-    Trash2, 
-    Users, 
-    Target, 
-    Loader2, 
-    AlertTriangle,
-    X,
-    Eye,
-    Calendar,
-    MapPin,
-    FileText,
-    Layers,
-    Filter,
-    Activity,
-    ChevronDown, 
-    Check
+    PlusCircle, Search, Edit, Trash2, Users, Target, Loader2, AlertTriangle, 
+    X, Eye, Calendar, MapPin, FileText, Layers, Filter, Activity, 
+    ChevronDown, Check
 } from 'lucide-react';
 
-// --- CUSTOM DROPDOWN COMPONENT ---
+// --- CUSTOM DROPDOWN COMPONENT (Internal) ---
 const CustomSelect = ({ options, value, onChange, placeholder, icon: Icon, className }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
@@ -64,7 +50,7 @@ const CustomSelect = ({ options, value, onChange, placeholder, icon: Icon, class
             </div>
 
             {isOpen && (
-                <div className="absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-100 min-w-[180px]">
+                <div className="absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-100 min-w-[140px]">
                     {options.map((opt) => (
                         <div 
                             key={opt.value}
@@ -82,7 +68,7 @@ const CustomSelect = ({ options, value, onChange, placeholder, icon: Icon, class
 };
 
 export default function ManageProgramsPage() {
-    const { showSuccess } = useModal();
+    const { showSuccess, showConfirm } = useModal(); 
 
     // --- STATE ---
     const [programs, setPrograms] = useState([]);
@@ -92,8 +78,8 @@ export default function ManageProgramsPage() {
     const [searchTerm, setSearchTerm] = useState('');
 
     // Modal States
-    const [viewProgram, setViewProgram] = useState(null); // For View Details
-    const [deleteConfig, setDeleteConfig] = useState(null); // { id: string }
+    const [viewProgram, setViewProgram] = useState(null); 
+    const [deleteConfig, setDeleteConfig] = useState(null); 
     const [isDeleting, setIsDeleting] = useState(false);
 
     // Options for Filters
@@ -116,16 +102,11 @@ export default function ManageProgramsPage() {
     useEffect(() => {
         setIsLoading(true);
         const q = query(collection(db, "programs"), orderBy("createdAt", "desc"));
-
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setPrograms(data);
             setIsLoading(false);
         });
-
         return () => unsubscribe();
     }, []);
 
@@ -163,7 +144,7 @@ export default function ManageProgramsPage() {
         const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
         return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     };
-    return (
+return (
         <div className="space-y-6 max-w-7xl mx-auto pb-12 relative">
 
             {/* 1. HEADER & ACTIONS */}
@@ -172,14 +153,15 @@ export default function ManageProgramsPage() {
                     <h1 className="font-agency text-3xl text-brand-brown-dark">Manage Programs</h1>
                     <p className="font-lato text-sm text-gray-500">Oversee Educational, Community, and Innovation initiatives.</p>
                 </div>
-                <div className="flex gap-2">
-                    <div className="bg-white border border-gray-100 px-4 py-2 rounded-xl text-center shadow-sm min-w-[80px]">
-                        <span className="block text-lg font-bold text-brand-gold">{programs.length}</span>
-                        <span className="text-[10px] text-gray-400 uppercase tracking-wider">Total</span>
+                {/* Updated Action Bar with Flex Stretch */}
+                <div className="flex gap-2 h-10">
+                    <div className="bg-white border border-gray-100 px-4 rounded-xl text-center shadow-sm min-w-[80px] flex flex-col justify-center h-full">
+                        <span className="block text-lg font-bold text-brand-gold leading-none">{programs.length}</span>
+                        <span className="text-[10px] text-gray-400 uppercase tracking-wider leading-none mt-0.5">Total</span>
                     </div>
                     <Link 
                         href="/admin/programs/new" 
-                        className="flex items-center gap-2 px-5 py-2 bg-brand-gold text-white rounded-xl text-sm font-bold hover:bg-brand-brown-dark transition-colors shadow-md"
+                        className="flex items-center justify-center gap-2 px-5 bg-brand-gold text-white rounded-xl text-sm font-bold hover:bg-brand-brown-dark transition-colors shadow-md h-full"
                     >
                         <PlusCircle className="w-4 h-4" />
                         Create New Program
@@ -187,7 +169,7 @@ export default function ManageProgramsPage() {
                 </div>
             </div>
 
-            {/* 2. FILTERS - UPDATED: Removed overflow-hidden, added z-index */}
+            {/* 2. FILTERS */}
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm relative z-20">
                 
                 {/* Custom Selects - Replaced overflow-x-auto with flex-wrap */}
@@ -249,8 +231,6 @@ export default function ManageProgramsPage() {
                                             className="hover:bg-gray-50 transition-colors group cursor-pointer"
                                             onClick={() => setViewProgram(program)}
                                         >
-
-                                            {/* Program Info */}
                                             <td className="px-6 py-4 max-w-sm">
                                                 <div className="flex items-center gap-4">
                                                     <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100 border border-gray-200">
@@ -269,8 +249,6 @@ export default function ManageProgramsPage() {
                                                     </div>
                                                 </div>
                                             </td>
-
-                                            {/* Category (Pillar) */}
                                             <td className="px-6 py-4">
                                                 <span className={`inline-block px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide border ${
                                                     program.category === 'Educational Support' ? 'bg-blue-50 text-blue-600 border-blue-100' :
@@ -280,8 +258,6 @@ export default function ManageProgramsPage() {
                                                     {program.category}
                                                 </span>
                                             </td>
-
-                                            {/* Status */}
                                             <td className="px-6 py-4">
                                                 <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
                                                     program.status === 'Active' ? 'bg-green-100 text-green-700' : 
@@ -298,8 +274,6 @@ export default function ManageProgramsPage() {
                                                     {program.status}
                                                 </span>
                                             </td>
-
-                                            {/* Actions */}
                                             <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                                                 <div className="flex justify-end gap-2">
                                                     <button onClick={() => setViewProgram(program)} className="p-2 text-gray-400 hover:text-brand-brown-dark hover:bg-gray-100 rounded-lg transition-colors" title="View Details">
@@ -319,7 +293,6 @@ export default function ManageProgramsPage() {
                                                     </button>
                                                 </div>
                                             </td>
-
                                         </tr>
                                     ))
                                 )}
@@ -333,15 +306,11 @@ export default function ManageProgramsPage() {
             {viewProgram && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-                        {/* Header */}
                         <div className="bg-brand-brown-dark px-6 py-4 flex justify-between items-center text-white flex-shrink-0">
                             <h3 className="font-agency text-xl">Program Details</h3>
                             <button onClick={() => setViewProgram(null)} className="p-1 hover:bg-white/10 rounded-full transition-colors"><X className="w-5 h-5" /></button>
                         </div>
-
-                        {/* Content */}
                         <div className="p-0 overflow-y-auto">
-                            {/* Cover Image */}
                             <div className="relative w-full aspect-video bg-gray-100">
                                 <Image src={viewProgram.coverImage || "/fallback.webp"} alt={viewProgram.title} fill className="object-cover" />
                                 <div className="absolute top-4 left-4">
@@ -353,7 +322,6 @@ export default function ManageProgramsPage() {
                                     </span>
                                 </div>
                             </div>
-
                             <div className="p-6 space-y-6">
                                 <div>
                                     <h2 className="text-2xl font-bold text-brand-brown-dark mb-2">{viewProgram.title}</h2>
@@ -364,22 +332,16 @@ export default function ManageProgramsPage() {
                                         <div className="flex items-center gap-1"><Calendar className="w-4 h-4 text-brand-gold" /> Created: {formatDate(viewProgram.createdAt)}</div>
                                     </div>
                                 </div>
-
                                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                                     <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Short Summary</h4>
                                     <p className="text-sm text-gray-600 leading-relaxed italic">{viewProgram.excerpt}</p>
                                 </div>
-
                                 <div>
                                     <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-2"><FileText className="w-4 h-4"/> Full Description</h4>
-                                    <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                                        {viewProgram.content}
-                                    </div>
+                                    <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{viewProgram.content}</div>
                                 </div>
                             </div>
                         </div>
-
-                        {/* Footer */}
                         <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex justify-end gap-3 flex-shrink-0">
                             <button onClick={() => confirmDelete(viewProgram.id)} className="px-4 py-2 text-red-600 font-bold text-sm hover:bg-red-50 rounded-lg transition-colors">Delete Program</button>
                             <Link href={`/admin/programs/edit/${viewProgram.id}`}>
