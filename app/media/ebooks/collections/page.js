@@ -64,7 +64,7 @@ export default function AllCollectionsPage() {
     useEffect(() => {
         let results = allCollections;
 
-        // 1. Language Filter
+        // 1. Language Filter (category field)
         if (activeLang !== 'All') {
             results = results.filter(col => col.category === activeLang);
         }
@@ -80,7 +80,6 @@ export default function AllCollectionsPage() {
 
         setFilteredCollections(results);
     }, [activeLang, searchTerm, allCollections]);
-
     return (
         <div className="min-h-screen flex flex-col bg-brand-sand font-lato">
             <Header />
