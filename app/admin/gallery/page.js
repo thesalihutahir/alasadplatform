@@ -464,7 +464,7 @@ return (
                             activeTab === 'albums' ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'
                         }`}
                     >
-                        <Folder className="w-4 h-4" /> Event Albums
+                        <Folder className="w-4 h-4" /> Albums
                     </button>
                 </div>
 
