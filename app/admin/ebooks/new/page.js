@@ -8,8 +8,10 @@ import { useRouter } from 'next/navigation';
 import { db, storage } from '@/lib/firebase';
 import { collection, addDoc, getDocs, serverTimestamp, query, orderBy, where } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-// Global Modal
+// Global Modal & Components
 import { useModal } from '@/context/ModalContext';
+import CustomSelect from '@/components/CustomSelect'; 
+import CustomDatePicker from '@/components/CustomDatePicker'; 
 
 import { 
     ArrowLeft, 
@@ -22,9 +24,9 @@ import {
     CheckCircle, 
     Image as ImageIcon,
     AlertTriangle,
-    Calendar,
     Globe,
-    Lock
+    BookOpen,
+    Calendar as CalendarIcon
 } from 'lucide-react';
 
 export default function UploadBookPage() {
@@ -49,9 +51,9 @@ export default function UploadBookPage() {
         author: 'Sheikh Goni Dr. Muneer Ja\'afar',
         collection: '',
         language: 'English', 
-        publisher: 'Al-Asad Foundation', // New Soft Filter
-        access: 'Free', // New Soft Filter
-        year: new Date().getFullYear().toString(), // New Soft Filter
+        publisher: 'Al-Asad Foundation', 
+        access: 'Free', // Default hidden field
+        year: new Date().getFullYear().toString(), 
         description: ''
     });
 
@@ -59,6 +61,18 @@ export default function UploadBookPage() {
     const [docFile, setDocFile] = useState(null); // PDF or EPUB
     const [coverFile, setCoverFile] = useState(null);
     const [coverPreview, setCoverPreview] = useState(null);
+
+    // Constants
+    const LANGUAGE_OPTIONS = [
+        { value: 'English', label: 'English' },
+        { value: 'Hausa', label: 'Hausa' },
+        { value: 'Arabic', label: 'Arabic' }
+    ];
+
+    const PUBLISHER_OPTIONS = [
+        { value: 'Al-Asad Foundation', label: 'Al-Asad Foundation' },
+        { value: 'External Publisher', label: 'External Publisher' }
+    ];
 
     // Helper: Auto-Detect Arabic
     const getDir = (text) => {
@@ -95,7 +109,12 @@ export default function UploadBookPage() {
         if (allCollections.length > 0) {
             const filtered = allCollections.filter(c => c.category === formData.language);
             setFilteredCollections(filtered);
-            setFormData(prev => ({ ...prev, collection: '' })); 
+            
+            // Reset collection if current selection doesn't match new language
+            const currentValid = filtered.some(c => c.title === formData.collection);
+            if (!currentValid) {
+                setFormData(prev => ({ ...prev, collection: '' }));
+            }
         }
     }, [formData.language, allCollections]);
 
@@ -131,12 +150,18 @@ export default function UploadBookPage() {
         }
     };
 
+    // Handler for Custom Selects
+    const handleSelectChange = (name, value) => {
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
     // Handle Document Selection (PDF/EPUB)
     const handleDocChange = (e) => {
         const file = e.target.files[0];
         if (file) {
             const validTypes = ['application/pdf', 'application/epub+zip'];
-            if (!validTypes.includes(file.type) && !file.name.endsWith('.epub')) {
+            // Also check extension for EPUB as mime type can vary
+            if (!validTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.epub')) {
                 alert("Please upload a PDF or EPUB file.");
                 return;
             }
@@ -146,7 +171,7 @@ export default function UploadBookPage() {
             }
             setDocFile(file);
 
-            // Auto-fill title
+            // Auto-fill title if empty
             if (!formData.title) {
                 const autoTitle = file.name.replace(/\.(pdf|epub)$/i, "");
                 setFormData(prev => ({ ...prev, title: autoTitle }));
@@ -173,7 +198,8 @@ export default function UploadBookPage() {
         setCoverFile(null);
         setCoverPreview(null);
     };
-const handleSubmit = async (e) => {
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         if (!docFile || !coverFile) {
@@ -195,7 +221,7 @@ const handleSubmit = async (e) => {
             const coverRef = ref(storage, `ebooks/covers/${Date.now()}_${coverFile.name}`);
             const coverUploadTask = uploadBytesResumable(coverRef, coverFile);
 
-            // Track Doc progress
+            // Track Doc progress (Main progress bar)
             docUploadTask.on('state_changed', (snapshot) => {
                 const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
                 setUploadProgress(progress);
@@ -210,10 +236,10 @@ const handleSubmit = async (e) => {
             await addDoc(collection(db, "ebooks"), {
                 ...formData,
                 title: formData.title.trim(),
-                fileUrl: docUrl, // Renamed from pdfUrl to generic fileUrl
+                fileUrl: docUrl,
                 coverUrl: coverUrl,
                 fileName: docFile.name,
-                fileFormat: docFile.name.split('.').pop().toUpperCase(), // PDF or EPUB
+                fileFormat: docFile.name.split('.').pop().toUpperCase(),
                 fileSize: (docFile.size / (1024 * 1024)).toFixed(2) + " MB",
                 createdAt: serverTimestamp(),
                 downloads: 0,
@@ -229,13 +255,18 @@ const handleSubmit = async (e) => {
 
         } catch (error) {
             console.error("Error saving ebook:", error);
-            alert("Failed to save book. Check console.");
+            alert("Failed to save book.");
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    return (
+    // Collection Options
+    const collectionOptions = filteredCollections.map(c => ({
+        value: c.title,
+        label: c.title
+    }));
+return (
         <form onSubmit={handleSubmit} className="space-y-6 max-w-6xl mx-auto pb-12">
 
             {/* Header */}
@@ -304,7 +335,7 @@ const handleSubmit = async (e) => {
                             </div>
                         )}
                     </div>
-
+                    
                     {/* Cover Image Upload */}
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <h3 className="font-agency text-xl text-brand-brown-dark mb-4">Book Cover</h3>
@@ -367,68 +398,25 @@ const handleSubmit = async (e) => {
                             )}
                         </div>
 
-                        {/* Filters Row 1 */}
+                        {/* Filters Row */}
                         <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold text-brand-brown mb-1">Language</label>
-                                <div className="relative">
-                                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                    <select 
-                                        name="language" 
-                                        value={formData.language} 
-                                        onChange={handleChange} 
-                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50"
-                                    >
-                                        <option>English</option>
-                                        <option>Hausa</option>
-                                        <option>Arabic</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-brand-brown mb-1">Access Type</label>
-                                <div className="relative">
-                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                    <select 
-                                        name="access" 
-                                        value={formData.access} 
-                                        onChange={handleChange} 
-                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50"
-                                    >
-                                        <option>Free</option>
-                                        <option>Members Only</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Filters Row 2 */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold text-brand-brown mb-1">Publisher</label>
-                                <select 
-                                    name="publisher" 
-                                    value={formData.publisher} 
-                                    onChange={handleChange} 
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50"
-                                >
-                                    <option>Al-Asad Foundation</option>
-                                    <option>External Publisher</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-brand-brown mb-1">Publication Year</label>
-                                <div className="relative">
-                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                    <input 
-                                        type="number" 
-                                        name="year" 
-                                        value={formData.year} 
-                                        onChange={handleChange} 
-                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50" 
-                                    />
-                                </div>
-                            </div>
+                            <CustomSelect 
+                                label="Language"
+                                options={LANGUAGE_OPTIONS}
+                                value={formData.language}
+                                onChange={(val) => handleSelectChange('language', val)}
+                                icon={Globe}
+                                placeholder="Select Language"
+                            />
+                            
+                            <CustomSelect 
+                                label="Publisher"
+                                options={PUBLISHER_OPTIONS}
+                                value={formData.publisher}
+                                onChange={(val) => handleSelectChange('publisher', val)}
+                                icon={BookOpen}
+                                placeholder="Select Publisher"
+                            />
                         </div>
 
                         {/* Collection Selector */}
@@ -436,25 +424,23 @@ const handleSubmit = async (e) => {
                             <label className="flex items-center gap-2 text-xs font-bold text-brand-brown-dark uppercase tracking-wider mb-2">
                                 <Library className="w-4 h-4" /> Add to Collection (Series)
                             </label>
-                            <select 
-                                name="collection" 
-                                value={formData.collection} 
-                                onChange={handleChange} 
-                                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50 cursor-pointer"
-                            >
-                                <option value="">Select a Collection (Optional)</option>
-                                {isLoadingCollections ? (
-                                    <option disabled>Loading...</option>
-                                ) : (
-                                    filteredCollections.length > 0 ? (
-                                        filteredCollections.map(col => <option key={col.id} value={col.title}>{col.title}</option>)
-                                    ) : (
-                                        <option disabled>No collections found for {formData.language}</option>
-                                    )
-                                )}
-                            </select>
+                            {isLoadingCollections ? (
+                                <div className="p-3 text-xs text-gray-400 text-center bg-gray-50 rounded-xl">Loading collections...</div>
+                            ) : (
+                                <CustomSelect 
+                                    options={collectionOptions}
+                                    value={formData.collection}
+                                    onChange={(val) => handleSelectChange('collection', val)}
+                                    icon={Library}
+                                    placeholder={collectionOptions.length > 0 ? "Select a Collection..." : "No collections found"}
+                                />
+                            )}
+                            <p className="text-[10px] text-gray-400 mt-2 text-center">
+                                Showing collections for: <span className="font-bold text-brand-gold">{formData.language}</span>
+                            </p>
                         </div>
 
+                        {/* Description */}
                         <div>
                             <label className="block text-xs font-bold text-brand-brown mb-1">Description</label>
                             <textarea 
@@ -462,7 +448,7 @@ const handleSubmit = async (e) => {
                                 value={formData.description} 
                                 onChange={handleChange} 
                                 rows="4" 
-                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-gold/50"
+                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
                                 dir={getDir(formData.description)}
                             ></textarea>
                         </div>
