@@ -400,19 +400,21 @@ return (
                                 placeholder="Select Language"
                             />
                             
-                            {/* Publication Year (Styled like CustomSelect) */}
+                            {/* Publication Year (Styled EXACTLY like CustomSelect) */}
                             <div>
                                 <label className="block text-xs font-bold text-brand-brown mb-1">Publication Year</label>
-                                <div className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 flex items-center cursor-text transition-all focus-within:border-brand-gold/50 focus-within:ring-2 focus-within:ring-brand-gold/20">
-                                    <CalendarIcon className="w-4 h-4 text-brand-gold flex-shrink-0 mr-2" />
-                                    <input 
-                                        type="number" 
-                                        name="year" 
-                                        value={formData.year} 
-                                        onChange={handleChange} 
-                                        className="w-full bg-transparent border-none p-0 text-sm text-gray-700 font-medium placeholder-gray-500 focus:ring-0"
-                                        placeholder="YYYY"
-                                    />
+                                <div className="relative w-full">
+                                    <div className="w-full pl-3 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm flex items-center transition-all focus-within:border-brand-gold/50 focus-within:ring-2 focus-within:ring-brand-gold/20">
+                                        <CalendarIcon className="w-4 h-4 text-brand-gold flex-shrink-0 mr-2" />
+                                        <input 
+                                            type="number" 
+                                            name="year" 
+                                            value={formData.year} 
+                                            onChange={handleChange} 
+                                            className="w-full bg-transparent border-none p-0 text-sm text-gray-700 font-medium placeholder-gray-500 focus:ring-0 focus:outline-none"
+                                            placeholder="YYYY"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
