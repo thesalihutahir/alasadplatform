@@ -51,7 +51,7 @@ export default function UploadBookPage() {
         author: 'Sheikh Goni Dr. Muneer Ja\'afar',
         collection: '',
         language: 'English', 
-        publisher: 'Al-Asad Education Foundation', // Default Full Name
+        publisher: 'Al-Asad Education Foundation', 
         access: 'Free',
         year: new Date().getFullYear().toString(), 
         description: ''
@@ -61,7 +61,7 @@ export default function UploadBookPage() {
     const [publisherType, setPublisherType] = useState('Al-Asad Education Foundation');
 
     // File States
-    const [docFile, setDocFile] = useState(null); // PDF or EPUB
+    const [docFile, setDocFile] = useState(null); 
     const [coverFile, setCoverFile] = useState(null);
     const [coverPreview, setCoverPreview] = useState(null);
 
@@ -95,7 +95,6 @@ export default function UploadBookPage() {
                     ...doc.data()
                 }));
                 setAllCollections(collections);
-                // Initial filter
                 setFilteredCollections(collections.filter(c => c.category === 'English'));
             } catch (error) {
                 console.error("Error fetching collections:", error);
@@ -103,21 +102,16 @@ export default function UploadBookPage() {
                 setIsLoadingCollections(false);
             }
         };
-
         fetchCollections();
     }, []);
 
-    // 2. Filter Collections when Language Changes
+    // 2. Filter Collections
     useEffect(() => {
         if (allCollections.length > 0) {
             const filtered = allCollections.filter(c => c.category === formData.language);
             setFilteredCollections(filtered);
-            
-            // Reset collection if current selection doesn't match new language
             const currentValid = filtered.some(c => c.title === formData.collection);
-            if (!currentValid) {
-                setFormData(prev => ({ ...prev, collection: '' }));
-            }
+            if (!currentValid) setFormData(prev => ({ ...prev, collection: '' }));
         }
     }, [formData.language, allCollections]);
 
@@ -131,12 +125,8 @@ export default function UploadBookPage() {
         try {
             const q = query(collection(db, "ebooks"), where("title", "==", title.trim()));
             const snapshot = await getDocs(q);
-
-            if (!snapshot.empty) {
-                setDuplicateWarning(`A book named "${title}" already exists.`);
-            } else {
-                setDuplicateWarning(null);
-            }
+            if (!snapshot.empty) setDuplicateWarning(`A book named "${title}" already exists.`);
+            else setDuplicateWarning(null);
         } catch (error) {
             console.error("Error checking duplicate:", error);
         } finally {
@@ -147,28 +137,23 @@ export default function UploadBookPage() {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-
-        if (name === 'title') {
-            checkDuplicateTitle(value);
-        }
+        if (name === 'title') checkDuplicateTitle(value);
     };
 
-    // Handler for Custom Selects
+    // Handlers
     const handleSelectChange = (name, value) => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    // Special Handler for Publisher Type
     const handlePublisherTypeChange = (value) => {
         setPublisherType(value);
         if (value === 'Al-Asad Education Foundation') {
             setFormData(prev => ({ ...prev, publisher: 'Al-Asad Education Foundation' }));
         } else {
-            setFormData(prev => ({ ...prev, publisher: '' })); // Clear for custom input
+            setFormData(prev => ({ ...prev, publisher: '' }));
         }
     };
 
-    // Handle Document Selection (PDF/EPUB)
     const handleDocChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -177,13 +162,11 @@ export default function UploadBookPage() {
                 alert("Please upload a PDF or EPUB file.");
                 return;
             }
-            if (file.size > 50 * 1024 * 1024) { // 50MB Limit
+            if (file.size > 50 * 1024 * 1024) { 
                 alert("File size exceeds 50MB limit.");
                 return;
             }
             setDocFile(file);
-
-            // Auto-fill title if empty
             if (!formData.title) {
                 const autoTitle = file.name.replace(/\.(pdf|epub)$/i, "");
                 setFormData(prev => ({ ...prev, title: autoTitle }));
@@ -192,7 +175,6 @@ export default function UploadBookPage() {
         }
     };
 
-    // Handle Cover Selection
     const handleCoverChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -213,15 +195,11 @@ export default function UploadBookPage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         if (!docFile || !coverFile) {
             alert("Please upload both a Document (PDF/EPUB) and a Cover Image.");
             return;
         }
-        if (!formData.title || duplicateWarning) {
-            return;
-        }
-        // Validate publisher
+        if (!formData.title || duplicateWarning) return;
         if (!formData.publisher.trim()) {
             alert("Please specify the publisher name.");
             return;
@@ -230,15 +208,11 @@ export default function UploadBookPage() {
         setIsSubmitting(true);
 
         try {
-            // 1. Upload Document
             const docRef = ref(storage, `ebooks/docs/${Date.now()}_${docFile.name}`);
             const docUploadTask = uploadBytesResumable(docRef, docFile);
-
-            // 2. Upload Cover
             const coverRef = ref(storage, `ebooks/covers/${Date.now()}_${coverFile.name}`);
             const coverUploadTask = uploadBytesResumable(coverRef, coverFile);
 
-            // Track Doc progress
             docUploadTask.on('state_changed', (snapshot) => {
                 const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
                 setUploadProgress(progress);
@@ -249,11 +223,10 @@ export default function UploadBookPage() {
             const docUrl = await getDownloadURL(docUploadTask.snapshot.ref);
             const coverUrl = await getDownloadURL(coverUploadTask.snapshot.ref);
 
-            // 3. Save Metadata
             await addDoc(collection(db, "ebooks"), {
                 ...formData,
                 title: formData.title.trim(),
-                publisher: formData.publisher.trim(), // Use the conditional field value
+                publisher: formData.publisher.trim(),
                 fileUrl: docUrl,
                 coverUrl: coverUrl,
                 fileName: docFile.name,
@@ -416,7 +389,7 @@ return (
                             )}
                         </div>
 
-                        {/* Language & Year */}
+                        {/* Filters Row */}
                         <div className="grid grid-cols-2 gap-4">
                             <CustomSelect 
                                 label="Language"
@@ -430,18 +403,16 @@ return (
                             {/* Publication Year (Styled like CustomSelect) */}
                             <div>
                                 <label className="block text-xs font-bold text-brand-brown mb-1">Publication Year</label>
-                                <div className="relative">
-                                    <div className="w-full pl-3 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm flex items-center">
-                                        <CalendarIcon className="w-4 h-4 text-brand-gold flex-shrink-0 mr-2" />
-                                        <input 
-                                            type="number" 
-                                            name="year" 
-                                            value={formData.year} 
-                                            onChange={handleChange} 
-                                            className="w-full bg-transparent border-none focus:ring-0 p-0 text-gray-700 font-medium placeholder-gray-500"
-                                            placeholder="YYYY"
-                                        />
-                                    </div>
+                                <div className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 flex items-center cursor-text transition-all focus-within:border-brand-gold/50 focus-within:ring-2 focus-within:ring-brand-gold/20">
+                                    <CalendarIcon className="w-4 h-4 text-brand-gold flex-shrink-0 mr-2" />
+                                    <input 
+                                        type="number" 
+                                        name="year" 
+                                        value={formData.year} 
+                                        onChange={handleChange} 
+                                        className="w-full bg-transparent border-none p-0 text-sm text-gray-700 font-medium placeholder-gray-500 focus:ring-0"
+                                        placeholder="YYYY"
+                                    />
                                 </div>
                             </div>
                         </div>
