@@ -8,7 +8,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { db, storage } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-// Global Modal
+// Global Modal Context
 import { useModal } from '@/context/ModalContext';
 
 import { 
@@ -34,7 +34,6 @@ export default function EditAlbumPage() {
 
     const [formData, setFormData] = useState({
         title: '',
-        category: 'Event',
         description: '',
         cover: '' 
     });
@@ -62,7 +61,6 @@ export default function EditAlbumPage() {
                     const data = docSnap.data();
                     setFormData({
                         title: data.title || '',
-                        category: data.category || 'Event',
                         description: data.description || '',
                         cover: data.cover || ''
                     });
@@ -148,17 +146,19 @@ export default function EditAlbumPage() {
             });
 
             // 3. SPECIAL: Update all linked photos if Title changed
-            // (Assuming photos have an 'album' field storing the title)
             let message = "Album updated successfully.";
             
             if (originalTitle && originalTitle !== formData.title) {
-                const qPhotos = query(collection(db, "gallery_photos"), where("album", "==", originalTitle));
+                // Assuming you stored 'albumTitle' in photos collection. 
+                // If you only stored 'albumId', this step is unnecessary.
+                // But for completeness based on typical denormalization:
+                const qPhotos = query(collection(db, "gallery_photos"), where("albumTitle", "==", originalTitle));
                 const photoSnaps = await getDocs(qPhotos);
                 
                 if (!photoSnaps.empty) {
                     const batch = writeBatch(db);
                     photoSnaps.forEach((photoDoc) => {
-                        batch.update(photoDoc.ref, { album: formData.title.trim() });
+                        batch.update(photoDoc.ref, { albumTitle: formData.title.trim() });
                     });
                     await batch.commit();
                     console.log(`Updated ${photoSnaps.size} photos to new album name.`);
@@ -180,8 +180,7 @@ export default function EditAlbumPage() {
             setIsSubmitting(false);
         }
     };
-
-    if (isLoading) return <div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 text-brand-gold animate-spin" /></div>;
+if (isLoading) return <div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 text-brand-gold animate-spin" /></div>;
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto pb-12">
@@ -215,23 +214,6 @@ export default function EditAlbumPage() {
                             Note: Changing the title will automatically update all linked photos.
                         </p>
                     )}
-                </div>
-
-                {/* Category */}
-                <div>
-                    <label className="block text-xs font-bold text-brand-brown mb-1">Category</label>
-                    <select 
-                        name="category"
-                        value={formData.category}
-                        onChange={handleChange}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                    >
-                        <option>Event</option>
-                        <option>School Activity</option>
-                        <option>Community</option>
-                        <option>Project</option>
-                        <option>Other</option>
-                    </select>
                 </div>
 
                 {/* Description */}
