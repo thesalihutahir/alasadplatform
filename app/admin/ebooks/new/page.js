@@ -51,7 +51,7 @@ export default function UploadBookPage() {
         author: 'Sheikh Goni Dr. Muneer Ja\'afar',
         collection: '',
         language: 'English', 
-        publisher: 'Al-Asad Education Foundation', // Default Updated
+        publisher: 'Al-Asad Education Foundation', // Default Full Name
         access: 'Free',
         year: new Date().getFullYear().toString(), 
         description: ''
@@ -173,7 +173,6 @@ export default function UploadBookPage() {
         const file = e.target.files[0];
         if (file) {
             const validTypes = ['application/pdf', 'application/epub+zip'];
-            // Also check extension for EPUB as mime type can vary
             if (!validTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.epub')) {
                 alert("Please upload a PDF or EPUB file.");
                 return;
@@ -222,8 +221,9 @@ export default function UploadBookPage() {
         if (!formData.title || duplicateWarning) {
             return;
         }
-        if (!formData.publisher) {
-            alert("Please specify a publisher.");
+        // Validate publisher
+        if (!formData.publisher.trim()) {
+            alert("Please specify the publisher name.");
             return;
         }
 
@@ -238,7 +238,7 @@ export default function UploadBookPage() {
             const coverRef = ref(storage, `ebooks/covers/${Date.now()}_${coverFile.name}`);
             const coverUploadTask = uploadBytesResumable(coverRef, coverFile);
 
-            // Track Doc progress (Main progress bar)
+            // Track Doc progress
             docUploadTask.on('state_changed', (snapshot) => {
                 const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
                 setUploadProgress(progress);
@@ -253,7 +253,7 @@ export default function UploadBookPage() {
             await addDoc(collection(db, "ebooks"), {
                 ...formData,
                 title: formData.title.trim(),
-                publisher: formData.publisher.trim(), // Ensure trimmed
+                publisher: formData.publisher.trim(), // Use the conditional field value
                 fileUrl: docUrl,
                 coverUrl: coverUrl,
                 fileName: docFile.name,
@@ -416,7 +416,7 @@ return (
                             )}
                         </div>
 
-                        {/* Filters Row */}
+                        {/* Language & Year */}
                         <div className="grid grid-cols-2 gap-4">
                             <CustomSelect 
                                 label="Language"
@@ -427,18 +427,21 @@ return (
                                 placeholder="Select Language"
                             />
                             
-                            {/* Publication Year */}
+                            {/* Publication Year (Styled like CustomSelect) */}
                             <div>
                                 <label className="block text-xs font-bold text-brand-brown mb-1">Publication Year</label>
                                 <div className="relative">
-                                    <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                    <input 
-                                        type="number" 
-                                        name="year" 
-                                        value={formData.year} 
-                                        onChange={handleChange} 
-                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50" 
-                                    />
+                                    <div className="w-full pl-3 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm flex items-center">
+                                        <CalendarIcon className="w-4 h-4 text-brand-gold flex-shrink-0 mr-2" />
+                                        <input 
+                                            type="number" 
+                                            name="year" 
+                                            value={formData.year} 
+                                            onChange={handleChange} 
+                                            className="w-full bg-transparent border-none focus:ring-0 p-0 text-gray-700 font-medium placeholder-gray-500"
+                                            placeholder="YYYY"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
