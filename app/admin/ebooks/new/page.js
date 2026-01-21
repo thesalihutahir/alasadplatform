@@ -51,11 +51,14 @@ export default function UploadBookPage() {
         author: 'Sheikh Goni Dr. Muneer Ja\'afar',
         collection: '',
         language: 'English', 
-        publisher: 'Al-Asad Foundation', 
-        access: 'Free', // Default hidden field
+        publisher: 'Al-Asad Education Foundation', // Default Updated
+        access: 'Free',
         year: new Date().getFullYear().toString(), 
         description: ''
     });
+
+    // Publisher Selection State
+    const [publisherType, setPublisherType] = useState('Al-Asad Education Foundation');
 
     // File States
     const [docFile, setDocFile] = useState(null); // PDF or EPUB
@@ -70,7 +73,7 @@ export default function UploadBookPage() {
     ];
 
     const PUBLISHER_OPTIONS = [
-        { value: 'Al-Asad Foundation', label: 'Al-Asad Foundation' },
+        { value: 'Al-Asad Education Foundation', label: 'Al-Asad Education Foundation' },
         { value: 'External Publisher', label: 'External Publisher' }
     ];
 
@@ -155,6 +158,16 @@ export default function UploadBookPage() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    // Special Handler for Publisher Type
+    const handlePublisherTypeChange = (value) => {
+        setPublisherType(value);
+        if (value === 'Al-Asad Education Foundation') {
+            setFormData(prev => ({ ...prev, publisher: 'Al-Asad Education Foundation' }));
+        } else {
+            setFormData(prev => ({ ...prev, publisher: '' })); // Clear for custom input
+        }
+    };
+
     // Handle Document Selection (PDF/EPUB)
     const handleDocChange = (e) => {
         const file = e.target.files[0];
@@ -209,6 +222,10 @@ export default function UploadBookPage() {
         if (!formData.title || duplicateWarning) {
             return;
         }
+        if (!formData.publisher) {
+            alert("Please specify a publisher.");
+            return;
+        }
 
         setIsSubmitting(true);
 
@@ -236,6 +253,7 @@ export default function UploadBookPage() {
             await addDoc(collection(db, "ebooks"), {
                 ...formData,
                 title: formData.title.trim(),
+                publisher: formData.publisher.trim(), // Ensure trimmed
                 fileUrl: docUrl,
                 coverUrl: coverUrl,
                 fileName: docFile.name,
@@ -409,14 +427,48 @@ return (
                                 placeholder="Select Language"
                             />
                             
+                            {/* Publication Year */}
+                            <div>
+                                <label className="block text-xs font-bold text-brand-brown mb-1">Publication Year</label>
+                                <div className="relative">
+                                    <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <input 
+                                        type="number" 
+                                        name="year" 
+                                        value={formData.year} 
+                                        onChange={handleChange} 
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50" 
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Publisher Logic */}
+                        <div className="bg-brand-sand/10 p-4 rounded-xl border border-gray-100">
                             <CustomSelect 
-                                label="Publisher"
+                                label="Publisher Type"
                                 options={PUBLISHER_OPTIONS}
-                                value={formData.publisher}
-                                onChange={(val) => handleSelectChange('publisher', val)}
+                                value={publisherType}
+                                onChange={handlePublisherTypeChange}
                                 icon={BookOpen}
                                 placeholder="Select Publisher"
+                                className="mb-3"
                             />
+                            
+                            {/* Conditional Input for External Publisher */}
+                            {publisherType === 'External Publisher' && (
+                                <div className="animate-in fade-in slide-in-from-top-1">
+                                    <label className="block text-xs font-bold text-brand-brown mb-1">Enter Publisher Name</label>
+                                    <input 
+                                        type="text" 
+                                        name="publisher"
+                                        value={formData.publisher}
+                                        onChange={handleChange}
+                                        placeholder="e.g. Oxford University Press"
+                                        className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         {/* Collection Selector */}
