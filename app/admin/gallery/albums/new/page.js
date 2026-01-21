@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { db, storage } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-// Global Modal
+// Global Modal Context
 import { useModal } from '@/context/ModalContext';
 
 import { 
@@ -34,7 +34,6 @@ export default function CreateAlbumPage() {
 
     const [formData, setFormData] = useState({
         title: '',
-        category: 'Event',
         description: '',
         cover: '' 
     });
@@ -156,8 +155,7 @@ export default function CreateAlbumPage() {
             setIsSubmitting(false);
         }
     };
-
-    return (
+return (
         <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto pb-12">
 
             {/* Header */}
@@ -204,23 +202,6 @@ export default function CreateAlbumPage() {
                     )}
                 </div>
 
-                {/* Category */}
-                <div>
-                    <label className="block text-xs font-bold text-brand-brown mb-1">Category</label>
-                    <select 
-                        name="category"
-                        value={formData.category}
-                        onChange={handleChange}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                    >
-                        <option>Event</option>
-                        <option>School Activity</option>
-                        <option>Community</option>
-                        <option>Project</option>
-                        <option>Other</option>
-                    </select>
-                </div>
-
                 {/* Description */}
                 <div>
                     <label className="block text-xs font-bold text-brand-brown mb-1">Description (Optional)</label>
@@ -229,7 +210,7 @@ export default function CreateAlbumPage() {
                         value={formData.description}
                         onChange={handleChange}
                         rows="3"
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
                         dir={getDir(formData.description)}
                     ></textarea>
                 </div>
@@ -286,8 +267,8 @@ export default function CreateAlbumPage() {
                         disabled={isSubmitting || !!duplicateWarning || !formData.title}
                         className={`flex-1 flex items-center justify-center gap-2 py-3 font-bold rounded-xl transition-colors shadow-md ${
                             isSubmitting || !!duplicateWarning || !formData.title
-                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            : 'bg-brand-gold text-white hover:bg-brand-brown-dark'
+                            ? 'bg-brand-gold text-white hover:bg-brand-brown-dark' 
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         }`}
                     >
                         {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
