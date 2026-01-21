@@ -8,23 +8,24 @@ import { useRouter, useParams } from 'next/navigation';
 import { db, storage } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-// Global Modal
+// Global Modal Context
 import { useModal } from '@/context/ModalContext';
+import CustomSelect from '@/components/CustomSelect'; 
 
 import { 
     ArrowLeft, 
     Save, 
-    Mic, 
     X, 
     Image as ImageIcon, 
-    Loader2
+    Loader2,
+    Globe
 } from 'lucide-react';
 
 export default function EditPodcastShowPage() {
     const router = useRouter();
     const params = useParams();
     const id = params?.id;
-    const { showSuccess } = useModal();
+    const { showSuccess } = useModal(); 
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -36,7 +37,7 @@ export default function EditPodcastShowPage() {
     const [formData, setFormData] = useState({
         title: '',
         host: 'Al-Asad Foundation',
-        category: 'English', // Default
+        category: 'English', 
         description: '',
         cover: '' 
     });
@@ -44,6 +45,13 @@ export default function EditPodcastShowPage() {
     // Image File State
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
+
+    // Constants
+    const CATEGORY_OPTIONS = [
+        { value: 'English', label: 'English' },
+        { value: 'Hausa', label: 'Hausa' },
+        { value: 'Arabic', label: 'Arabic' }
+    ];
 
     // Helper: Auto-Detect Arabic
     const getDir = (text) => {
@@ -89,6 +97,11 @@ export default function EditPodcastShowPage() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    // Handler for Custom Select
+    const handleSelectChange = (name, value) => {
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -104,7 +117,7 @@ export default function EditPodcastShowPage() {
     const removeImage = () => {
         setImageFile(null);
         setImagePreview(null);
-        setFormData(prev => ({ ...prev, cover: '' })); // Mark for removal
+        setFormData(prev => ({ ...prev, cover: '' })); 
     };
 
     const handleSubmit = async (e) => {
@@ -153,17 +166,17 @@ export default function EditPodcastShowPage() {
 
             // 3. SPECIAL: Update all child episodes if Title changed
             let message = "Show updated successfully.";
-            
+
             if (originalTitle && originalTitle !== formData.title) {
                 const qEpisodes = query(collection(db, "podcasts"), where("show", "==", originalTitle));
                 const episodeSnaps = await getDocs(qEpisodes);
-                
+
                 const batch = writeBatch(db);
                 episodeSnaps.forEach((epDoc) => {
                     batch.update(epDoc.ref, { show: formData.title.trim() });
                 });
                 await batch.commit();
-                
+
                 console.log(`Updated ${episodeSnaps.size} episodes to new show name.`);
                 message = `Show updated! Also renamed show for ${episodeSnaps.size} linked episodes.`;
             }
@@ -182,8 +195,7 @@ export default function EditPodcastShowPage() {
             setIsSubmitting(false);
         }
     };
-
-    if (isLoading) return <div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 text-brand-gold animate-spin" /></div>;
+if (isLoading) return <div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 text-brand-gold animate-spin" /></div>;
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto pb-12">
@@ -231,19 +243,16 @@ export default function EditPodcastShowPage() {
                     />
                 </div>
 
-                {/* Category (UPDATED) */}
+                {/* Category (Language) */}
                 <div>
-                    <label className="block text-xs font-bold text-brand-brown mb-1">Category (Language)</label>
-                    <select 
-                        name="category"
+                    <CustomSelect 
+                        label="Category (Language)"
+                        options={CATEGORY_OPTIONS}
                         value={formData.category}
-                        onChange={handleChange}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                    >
-                        <option>English</option>
-                        <option>Hausa</option>
-                        <option>Arabic</option>
-                    </select>
+                        onChange={(val) => handleSelectChange('category', val)}
+                        icon={Globe}
+                        placeholder="Select Language"
+                    />
                 </div>
 
                 {/* Description */}
