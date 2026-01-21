@@ -8,22 +8,24 @@ import { useRouter, useParams } from 'next/navigation';
 import { db, storage } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-// Global Modal
+// Global Modal Context
 import { useModal } from '@/context/ModalContext';
+import CustomSelect from '@/components/CustomSelect'; 
 
 import { 
     ArrowLeft, 
     Save, 
     X, 
     Image as ImageIcon, 
-    Loader2
+    Loader2,
+    Globe
 } from 'lucide-react';
 
 export default function EditCollectionPage() {
     const router = useRouter();
     const params = useParams();
     const id = params?.id;
-    const { showSuccess } = useModal();
+    const { showSuccess } = useModal(); 
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -42,6 +44,13 @@ export default function EditCollectionPage() {
     // Image File State
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
+
+    // Constants
+    const CATEGORY_OPTIONS = [
+        { value: 'English', label: 'English' },
+        { value: 'Hausa', label: 'Hausa' },
+        { value: 'Arabic', label: 'Arabic' }
+    ];
 
     // Helper: Auto-Detect Arabic
     const getDir = (text) => {
@@ -83,6 +92,11 @@ export default function EditCollectionPage() {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    // Custom Select Handler
+    const handleSelectChange = (name, value) => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
@@ -149,18 +163,18 @@ export default function EditCollectionPage() {
 
             // 3. SPECIAL: Update all linked books if Title changed
             let message = "Collection updated successfully.";
-            
+
             if (originalTitle && originalTitle !== formData.title) {
                 const qBooks = query(collection(db, "ebooks"), where("collection", "==", originalTitle));
                 const bookSnaps = await getDocs(qBooks);
-                
+
                 if (!bookSnaps.empty) {
                     const batch = writeBatch(db);
                     bookSnaps.forEach((bookDoc) => {
                         batch.update(bookDoc.ref, { collection: formData.title.trim() });
                     });
                     await batch.commit();
-                    
+
                     console.log(`Updated ${bookSnaps.size} books to new collection name.`);
                     message = `Collection updated! Also renamed collection for ${bookSnaps.size} linked books.`;
                 }
@@ -180,8 +194,7 @@ export default function EditCollectionPage() {
             setIsSubmitting(false);
         }
     };
-
-    if (isLoading) return <div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 text-brand-gold animate-spin" /></div>;
+if (isLoading) return <div className="h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 text-brand-gold animate-spin" /></div>;
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto pb-12">
@@ -217,19 +230,16 @@ export default function EditCollectionPage() {
                     )}
                 </div>
 
-                {/* Category */}
+                {/* Category (Language) */}
                 <div>
-                    <label className="block text-xs font-bold text-brand-brown mb-1">Category (Language)</label>
-                    <select 
-                        name="category"
+                    <CustomSelect 
+                        label="Category (Language)"
+                        options={CATEGORY_OPTIONS}
                         value={formData.category}
-                        onChange={handleChange}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                    >
-                        <option>English</option>
-                        <option>Hausa</option>
-                        <option>Arabic</option>
-                    </select>
+                        onChange={(val) => handleSelectChange('category', val)}
+                        icon={Globe}
+                        placeholder="Select Language"
+                    />
                 </div>
 
                 {/* Description */}
