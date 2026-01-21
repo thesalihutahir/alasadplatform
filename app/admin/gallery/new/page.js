@@ -8,8 +8,9 @@ import { useRouter } from 'next/navigation';
 import { db, storage } from '@/lib/firebase';
 import { collection, addDoc, getDocs, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-// Global Modal
+// Global Modal & Components
 import { useModal } from '@/context/ModalContext';
+import CustomSelect from '@/components/CustomSelect'; 
 
 import { 
     ArrowLeft, 
@@ -18,7 +19,6 @@ import {
     X, 
     Image as ImageIcon, 
     Loader2, 
-    CheckCircle, 
     UploadCloud
 } from 'lucide-react';
 
@@ -88,6 +88,11 @@ export default function UploadPhotosPage() {
         setSelectedFiles(prev => prev.filter((_, i) => i !== index));
     };
 
+    // Handler for Custom Select
+    const handleAlbumChange = (value) => {
+        setSelectedAlbum(value);
+    };
+
     // 2. Handle Final Save to Firebase
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -122,7 +127,7 @@ export default function UploadPhotosPage() {
                     name: file.name,
                     albumId: selectedAlbum || "uncategorized",
                     // If we wanted to store album title for easier display without joins:
-                    albumTitle: selectedAlbum ? availableAlbums.find(a => a.id === selectedAlbum)?.title : "Stream",
+                    albumTitle: selectedAlbum ? availableAlbums.find(a => a.value === selectedAlbum)?.label : "Stream",
                     createdAt: serverTimestamp()
                 });
             });
@@ -144,6 +149,12 @@ export default function UploadPhotosPage() {
             setIsSubmitting(false);
         }
     };
+
+    // Album Options for Custom Select
+    const albumOptions = [
+        { value: "", label: "-- No Album (Stream Only) --" },
+        ...availableAlbums.map(alb => ({ value: alb.id, label: alb.title }))
+    ];
     return (
         <form onSubmit={handleSubmit} className="space-y-6 max-w-6xl mx-auto pb-12">
 
@@ -186,24 +197,15 @@ export default function UploadPhotosPage() {
 
                     {/* Album Selector */}
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                        <label className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                            <Folder className="w-4 h-4 text-brand-gold" /> Assign to Album
-                        </label>
-                        <select 
-                            value={selectedAlbum} 
-                            onChange={(e) => setSelectedAlbum(e.target.value)} 
-                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer"
-                        >
-                            <option value="">-- No Album (Stream Only) --</option>
-                            {isLoadingAlbums ? (
-                                <option disabled>Loading albums...</option>
-                            ) : (
-                                availableAlbums.map(alb => (
-                                    <option key={alb.id} value={alb.id}>{alb.title}</option>
-                                ))
-                            )}
-                        </select>
-                        <p className="text-[10px] text-gray-400 mt-2">
+                        <CustomSelect 
+                            label="Assign to Album"
+                            options={albumOptions}
+                            value={selectedAlbum}
+                            onChange={handleAlbumChange}
+                            icon={Folder}
+                            placeholder="Select Album"
+                        />
+                        <p className="text-[10px] text-gray-400 mt-2 text-center">
                             Photos not assigned to an album will appear in the general "Recent Moments" stream.
                         </p>
                     </div>
