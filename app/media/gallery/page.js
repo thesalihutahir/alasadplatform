@@ -53,8 +53,9 @@ export default function GalleryPage() {
                     return { ...album, count };
                 });
 
-                setPhotos(fetchedPhotos);
-                setAlbums(enrichedAlbums);
+                // Limit display counts
+                setPhotos(fetchedPhotos.slice(0, 20));
+                setAlbums(enrichedAlbums.slice(0, 4));
 
             } catch (error) {
                 console.error("Error fetching gallery:", error);
@@ -83,7 +84,7 @@ export default function GalleryPage() {
             document.body.removeChild(link);
         } catch (error) {
             console.error("Download failed:", error);
-            window.open(url, '_blank'); // Fallback
+            window.open(url, '_blank'); 
         }
     };
 
@@ -92,7 +93,7 @@ export default function GalleryPage() {
             navigator.share({
                 title: 'Al-Asad Gallery',
                 text: 'Check out this photo from Al-Asad Foundation',
-                url: window.location.href, // Or photo URL if preferred
+                url: window.location.href, 
             }).catch(console.error);
         } else {
             navigator.clipboard.writeText(window.location.href);
@@ -113,7 +114,6 @@ export default function GalleryPage() {
         const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
         return date.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
     };
-
     return (
         <div className="min-h-screen flex flex-col bg-white font-lato">
             <Header />
@@ -163,7 +163,7 @@ export default function GalleryPage() {
                                 </div>
 
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
-                                    {albums.slice(0, 4).map((album) => (
+                                    {albums.map((album) => (
                                         <Link href={`/media/gallery/albums/${album.id}`} key={album.id} className="group cursor-pointer">
                                             {/* Folder Visual */}
                                             <div className="relative w-full aspect-[4/3] mb-3">
@@ -224,7 +224,7 @@ export default function GalleryPage() {
                                                 <div className={`relative w-full ${aspectRatio}`}>
                                                     <Image
                                                         src={photo.url}
-                                                        alt={photo.name}
+                                                        alt={photo.name || "Gallery Photo"}
                                                         fill
                                                         className="object-cover transition-transform duration-700 group-hover:scale-110"
                                                     />
