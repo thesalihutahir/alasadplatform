@@ -10,6 +10,7 @@ import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'fire
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 // Global Modal Context
 import { useModal } from '@/context/ModalContext';
+import CustomSelect from '@/components/CustomSelect'; 
 
 import { 
     ArrowLeft, 
@@ -18,7 +19,8 @@ import {
     X, 
     Image as ImageIcon, 
     Loader2,
-    AlertTriangle
+    AlertTriangle,
+    Globe
 } from 'lucide-react';
 
 export default function CreateCollectionPage() {
@@ -41,6 +43,13 @@ export default function CreateCollectionPage() {
 
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
+
+    // Constants
+    const CATEGORY_OPTIONS = [
+        { value: 'English', label: 'English' },
+        { value: 'Hausa', label: 'Hausa' },
+        { value: 'Arabic', label: 'Arabic' }
+    ];
 
     // Helper: Auto-Detect Arabic
     const getDir = (text) => {
@@ -80,6 +89,11 @@ export default function CreateCollectionPage() {
         if (name === 'title') {
             checkDuplicateTitle(value);
         }
+    };
+
+    // Handler for Custom Select
+    const handleSelectChange = (name, value) => {
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleImageChange = (e) => {
@@ -136,6 +150,7 @@ export default function CreateCollectionPage() {
                 ...formData,
                 title: formData.title.trim(),
                 description: formData.description.trim(),
+                category: formData.category,
                 cover: coverUrl,
                 status: "Active",
                 bookCount: 0,
@@ -206,17 +221,14 @@ return (
 
                 {/* Category (UPDATED) */}
                 <div>
-                    <label className="block text-xs font-bold text-brand-brown mb-1">Category (Language)</label>
-                    <select 
-                        name="category"
+                    <CustomSelect 
+                        label="Category (Language)"
+                        options={CATEGORY_OPTIONS}
                         value={formData.category}
-                        onChange={handleChange}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                    >
-                        <option>English</option>
-                        <option>Hausa</option>
-                        <option>Arabic</option>
-                    </select>
+                        onChange={(val) => handleSelectChange('category', val)}
+                        icon={Globe}
+                        placeholder="Select Language"
+                    />
                 </div>
 
                 {/* Description */}
