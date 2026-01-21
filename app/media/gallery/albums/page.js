@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Header from '@/components/Header';
@@ -9,7 +9,59 @@ import Loader from '@/components/Loader';
 // Firebase Imports
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
-import { Search, FolderOpen, ImageIcon, Calendar, Filter, Layers } from 'lucide-react';
+import { Search, FolderOpen, ImageIcon, Calendar, Filter, Layers, ChevronDown, Check } from 'lucide-react';
+
+// --- CUSTOM SELECT COMPONENT (Internal) ---
+const CustomFilterSelect = ({ options, value, onChange, icon: Icon, placeholder }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const selectedLabel = options.find(opt => opt.value === value)?.label || placeholder;
+
+    return (
+        <div className="relative" ref={dropdownRef}>
+            <button 
+                onClick={() => setIsOpen(!isOpen)}
+                className={`flex items-center gap-2 px-4 py-2.5 bg-white border rounded-full text-xs font-bold transition-all min-w-[140px] justify-between ${
+                    isOpen ? 'border-brand-gold ring-2 ring-brand-gold/20' : 'border-gray-200 hover:border-brand-gold'
+                }`}
+            >
+                <div className="flex items-center gap-2 text-gray-600">
+                    {Icon && <Icon className="w-3 h-3 text-gray-400" />}
+                    <span>{selectedLabel}</span>
+                </div>
+                <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isOpen && (
+                <div className="absolute top-full mt-2 left-0 w-full min-w-[160px] bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                    {options.map((opt) => (
+                        <button
+                            key={opt.value}
+                            onClick={() => { onChange(opt.value); setIsOpen(false); }}
+                            className={`w-full text-left px-4 py-3 text-xs font-medium hover:bg-brand-sand/20 flex items-center justify-between ${
+                                value === opt.value ? 'text-brand-brown-dark bg-brand-sand/10 font-bold' : 'text-gray-600'
+                            }`}
+                        >
+                            {opt.label}
+                            {value === opt.value && <Check className="w-3 h-3 text-brand-gold" />}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
 
 export default function AllAlbumsPage() {
 
@@ -23,7 +75,7 @@ export default function AllAlbumsPage() {
     const [activeYear, setActiveYear] = useState('All');
     
     // Derived Years list for filter
-    const [availableYears, setAvailableYears] = useState(["All"]);
+    const [yearOptions, setYearOptions] = useState([{ value: 'All', label: 'All Years' }]);
 
     // --- FETCH DATA ---
     useEffect(() => {
@@ -53,12 +105,16 @@ export default function AllAlbumsPage() {
 
                 // 4. Extract Years for Filter
                 const years = new Set(enrichedAlbums.map(a => {
-                    const d = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+                    const d = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
                     return d.getFullYear().toString();
                 }));
-                // Filter out invalid dates if any
-                const validYears = Array.from(years).filter(y => !isNaN(y) && y !== 'NaN').sort().reverse();
-                setAvailableYears(["All", ...validYears]);
+                
+                const sortedYears = Array.from(years).sort().reverse().map(year => ({
+                    value: year,
+                    label: year
+                }));
+                
+                setYearOptions([{ value: 'All', label: 'All Years' }, ...sortedYears]);
 
             } catch (error) {
                 console.error("Error fetching albums:", error);
@@ -77,7 +133,7 @@ export default function AllAlbumsPage() {
         // 1. Year Filter
         if (activeYear !== 'All') {
             results = results.filter(album => {
-                const d = album.createdAt?.toDate ? album.createdAt.toDate() : new Date(album.createdAt || 0);
+                const d = album.createdAt?.toDate ? album.createdAt.toDate() : new Date(album.createdAt);
                 return d.getFullYear().toString() === activeYear;
             });
         }
@@ -100,6 +156,7 @@ export default function AllAlbumsPage() {
         const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
         return date.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
     };
+
     return (
         <div className="min-h-screen flex flex-col bg-brand-sand font-lato">
             <Header />
@@ -139,21 +196,16 @@ export default function AllAlbumsPage() {
                         {/* 2. FILTER & SEARCH BAR */}
                         <section className="px-6 md:px-12 lg:px-24 mb-12 max-w-7xl mx-auto">
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                                {/* Year Filter */}
-                                <div className="flex overflow-x-auto gap-2 pb-2 md:pb-0 scrollbar-hide w-full md:w-auto">
-                                    {availableYears.map((year) => (
-                                        <button 
-                                            key={year} 
-                                            onClick={() => setActiveYear(year)}
-                                            className={`px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-colors border ${
-                                                activeYear === year 
-                                                ? 'bg-brand-brown-dark text-white border-brand-brown-dark shadow-md' 
-                                                : 'bg-brand-sand text-gray-500 border-transparent hover:border-brand-gold hover:text-brand-gold'
-                                            }`}
-                                        >
-                                            {year}
-                                        </button>
-                                    ))}
+                                
+                                {/* Year Filter with Custom Select */}
+                                <div className="w-full md:w-auto z-20">
+                                    <CustomFilterSelect 
+                                        options={yearOptions}
+                                        value={activeYear}
+                                        onChange={setActiveYear}
+                                        icon={Calendar}
+                                        placeholder="Select Year"
+                                    />
                                 </div>
 
                                 {/* Search Bar */}
@@ -163,7 +215,7 @@ export default function AllAlbumsPage() {
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         placeholder="Search albums..." 
-                                        className="w-full pl-4 pr-10 py-2.5 rounded-full border border-gray-200 focus:outline-none focus:ring-1 focus:ring-brand-gold text-sm bg-gray-50"
+                                        className="w-full pl-4 pr-10 py-2.5 rounded-full border border-gray-200 focus:outline-none focus:ring-1 focus:ring-brand-gold text-sm bg-gray-50 transition-all"
                                     />
                                     <Search className="absolute right-3 top-3 text-gray-400 w-4 h-4" />
                                 </div>
@@ -226,7 +278,7 @@ export default function AllAlbumsPage() {
                             ) : (
                                 <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
                                     <Layers className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                                    <p className="text-gray-400 font-bold">No collections found.</p>
+                                    <p className="text-gray-400 font-bold">No collections found matching your criteria.</p>
                                     <p className="text-xs text-gray-300 mt-1">Try adjusting your filters.</p>
                                 </div>
                             )}
