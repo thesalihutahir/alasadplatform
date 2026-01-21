@@ -90,7 +90,7 @@ export default function ManageVolunteersPage() {
             } 
             else if (type === 'update') {
                 await updateDoc(doc(db, "volunteers", volunteer.id), { status: payload });
-                
+
                 const mailUrl = generateEmailUrl(volunteer, payload);
                 if (mailUrl) window.location.href = mailUrl;
 
@@ -183,9 +183,10 @@ export default function ManageVolunteersPage() {
                                     filteredVolunteers.map((vol) => (
                                         <tr key={vol.id} className="hover:bg-gray-50 transition-colors group cursor-pointer" onClick={() => setViewVolunteer(vol)}>
                                             <td className="px-6 py-4">
+                                                {/* Replaced Profile Pic Logic with Initials Avatar */}
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-brand-sand/30 rounded-full flex items-center justify-center text-brand-brown-dark font-bold text-lg">
-                                                        {vol.fullName.charAt(0)}
+                                                    <div className="w-10 h-10 bg-brand-sand/30 rounded-full flex items-center justify-center text-brand-brown-dark font-bold text-lg border border-brand-gold/20 shadow-sm">
+                                                        {vol.fullName.charAt(0).toUpperCase()}
                                                     </div>
                                                     <div>
                                                         <span className="font-bold text-brand-brown-dark block">{vol.fullName}</span>
@@ -249,16 +250,16 @@ export default function ManageVolunteersPage() {
             {viewVolunteer && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-                        
+
                         {/* Header */}
                         <div className="bg-brand-brown-dark px-6 py-4 flex justify-between items-center text-white flex-shrink-0">
                             <h3 className="font-agency text-xl">Volunteer Profile</h3>
                             <button onClick={() => setViewVolunteer(null)} className="p-1 hover:bg-white/10 rounded-full transition-colors"><X className="w-5 h-5" /></button>
                         </div>
-                        
+
                         {/* Content Scrollable */}
                         <div className="p-6 space-y-6 overflow-y-auto">
-                            
+
                             {/* Profile Header */}
                             <div className="border-b border-gray-100 pb-4">
                                 <h2 className="text-2xl font-bold text-gray-800 mb-2">{viewVolunteer.fullName}</h2>
@@ -284,14 +285,14 @@ export default function ManageVolunteersPage() {
                         {/* Footer Fixed */}
                         <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex justify-end gap-2 flex-wrap flex-shrink-0">
                             <button onClick={() => confirmAction('delete', viewVolunteer)} className="px-3 py-2 text-red-600 font-bold text-xs hover:bg-red-50 rounded-lg transition-colors">Delete</button>
-                            
+
                             {viewVolunteer.status !== 'Approved' && viewVolunteer.status !== 'Rejected' && (
                                 <>
                                     <button onClick={() => confirmAction('update', viewVolunteer, 'Rejected')} className="px-3 py-2 bg-orange-100 text-orange-700 font-bold text-xs rounded-lg hover:bg-orange-200 transition-colors shadow-sm border border-orange-200">Reject</button>
                                     <button onClick={() => confirmAction('update', viewVolunteer, 'Approved')} className="px-3 py-2 bg-green-600 text-white font-bold text-xs rounded-lg hover:bg-green-700 transition-colors shadow-sm">Approve</button>
                                 </>
                             )}
-                            
+
                             {viewVolunteer.status !== 'Pending' && <button onClick={() => confirmAction('resend', viewVolunteer)} className="px-3 py-2 bg-purple-600 text-white font-bold text-xs rounded-lg hover:bg-purple-700 transition-colors shadow-sm">Resend Email</button>}
                         </div>
                     </div>
