@@ -10,6 +10,8 @@ import { collection, addDoc, getDocs, serverTimestamp, query, orderBy, where } f
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 // Global Modal Context
 import { useModal } from '@/context/ModalContext';
+import CustomSelect from '@/components/CustomSelect'; 
+import CustomDatePicker from '@/components/CustomDatePicker'; 
 
 import { 
     ArrowLeft, 
@@ -22,7 +24,10 @@ import {
     FileAudio,
     X,
     Play,
-    ListMusic // Icon for Category/Show
+    ListMusic, 
+    Globe,
+    Calendar as CalendarIcon,
+    Trash2
 } from 'lucide-react';
 
 export default function AddPodcastPage() {
@@ -41,7 +46,7 @@ export default function AddPodcastPage() {
         title: '',
         url: '', // YouTube URL
         show: '',
-        category: 'English', // NEW: Language Category
+        category: 'English', 
         episodeNumber: '',
         season: '',
         description: '',
@@ -58,6 +63,13 @@ export default function AddPodcastPage() {
     // Duplicate Check State
     const [duplicateWarning, setDuplicateWarning] = useState(null);
     const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
+
+    // Constants
+    const CATEGORY_OPTIONS = [
+        { value: 'English', label: 'English' },
+        { value: 'Hausa', label: 'Hausa' },
+        { value: 'Arabic', label: 'Arabic' }
+    ];
 
     // Helper: Auto-Detect Arabic
     const getDir = (text) => {
@@ -94,8 +106,12 @@ export default function AddPodcastPage() {
         if (allShows.length > 0) {
             const filtered = allShows.filter(s => s.category === formData.category);
             setFilteredShows(filtered);
+            
             // Reset selected show if it doesn't match the new category
-            setFormData(prev => ({ ...prev, show: '' }));
+            const currentShowValid = filtered.some(s => s.title === formData.show);
+            if (!currentShowValid) {
+                setFormData(prev => ({ ...prev, show: '' }));
+            }
         }
     }, [formData.category, allShows]);
 
@@ -133,7 +149,6 @@ export default function AddPodcastPage() {
         const id = extractVideoId(url);
         if (id) {
             setVideoId(id);
-            // Use hqdefault.jpg for safety (no black screens)
             setThumbnail(`https://img.youtube.com/vi/${id}/hqdefault.jpg`);
             setIsValid(true);
             checkDuplicate(id);
@@ -155,9 +170,18 @@ export default function AddPodcastPage() {
             setAudioFile(file);
         }
     };
+    
+    const removeAudioFile = () => {
+        setAudioFile(null);
+    }
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    // Handler for Custom Selects
+    const handleSelectChange = (name, value) => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
@@ -226,7 +250,12 @@ export default function AddPodcastPage() {
         }
     };
 
-    return (
+    // Show Options
+    const showOptions = filteredShows.map(show => ({
+        value: show.title,
+        label: show.title
+    }));
+return (
         <form onSubmit={handleSubmit} className="space-y-6 max-w-5xl mx-auto pb-12">
 
             {/* 1. HEADER & ACTIONS */}
@@ -248,9 +277,9 @@ export default function AddPodcastPage() {
                     </Link>
                     <button 
                         type="submit" 
-                        disabled={!isValid || isSubmitting || !!duplicateWarning}
+                        disabled={!isValid || isSubmitting || !!duplicateWarning || !formData.title}
                         className={`flex items-center gap-2 px-6 py-2.5 font-bold rounded-xl transition-colors shadow-md ${
-                            isValid && !duplicateWarning
+                            isValid && !duplicateWarning && formData.title
                             ? 'bg-brand-gold text-white hover:bg-brand-brown-dark' 
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         }`}
@@ -272,7 +301,7 @@ export default function AddPodcastPage() {
                         isValid ? 'bg-green-50 border-green-200' : 'bg-white border-gray-100'
                     }`}>
                         <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                            YouTube Link (Audio Source)
+                            YouTube Link (Audio Source) <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
                             <Youtube className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${isValid ? 'text-red-600' : 'text-gray-400'}`} />
@@ -286,7 +315,7 @@ export default function AddPodcastPage() {
                             />
                             {isValid && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />}
                         </div>
-                        
+
                         <div className="flex items-center justify-between mt-2">
                             <p className={`text-xs font-bold ${isValid ? 'text-green-600' : 'text-gray-400'}`}>
                                 {isCheckingDuplicate ? "Checking library..." : isValid ? "✓ Source linked successfully" : "Waiting for valid link..."}
@@ -301,13 +330,13 @@ export default function AddPodcastPage() {
                             </div>
                         )}
                     </div>
-
+                    
                     {/* Audio File Upload (For Download Button) */}
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <label className="flex items-center gap-2 text-xs font-bold text-brand-brown-dark uppercase tracking-wider mb-3">
                             <FileAudio className="w-4 h-4" /> Upload MP3 (For Download)
                         </label>
-                        
+
                         <div className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center text-center transition-colors ${
                             audioFile ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200 hover:border-brand-gold'
                         }`}>
@@ -322,7 +351,7 @@ export default function AddPodcastPage() {
                                             <p className="text-[10px] text-gray-400">{(audioFile.size / (1024*1024)).toFixed(2)} MB</p>
                                         </div>
                                     </div>
-                                    <button type="button" onClick={() => setAudioFile(null)} className="text-gray-400 hover:text-red-500">
+                                    <button type="button" onClick={removeAudioFile} className="text-gray-400 hover:text-red-500">
                                         <X className="w-5 h-5" />
                                     </button>
                                 </div>
@@ -391,48 +420,33 @@ export default function AddPodcastPage() {
                     <h3 className="font-agency text-xl text-brand-brown-dark border-b border-gray-100 pb-2">Episode Details</h3>
 
                     {/* Category (Language) Selector */}
-                    <div>
-                        <label className="block text-xs font-bold text-brand-brown mb-1">Category (Language)</label>
-                        <select 
-                            name="category" 
-                            value={formData.category} 
-                            onChange={handleChange} 
-                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                        >
-                            <option>English</option>
-                            <option>Hausa</option>
-                            <option>Arabic</option>
-                        </select>
-                    </div>
+                    <CustomSelect 
+                        label="Category (Language)"
+                        options={CATEGORY_OPTIONS}
+                        value={formData.category}
+                        onChange={(val) => handleSelectChange('category', val)}
+                        icon={Globe}
+                        placeholder="Select Language"
+                    />
 
                     {/* Show Selector (Filtered by Category) */}
-                    <div className="bg-brand-sand/20 p-4 rounded-xl border border-brand-gold/20">
-                        <label className="flex items-center gap-2 text-xs font-bold text-brand-brown-dark uppercase tracking-wider mb-2">
-                            <ListMusic className="w-4 h-4" /> Select Show
-                        </label>
-                        <select 
-                            name="show" 
-                            value={formData.show} 
-                            onChange={handleChange} 
-                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer"
-                        >
-                            <option value="">Select a Podcast Show...</option>
-                            {isLoadingShows ? (
-                                <option disabled>Loading shows...</option>
-                            ) : (
-                                filteredShows.length > 0 ? (
-                                    filteredShows.map(show => (
-                                        <option key={show.id} value={show.title}>{show.title}</option>
-                                    ))
-                                ) : (
-                                    <option disabled>No shows found for {formData.category}</option>
-                                )
-                            )}
-                        </select>
+                    <div className="pt-2 border-t border-gray-100">
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Select Show</label>
+                        {isLoadingShows ? (
+                            <div className="p-3 text-xs text-gray-400 text-center bg-gray-50 rounded-xl">Loading shows...</div>
+                        ) : (
+                            <CustomSelect 
+                                options={showOptions}
+                                value={formData.show}
+                                onChange={(val) => handleSelectChange('show', val)}
+                                icon={ListMusic}
+                                placeholder={showOptions.length > 0 ? "Select a Podcast Show..." : "No shows found"}
+                            />
+                        )}
                     </div>
 
                     <div>
-                        <label className="block text-xs font-bold text-brand-brown mb-1">Episode Title</label>
+                        <label className="block text-xs font-bold text-brand-brown mb-1">Episode Title <span className="text-red-500">*</span></label>
                         <input 
                             type="text" 
                             name="title" 
@@ -467,16 +481,12 @@ export default function AddPodcastPage() {
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-xs font-bold text-brand-brown mb-1">Publish Date</label>
-                        <input 
-                            type="date" 
-                            name="date" 
-                            value={formData.date} 
-                            onChange={handleChange} 
-                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50" 
-                        />
-                    </div>
+                    <CustomDatePicker 
+                        label="Publish Date"
+                        value={formData.date}
+                        onChange={(val) => handleSelectChange('date', val)}
+                        icon={CalendarIcon}
+                    />
 
                     <div>
                         <label className="block text-xs font-bold text-brand-brown mb-1">Description</label>
