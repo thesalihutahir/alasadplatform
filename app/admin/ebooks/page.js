@@ -1,22 +1,71 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 // Firebase
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, onSnapshot, deleteDoc, doc, writeBatch, where, getDocs } from 'firebase/firestore';
-// Global Modal Context
+// Global Modal & Loader
 import { useModal } from '@/context/ModalContext';
-// Custom Loader
-import Loader from '@/components/Loader'; 
+import LogoReveal from '@/components/logo-reveal'; 
 
 import { 
     PlusCircle, Search, Edit, Trash2, Book, Library, 
     FileText, Download, Loader2, Filter, X, ArrowUpDown, 
-    CalendarClock, Info, ChevronRight, AlertTriangle
+    CalendarClock, Info, ChevronDown, Check
 } from 'lucide-react';
+
+// --- CUSTOM DROPDOWN COMPONENT (Internal) ---
+const CustomSelect = ({ options, value, onChange, placeholder, icon: Icon, className }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const selectedOption = options.find(opt => opt.value === value);
+
+    return (
+        <div className={`relative ${className || ''}`} ref={dropdownRef}>
+            <div 
+                onClick={() => setIsOpen(!isOpen)}
+                className={`w-full pl-3 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm flex justify-between items-center cursor-pointer transition-all hover:border-brand-gold/50 ${isOpen ? 'ring-2 ring-brand-gold/20 border-brand-gold' : ''}`}
+            >
+                <div className="flex items-center gap-2 overflow-hidden">
+                    {Icon && <Icon className="w-4 h-4 text-brand-gold flex-shrink-0" />}
+                    <span className={`truncate ${!selectedOption ? 'text-gray-500' : 'text-gray-700 font-medium'}`}>
+                        {selectedOption ? selectedOption.label : placeholder}
+                    </span>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
+            </div>
+
+            {isOpen && (
+                <div className="absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-100 min-w-[140px]">
+                    {options.map((opt) => (
+                        <div 
+                            key={opt.value}
+                            onClick={() => { onChange(opt.value); setIsOpen(false); }}
+                            className={`px-4 py-3 text-sm cursor-pointer hover:bg-brand-sand/10 flex justify-between items-center ${value === opt.value ? 'bg-brand-sand/20 text-brand-brown-dark font-bold' : 'text-gray-600'}`}
+                        >
+                            {opt.label}
+                            {value === opt.value && <Check className="w-3 h-3 text-brand-gold" />}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
 
 export default function ManageEbooksPage() {
     const router = useRouter();
@@ -34,7 +83,7 @@ export default function ManageEbooksPage() {
 
     // Filter & Sort State
     const [searchTerm, setSearchTerm] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState('All'); // Acts as Language Filter
+    const [categoryFilter, setCategoryFilter] = useState('All'); 
     const [sortOrder, setSortOrder] = useState('desc'); 
 
     // Helper: Auto-Detect Arabic
@@ -85,19 +134,16 @@ export default function ManageEbooksPage() {
                 const matchesSearch = 
                     book.title.toLowerCase().includes(term) || 
                     (book.collection && book.collection.toLowerCase().includes(term));
-                // Filter by Book Language
                 const matchesCategory = categoryFilter === 'All' || book.language === categoryFilter;
                 return matchesSearch && matchesCategory;
             });
         } else {
-            // Collections
             const collectionsWithCounts = collections.map(col => ({
                 ...col,
                 realCount: books.filter(b => b.collection === col.title).length
             }));
             content = collectionsWithCounts.filter(col => {
                 const matchesSearch = col.title.toLowerCase().includes(term);
-                // Filter by Collection Category (Language)
                 const matchesCategory = categoryFilter === 'All' || col.category === categoryFilter;
                 return matchesSearch && matchesCategory;
             });
@@ -111,6 +157,8 @@ export default function ManageEbooksPage() {
     };
 
     const filteredContent = getProcessedContent();
+    const totalItems = filteredContent.length;
+
     // 3. ACTIONS
     const handleDelete = (id, type) => {
         const message = type === 'collection' 
@@ -126,8 +174,10 @@ export default function ManageEbooksPage() {
             onConfirm: async () => {
                 try {
                     if (type === 'book') await deleteDoc(doc(db, "ebooks", id));
-                    else await deleteDoc(doc(db, "ebook_collections", id));
-                    
+                    else {
+                        await deleteDoc(doc(db, "ebook_collections", id));
+                        setSelectedCollection(null);
+                    }
                     showSuccess({ title: "Deleted!", message: "Item deleted successfully.", confirmText: "Okay" });
                 } catch (error) {
                     console.error("Error deleting:", error);
@@ -137,7 +187,6 @@ export default function ManageEbooksPage() {
         });
     };
 
-    // SPECIAL: Delete Entire Collection + Books
     const handleDeleteCollection = (targetCollection) => {
         showConfirm({
             title: "Delete ENTIRE Collection?",
@@ -159,7 +208,7 @@ export default function ManageEbooksPage() {
                     });
 
                     await batch.commit();
-                    
+
                     setSelectedCollection(null);
                     showSuccess({ title: "Collection Deleted", message: "The collection and all its books were deleted.", confirmText: "Done" });
 
@@ -175,7 +224,6 @@ export default function ManageEbooksPage() {
         router.push(type === 'collection' ? `/admin/ebooks/collections/edit/${id}` : `/admin/ebooks/edit/${id}`);
     };
 
-    // Quick View Modal
     const handleQuickView = (item) => {
         showSuccess({
             title: "Book Info",
@@ -206,12 +254,19 @@ export default function ManageEbooksPage() {
             confirmText: "Close"
         });
     };
+
+    const categoryOptions = [
+        { value: "All", label: "All Categories" },
+        { value: "English", label: "English" },
+        { value: "Hausa", label: "Hausa" },
+        { value: "Arabic", label: "Arabic" }
+    ];
 return (
-        <div className="space-y-6 relative">
+        <div className="space-y-6 relative max-w-7xl mx-auto pb-12">
 
             {/* --- COLLECTION DETAILS MODAL --- */}
             {selectedCollection && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-brown-dark/60 backdrop-blur-sm animate-in fade-in duration-200">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-gray-100 flex justify-between items-start bg-gray-50/50">
                             <div className="flex gap-4">
@@ -235,11 +290,11 @@ return (
                             </button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                        <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-white">
                             {books.filter(b => b.collection === selectedCollection.title).length > 0 ? (
                                 books.filter(b => b.collection === selectedCollection.title).map((book, idx) => (
                                     <div key={book.id} className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl border border-transparent hover:border-gray-100 transition-all group">
-                                        <span className="text-xs font-bold text-gray-300 w-6">{idx + 1}</span>
+                                        <span className="text-xs font-bold text-gray-300 w-6 text-center">{idx + 1}</span>
                                         <div className="w-8 h-10 bg-gray-200 rounded overflow-hidden flex-shrink-0 relative">
                                             <Image src={book.coverUrl || "/fallback.webp"} alt="Cover" fill className="object-cover" />
                                         </div>
@@ -254,7 +309,7 @@ return (
                                     </div>
                                 ))
                             ) : (
-                                <div className="text-center py-10 text-gray-400">
+                                <div className="text-center py-10 text-gray-400 border-2 border-dashed border-gray-100 rounded-xl m-4">
                                     <Library className="w-10 h-10 mx-auto mb-2 opacity-20" />
                                     <p className="text-sm">No books in this collection yet.</p>
                                 </div>
@@ -273,20 +328,24 @@ return (
                 </div>
             )}
 
-            {/* --- MAIN CONTENT --- */}
+            {/* --- MAIN PAGE CONTENT --- */}
 
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="font-agency text-3xl text-brand-brown-dark">eBook Library</h1>
                     <p className="font-lato text-sm text-gray-500">Manage digital books, research papers, and collections.</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-2 h-10">
+                    <div className="bg-white border border-gray-100 px-4 rounded-xl text-center shadow-sm min-w-[80px] flex flex-col justify-center h-full">
+                        <span className="block text-lg font-bold text-brand-gold leading-none">{totalItems}</span>
+                        <span className="text-[10px] text-gray-400 uppercase tracking-wider leading-none mt-0.5">Total</span>
+                    </div>
                     {activeTab === 'books' ? (
-                        <Link href="/admin/ebooks/new" className="flex items-center gap-2 px-5 py-2.5 bg-brand-gold text-white rounded-xl text-sm font-bold hover:bg-brand-brown-dark transition-colors shadow-md">
+                        <Link href="/admin/ebooks/new" className="flex items-center justify-center gap-2 px-5 bg-brand-gold text-white rounded-xl text-sm font-bold hover:bg-brand-brown-dark transition-colors shadow-md h-full">
                             <PlusCircle className="w-4 h-4" /> Upload Book
                         </Link>
                     ) : (
-                        <Link href="/admin/ebooks/collections/new" className="flex items-center gap-2 px-5 py-2.5 bg-brand-brown-dark text-white rounded-xl text-sm font-bold hover:bg-brand-gold transition-colors shadow-md">
+                        <Link href="/admin/ebooks/collections/new" className="flex items-center justify-center gap-2 px-5 bg-brand-brown-dark text-white rounded-xl text-sm font-bold hover:bg-brand-gold transition-colors shadow-md h-full">
                             <Library className="w-4 h-4" /> Create Collection
                         </Link>
                     )}
@@ -294,49 +353,43 @@ return (
             </div>
 
             {/* TABS & FILTERS */}
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-                <div className="flex bg-gray-100 p-1 rounded-lg w-full md:w-auto">
-                    <button onClick={() => { setActiveTab('books'); setSearchTerm(''); }} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-md text-sm font-bold transition-all ${activeTab === 'books' ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'}`}>
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm relative z-20">
+                <div className="flex bg-gray-50 p-1 rounded-xl w-full md:w-auto overflow-x-auto">
+                    <button onClick={() => { setActiveTab('books'); setSearchTerm(''); }} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'books' ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'}`}>
                         <Book className="w-4 h-4" /> All Books
                     </button>
-                    <button onClick={() => { setActiveTab('collections'); setSearchTerm(''); }} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-md text-sm font-bold transition-all ${activeTab === 'collections' ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'}`}>
+                    <button onClick={() => { setActiveTab('collections'); setSearchTerm(''); }} className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'collections' ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'}`}>
                         <Library className="w-4 h-4" /> Collections
                     </button>
                 </div>
 
                 <div className="flex flex-col w-full xl:w-auto gap-3">
                     <div className="flex flex-row gap-2 w-full">
-                        <div className="relative flex-1 md:flex-none">
-                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-gold" />
-                            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="w-full md:w-40 pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer">
-                                <option value="All">All</option>
-                                <option value="English">English</option>
-                                <option value="Hausa">Hausa</option>
-                                <option value="Arabic">Arabic</option>
-                            </select>
+                        <div className="relative flex-1 sm:flex-none sm:w-40 min-w-[160px]">
+                            <CustomSelect options={categoryOptions} value={categoryFilter} onChange={setCategoryFilter} icon={Filter} placeholder="Category" />
                         </div>
-                        <button onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')} className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors flex-1 md:flex-none">
+                        <button onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')} className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors flex-1 md:flex-none">
                             <ArrowUpDown className="w-4 h-4" />
                             <span className="hidden sm:inline">{sortOrder === 'desc' ? 'Newest' : 'Oldest'}</span>
                         </button>
                     </div>
                     <div className="relative w-full md:w-72">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input type="text" placeholder={`Search ${activeTab}...`} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all" />
+                        <input type="text" placeholder={`Search ${activeTab}...`} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all" />
                         {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>}
                     </div>
                 </div>
             </div>
 
             {/* CONTENT AREA */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px]">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px] relative z-10">
                 {isLoading ? (
-                    <div className="flex items-center justify-center h-64"><Loader /></div>
+                    <div className="flex items-center justify-center h-64 scale-75"><LogoReveal /></div>
                 ) : (
                     <>
                         {activeTab === 'books' && (
                             <div className="overflow-x-auto">
-                                <table className="w-full text-left">
+                                <table className="w-full text-left whitespace-nowrap">
                                     <thead className="bg-gray-50 border-b border-gray-100">
                                         <tr>
                                             <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Book</th>
@@ -347,7 +400,7 @@ return (
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
                                         {filteredContent.length === 0 ? (
-                                            <tr><td colSpan="5" className="px-6 py-12 text-center text-gray-400">No books found.</td></tr>
+                                            <tr><td colSpan="4" className="px-6 py-20 text-center text-gray-400">No books found.</td></tr>
                                         ) : (
                                             filteredContent.map((book) => (
                                                 <tr key={book.id} className="hover:bg-gray-50 transition-colors group">
@@ -380,11 +433,11 @@ return (
                                                         {book.collection ? <span className="text-xs font-bold text-brand-brown bg-brand-sand/30 px-2 py-1 rounded-md">{book.collection}</span> : <span className="text-xs text-gray-400 italic">Standalone</span>}
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
-                                                        <div className="flex justify-end gap-2">
-                                                            <button onClick={() => handleQuickView(book)} className="p-2 text-gray-400 hover:text-brand-gold hover:bg-brand-sand rounded-lg md:hidden"><Info className="w-4 h-4" /></button>
-                                                            <a href={book.pdfUrl} target="_blank" className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg"><Download className="w-4 h-4" /></a>
-                                                            <button onClick={() => handleEdit(book.id, 'book')} className="p-2 text-gray-400 hover:text-brand-gold hover:bg-brand-sand rounded-lg"><Edit className="w-4 h-4" /></button>
-                                                            <button onClick={() => handleDelete(book.id, 'book')} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                                                        <div className="flex justify-end gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button onClick={() => handleQuickView(book)} className="p-2 text-gray-400 hover:text-brand-brown-dark bg-gray-100 rounded-lg md:hidden"><Info className="w-4 h-4" /></button>
+                                                            <a href={book.fileUrl || book.pdfUrl} target="_blank" download className="p-2 text-gray-400 hover:text-green-600 bg-gray-100 rounded-lg"><Download className="w-4 h-4" /></a>
+                                                            <button onClick={() => handleEdit(book.id, 'book')} className="p-2 text-gray-400 hover:text-brand-gold bg-gray-100 rounded-lg"><Edit className="w-4 h-4" /></button>
+                                                            <button onClick={() => handleDelete(book.id, 'book')} className="p-2 text-gray-400 hover:text-red-600 bg-gray-100 rounded-lg"><Trash2 className="w-4 h-4" /></button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -418,7 +471,7 @@ return (
                                                         }`}>
                                                             {col.category}
                                                         </span>
-                                                        <button onClick={(e) => {e.stopPropagation(); handleDelete(col.id, 'collection')}} className="text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                                                        <button onClick={(e) => {e.stopPropagation(); handleDelete(col.id, 'collection')}} className="text-gray-400 hover:text-red-600 p-1 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
                                                     </div>
                                                     <h3 className={`font-agency text-lg text-brand-brown-dark leading-tight mb-2 line-clamp-2 ${getDir(col.title) === 'rtl' ? 'font-tajawal font-bold' : ''}`}>{col.title}</h3>
                                                     <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full font-bold flex items-center gap-1 w-fit">
