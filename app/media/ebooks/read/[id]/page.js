@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import dynamic from 'next/dynamic'; // Import Dynamic for PDF Viewer
+import dynamic from 'next/dynamic'; 
 import { useParams, useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -132,7 +132,7 @@ const CommentsSection = ({ bookId, isArabic }) => {
             <h3 className={`font-agency text-2xl text-brand-brown-dark mb-6 flex items-center gap-2 ${isArabic ? 'font-tajawal' : ''}`}>
                 <MessageCircle className="w-5 h-5" /> {isArabic ? 'التعليقات' : 'Discussion'}
             </h3>
-            
+
             <form onSubmit={handlePostComment} className="mb-8 bg-gray-50 p-6 rounded-2xl border border-gray-100">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div className="md:col-span-1">
@@ -198,7 +198,7 @@ export default function BookReadPage() {
     const [book, setBook] = useState(null);
     const [relatedBooks, setRelatedBooks] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [isReading, setIsReading] = useState(false); // Reader Modal State
+    const [isReading, setIsReading] = useState(false); 
 
     useEffect(() => {
         const fetchBookData = async () => {
@@ -215,7 +215,7 @@ export default function BookReadPage() {
                     // Increment Reads/Views
                     updateDoc(docRef, { reads: increment(1) });
 
-                    // 2. Fetch Related (Same Collection OR Same Language)
+                    // 2. Fetch Related (Collection > Language)
                     let qRelated;
                     if (data.collection) {
                         qRelated = query(
@@ -225,10 +225,10 @@ export default function BookReadPage() {
                             limit(5)
                         );
                     } else {
-                        // Fallback: Same Language if no collection
+                        // Fallback: Same Language
                         qRelated = query(
                             collection(db, "ebooks"), 
-                            where("language", "==", data.language), // Replaced Genre/Category
+                            where("language", "==", data.language), 
                             orderBy("createdAt", "desc"),
                             limit(5)
                         );
@@ -256,7 +256,7 @@ export default function BookReadPage() {
     // Handle Download (and track it)
     const handleDownload = async () => {
         if (!book?.fileUrl) return; 
-        
+
         // 1. Trigger Download
         const link = document.createElement('a');
         link.href = book.fileUrl;
@@ -281,7 +281,6 @@ export default function BookReadPage() {
     return (
         <div className="min-h-screen flex flex-col bg-white font-lato">
             <Header />
-
             {/* --- CUSTOM READER MODAL --- */}
             {isReading && (
                 <PdfViewer 
@@ -311,7 +310,7 @@ export default function BookReadPage() {
                         </Link>
 
                         <div className="flex flex-col md:flex-row gap-8 md:gap-12 items-center md:items-start text-center md:text-left">
-                            
+
                             {/* Book Cover (Physical Look) */}
                             <div className="relative w-48 aspect-[2/3] md:w-64 flex-shrink-0 shadow-2xl rounded-r-lg border-l-4 border-white/20 transform md:rotate-3 transition-transform hover:rotate-0 bg-gray-800">
                                 <Image 
@@ -348,9 +347,11 @@ export default function BookReadPage() {
                                     <p className="text-white/70 font-bold text-sm md:text-lg uppercase tracking-wide">
                                         Author: {book.author}
                                     </p>
-                                    <p className="text-white/50 text-xs flex items-center gap-1">
-                                        <Building2 className="w-3 h-3" /> {book.publisher || "Unknown Publisher"}
-                                    </p>
+                                    {book.publisher && (
+                                        <p className="text-white/50 text-xs flex items-center gap-1">
+                                            <Building2 className="w-3 h-3" /> {book.publisher}
+                                        </p>
+                                    )}
                                 </div>
 
                                 {/* Action Buttons */}
@@ -375,7 +376,7 @@ export default function BookReadPage() {
 
                 {/* 2. DETAILS & SIDEBAR GRID */}
                 <div className="max-w-6xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-12 gap-12">
-                    
+
                     {/* LEFT: INFO & COMMENTS */}
                     <div className="lg:col-span-8">
                         {/* Meta Bar */}
@@ -410,7 +411,7 @@ export default function BookReadPage() {
                                 <Library className="w-5 h-5 text-brand-gold" /> 
                                 {book.collection ? 'From this Collection' : 'Similar Books'}
                             </h3>
-                            
+
                             <div className="space-y-4">
                                 {relatedBooks.length > 0 ? (
                                     relatedBooks.map((item) => (
@@ -436,7 +437,7 @@ export default function BookReadPage() {
                                     </div>
                                 )}
                             </div>
-                            
+
                             <div className="mt-6 pt-6 border-t border-brand-brown/10 text-center">
                                 <Link href="/media/ebooks" className="inline-block text-xs font-bold text-brand-brown-dark uppercase tracking-widest hover:text-brand-gold transition-colors">
                                     Browse Full Library
