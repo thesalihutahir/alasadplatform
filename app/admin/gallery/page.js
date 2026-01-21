@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -10,14 +10,63 @@ import { collection, query, orderBy, onSnapshot, deleteDoc, doc, addDoc, serverT
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 // Global Modal Context
 import { useModal } from '@/context/ModalContext';
-// Custom Loader
-import Loader from '@/components/Loader'; 
+import LogoReveal from '@/components/logo-reveal'; 
 
 import { 
     PlusCircle, Search, Trash2, Image as ImageIcon, 
     Folder, FolderPlus, Loader2, X, Calendar, UploadCloud,
-    Edit, Info, LayoutGrid, List, Filter, ArrowUpDown
+    Edit, Info, LayoutGrid, List, Filter, ArrowUpDown, ChevronDown, Check
 } from 'lucide-react';
+
+// --- CUSTOM DROPDOWN COMPONENT (Internal) ---
+const CustomSelect = ({ options, value, onChange, placeholder, icon: Icon, className }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const selectedOption = options.find(opt => opt.value === value);
+
+    return (
+        <div className={`relative ${className || ''}`} ref={dropdownRef}>
+            <div 
+                onClick={() => setIsOpen(!isOpen)}
+                className={`w-full pl-3 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm flex justify-between items-center cursor-pointer transition-all hover:border-brand-gold/50 ${isOpen ? 'ring-2 ring-brand-gold/20 border-brand-gold' : ''}`}
+            >
+                <div className="flex items-center gap-2 overflow-hidden">
+                    {Icon && <Icon className="w-4 h-4 text-brand-gold flex-shrink-0" />}
+                    <span className={`truncate ${!selectedOption ? 'text-gray-500' : 'text-gray-700 font-medium'}`}>
+                        {selectedOption ? selectedOption.label : placeholder}
+                    </span>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
+            </div>
+
+            {isOpen && (
+                <div className="absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-100 min-w-[140px]">
+                    {options.map((opt) => (
+                        <div 
+                            key={opt.value}
+                            onClick={() => { onChange(opt.value); setIsOpen(false); }}
+                            className={`px-4 py-3 text-sm cursor-pointer hover:bg-brand-sand/10 flex justify-between items-center ${value === opt.value ? 'bg-brand-sand/20 text-brand-brown-dark font-bold' : 'text-gray-600'}`}
+                        >
+                            {opt.label}
+                            {value === opt.value && <Check className="w-3 h-3 text-brand-gold" />}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
 
 export default function ManageGalleryPage() {
     const router = useRouter();
@@ -43,7 +92,6 @@ export default function ManageGalleryPage() {
     const [uploadProgress, setUploadProgress] = useState(0);
     const [newAlbum, setNewAlbum] = useState({
         title: '',
-        category: 'Event',
         description: '',
         cover: ''
     });
@@ -87,8 +135,7 @@ export default function ManageGalleryPage() {
             unsubAlbums();
         };
     }, []);
-
-    // 2. PROCESS CONTENT
+// 2. PROCESS CONTENT
     const getProcessedContent = () => {
         const term = searchTerm.toLowerCase();
         let content = [];
@@ -106,17 +153,17 @@ export default function ManageGalleryPage() {
                 ...alb,
                 realCount: photos.filter(p => p.albumId === alb.id).length
             }));
-            
+
             content = albumsWithCounts.filter(alb => {
                 const matchesSearch = alb.title.toLowerCase().includes(term);
-                const matchesCategory = categoryFilter === 'All' || alb.category === categoryFilter;
-                return matchesSearch && matchesCategory;
+                return matchesSearch;
             });
         }
         return content;
     };
 
     const filteredContent = getProcessedContent();
+    const totalItems = filteredContent.length;
 
     // 3. ACTIONS
     const handleDelete = (id, type) => {
@@ -134,7 +181,7 @@ export default function ManageGalleryPage() {
                 try {
                     if (type === 'photo') await deleteDoc(doc(db, "gallery_photos", id));
                     else await deleteDoc(doc(db, "gallery_albums", id));
-                    
+
                     showSuccess({ title: "Deleted!", message: "Item deleted successfully.", confirmText: "Okay" });
                 } catch (error) {
                     console.error("Error deleting:", error);
@@ -166,7 +213,7 @@ export default function ManageGalleryPage() {
                     });
 
                     await batch.commit();
-                    
+
                     setSelectedAlbum(null);
                     showSuccess({ title: "Album Deleted", message: "The album and all its photos were deleted.", confirmText: "Done" });
 
@@ -240,7 +287,7 @@ export default function ManageGalleryPage() {
             });
 
             setIsCreateAlbumOpen(false);
-            setNewAlbum({ title: '', category: 'Event', description: '', cover: '' });
+            setNewAlbum({ title: '', description: '', cover: '' });
             setAlbumCoverFile(null);
             setCoverPreview(null);
             setUploadProgress(0);
@@ -253,9 +300,8 @@ export default function ManageGalleryPage() {
             setIsCreatingAlbum(false);
         }
     };
-
-    return (
-        <div className="space-y-6 relative">
+return (
+        <div className="space-y-6 relative max-w-7xl mx-auto pb-12">
 
             {/* --- ALBUM DETAILS MODAL --- */}
             {selectedAlbum && (
@@ -269,9 +315,6 @@ export default function ManageGalleryPage() {
                                 <div dir={getDir(selectedAlbum.title)}>
                                     <h3 className="font-agency text-2xl text-brand-brown-dark leading-none mb-2">{selectedAlbum.title}</h3>
                                     <div className="flex gap-2" dir="ltr">
-                                        <span className="px-2 py-0.5 bg-brand-gold/10 text-brand-gold text-[10px] font-bold uppercase rounded-md">
-                                            {selectedAlbum.category}
-                                        </span>
                                         <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-[10px] font-bold uppercase rounded-md">
                                             {selectedAlbum.realCount} Photos
                                         </span>
@@ -337,21 +380,7 @@ export default function ManageGalleryPage() {
                                     className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
                                 />
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-brand-brown mb-1">Category</label>
-                                <select 
-                                    value={newAlbum.category}
-                                    onChange={(e) => setNewAlbum({...newAlbum, category: e.target.value})}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50"
-                                >
-                                    <option>Event</option>
-                                    <option>School Activity</option>
-                                    <option>Community</option>
-                                    <option>Project</option>
-                                    <option>Other</option>
-                                </select>
-                            </div>
-                            
+
                             {/* Cover Upload */}
                             <div>
                                 <label className="block text-xs font-bold text-brand-brown mb-2">Cover Photo</label>
@@ -393,18 +422,22 @@ export default function ManageGalleryPage() {
                     <h1 className="font-agency text-3xl text-brand-brown-dark">Gallery Manager</h1>
                     <p className="font-lato text-sm text-gray-500">Organize event photos, manage albums, and highlights.</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-2 h-10">
+                    <div className="bg-white border border-gray-100 px-4 rounded-xl text-center shadow-sm min-w-[80px] flex flex-col justify-center h-full">
+                        <span className="block text-lg font-bold text-brand-gold leading-none">{totalItems}</span>
+                        <span className="text-[10px] text-gray-400 uppercase tracking-wider leading-none mt-0.5">Total</span>
+                    </div>
                     {activeTab === 'photos' ? (
                         <Link 
                             href="/admin/gallery/new" 
-                            className="flex items-center gap-2 px-5 py-2.5 bg-brand-gold text-white rounded-xl text-sm font-bold hover:bg-brand-brown-dark transition-colors shadow-md"
+                            className="flex items-center justify-center gap-2 px-5 bg-brand-gold text-white rounded-xl text-sm font-bold hover:bg-brand-brown-dark transition-colors shadow-md h-full"
                         >
                             <PlusCircle className="w-4 h-4" /> Upload Photos
                         </Link>
                     ) : (
                         <Link 
                             href="/admin/gallery/albums/new"
-                            className="flex items-center gap-2 px-5 py-2.5 bg-brand-brown-dark text-white rounded-xl text-sm font-bold hover:bg-brand-gold transition-colors shadow-md"
+                            className="flex items-center justify-center gap-2 px-5 bg-brand-brown-dark text-white rounded-xl text-sm font-bold hover:bg-brand-gold transition-colors shadow-md h-full"
                         >
                             <FolderPlus className="w-4 h-4" /> Create Album
                         </Link>
@@ -413,13 +446,13 @@ export default function ManageGalleryPage() {
             </div>
 
             {/* TABS & FILTERS */}
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-                
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm relative z-20">
+
                 {/* Tabs */}
-                <div className="flex bg-gray-100 p-1 rounded-lg w-full md:w-auto">
+                <div className="flex bg-gray-50 p-1 rounded-xl w-full md:w-auto overflow-x-auto">
                     <button 
                         onClick={() => { setActiveTab('photos'); setSearchTerm(''); }}
-                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-md text-sm font-bold transition-all ${
+                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${
                             activeTab === 'photos' ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'
                         }`}
                     >
@@ -427,7 +460,7 @@ export default function ManageGalleryPage() {
                     </button>
                     <button 
                         onClick={() => { setActiveTab('albums'); setSearchTerm(''); }}
-                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-md text-sm font-bold transition-all ${
+                        className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${
                             activeTab === 'albums' ? 'bg-white text-brand-brown-dark shadow-sm' : 'text-gray-500 hover:text-brand-brown-dark'
                         }`}
                     >
@@ -437,27 +470,15 @@ export default function ManageGalleryPage() {
 
                 {/* Filters */}
                 <div className="flex flex-col w-full xl:w-auto gap-3">
-                    <div className="flex flex-row gap-2 w-full">
-                        {activeTab === 'albums' && (
-                            <div className="relative flex-1 md:flex-none">
-                                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-gold" />
-                                <select 
-                                    value={categoryFilter}
-                                    onChange={(e) => setCategoryFilter(e.target.value)}
-                                    className="w-full md:w-40 pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 cursor-pointer"
-                                >
-                                    <option value="All">All</option>
-                                    <option value="Event">Event</option>
-                                    <option value="School Activity">School Activity</option>
-                                    <option value="Community">Community</option>
-                                    <option value="Project">Project</option>
-                                </select>
-                            </div>
-                        )}
-                    </div>
                     <div className="relative w-full md:w-72">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input type="text" placeholder={`Search ${activeTab}...`} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all" />
+                        <input 
+                            type="text" 
+                            placeholder={`Search ${activeTab}...`} 
+                            value={searchTerm} 
+                            onChange={(e) => setSearchTerm(e.target.value)} 
+                            className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all" 
+                        />
                         {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>}
                     </div>
                 </div>
@@ -466,7 +487,7 @@ export default function ManageGalleryPage() {
             {/* CONTENT AREA */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px]">
                 {isLoading ? (
-                    <div className="flex items-center justify-center h-64"><Loader /></div>
+                    <div className="flex items-center justify-center h-64 scale-75"><LogoReveal /></div>
                 ) : (
                     <>
                         {/* --- PHOTOS GRID VIEW --- */}
@@ -480,7 +501,7 @@ export default function ManageGalleryPage() {
                                 ) : (
                                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                                         {filteredContent.map((photo) => (
-                                            <div key={photo.id} className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer border border-gray-200">
+                                            <div key={photo.id} className="group relative aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer border border-gray-200" onClick={() => handleQuickView(photo)}>
                                                 <Image src={photo.url} alt="Gallery Photo" fill className="object-cover transition-transform duration-500 group-hover:scale-110" />
                                                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
                                                     <p className="text-white/70 text-[10px] truncate mb-2">{photo.name || 'Untitled'}</p>
@@ -516,13 +537,6 @@ export default function ManageGalleryPage() {
                                                     {/* Cover */}
                                                     <div className="relative w-full h-full rounded-xl overflow-hidden shadow-sm border border-gray-200 bg-white group-hover:border-brand-gold/50 transition-colors">
                                                         <Image src={album.cover || "/fallback.webp"} alt={album.title} fill className="object-cover" />
-                                                        
-                                                        {/* Category Badge */}
-                                                        <div className="absolute top-2 left-2">
-                                                            <span className="px-2 py-1 rounded text-[8px] font-bold uppercase shadow-sm bg-black/60 text-white backdrop-blur-sm">
-                                                                {album.category}
-                                                            </span>
-                                                        </div>
 
                                                         {/* Actions */}
                                                         <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -538,7 +552,7 @@ export default function ManageGalleryPage() {
                                                 </h3>
                                                 <div className="flex items-center gap-2 mt-1">
                                                     <p className="text-xs text-gray-400 flex items-center gap-1">
-                                                        <Calendar className="w-3 h-3" /> {formatUploadTime(album.createdAt)}
+                                                        <Calendar className="w-3 h-3" /> {formatUploadTime(album.createdAt).split('•')[0]}
                                                     </p>
                                                     <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
                                                     <p className="text-xs text-brand-gold font-bold">{album.realCount} Photos</p>
