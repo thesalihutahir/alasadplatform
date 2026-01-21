@@ -161,7 +161,7 @@ export default function ManageBlogsPage() {
         { value: "Hausa", label: "Hausa" },
         { value: "Arabic", label: "Arabic" }
     ];
-    return (
+return (
         <div className="space-y-6 relative max-w-full overflow-hidden pb-12">
             
             {/* HEADER & COUNTER */}
@@ -171,18 +171,16 @@ export default function ManageBlogsPage() {
                     <p className="font-lato text-sm text-gray-500">Manage articles, news, and research publications.</p>
                 </div>
                 
-                {/* Flex container set to default stretch (removed items-center) to match heights */}
-                <div className="flex gap-2">
-                    {/* Counter */}
-                    <div className="bg-white border border-gray-100 px-4 py-2 rounded-xl text-center shadow-sm min-w-[80px]">
-                        <span className="block text-lg font-bold text-brand-gold">{contentList.length}</span>
-                        <span className="text-[10px] text-gray-400 uppercase tracking-wider">Total</span>
+                {/* Updated Action Bar with Flex Stretch */}
+                <div className="flex gap-2 h-10">
+                    <div className="bg-white border border-gray-100 px-4 rounded-xl text-center shadow-sm min-w-[80px] flex flex-col justify-center h-full">
+                        <span className="block text-lg font-bold text-brand-gold leading-none">{contentList.length}</span>
+                        <span className="text-[10px] text-gray-400 uppercase tracking-wider leading-none mt-0.5">Total</span>
                     </div>
 
-                    {/* Create Button - Removed vertical padding to let flex stretch handle height */}
                     <Link 
                         href="/admin/blogs/new" 
-                        className="flex items-center justify-center gap-2 px-5 bg-brand-gold text-white rounded-xl text-sm font-bold hover:bg-brand-brown-dark transition-colors shadow-md"
+                        className="flex items-center justify-center gap-2 px-5 bg-brand-gold text-white rounded-xl text-sm font-bold hover:bg-brand-brown-dark transition-colors shadow-md h-full"
                     >
                         <PlusCircle className="w-4 h-4" /> Create New
                     </Link>
