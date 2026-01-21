@@ -95,8 +95,8 @@ export default function ViewCollectionPage() {
     if (loading) return <Loader size="lg" className="h-screen bg-brand-sand" />;
     if (!colData) return null;
 
-    const isArabic = colData.category === 'Arabic'; // Admin category maps to language
-
+    // Use 'category' field for language check
+    const isArabic = colData.category === 'Arabic'; 
     return (
         <div className="min-h-screen flex flex-col bg-white font-lato">
             <Header />
@@ -143,6 +143,7 @@ export default function ViewCollectionPage() {
                             {/* Details */}
                             <div className="flex-grow flex flex-col justify-center h-full pt-2 text-white">
                                 <div className="flex items-center gap-3 mb-4 justify-center md:justify-start">
+                                    {/* Language Badge (from category) */}
                                     <span className="px-3 py-1 bg-brand-gold text-white rounded-md text-[10px] font-bold uppercase tracking-widest shadow-sm">
                                         {colData.category} Collection
                                     </span>
@@ -151,7 +152,7 @@ export default function ViewCollectionPage() {
                                     </span>
                                 </div>
 
-                                <h1 className="font-agency text-4xl md:text-6xl font-bold mb-4 leading-tight">
+                                <h1 className={`text-4xl md:text-6xl font-bold mb-4 leading-tight ${isArabic ? 'font-tajawal' : 'font-agency'}`}>
                                     {colData.title}
                                 </h1>
 
@@ -160,7 +161,7 @@ export default function ViewCollectionPage() {
                                     <span>Created: {formatDate(colData.createdAt)}</span>
                                 </div>
 
-                                <p className="font-lato text-white/80 text-sm md:text-lg leading-relaxed max-w-2xl mb-8">
+                                <p className={`font-lato text-white/80 text-sm md:text-lg leading-relaxed max-w-2xl mb-8 ${isArabic ? 'font-arabic text-right md:text-right' : ''}`}>
                                     {colData.description || "A curated set of publications."}
                                 </p>
 
@@ -229,7 +230,7 @@ export default function ViewCollectionPage() {
                                         <div className="flex-grow min-w-0 pt-1">
                                             <div className="flex justify-between items-start">
                                                 <Link href={`/media/ebooks/read/${book.id}`}>
-                                                    <h3 className="text-lg font-bold text-brand-brown-dark leading-tight mb-1 group-hover:text-brand-gold transition-colors line-clamp-2">
+                                                    <h3 className={`text-lg font-bold text-brand-brown-dark leading-tight mb-1 group-hover:text-brand-gold transition-colors line-clamp-2 ${isArabic ? 'font-tajawal' : ''}`}>
                                                         {book.title}
                                                     </h3>
                                                 </Link>
@@ -246,9 +247,9 @@ export default function ViewCollectionPage() {
                                                 >
                                                     <Eye className="w-3 h-3" /> Read
                                                 </Link>
-                                                {book.pdfUrl && (
+                                                {book.fileUrl && (
                                                     <a 
-                                                        href={book.pdfUrl} 
+                                                        href={book.fileUrl} 
                                                         download
                                                         target="_blank"
                                                         rel="noopener noreferrer" 
