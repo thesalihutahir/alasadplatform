@@ -43,24 +43,6 @@ export default function FundDonationWizard({ fundId }) {
         const fetchFund = async () => {
             if (!fundId) return;
             
-            // Handle General Fund
-            if (fundId === 'general') {
-                setFund({
-                    id: 'general',
-                    title: "General Impact Fund",
-                    tagline: "Support where needed most",
-                    description: "Your contribution enables us to respond quickly to urgent community needs.",
-                    coverImage: "/images/donate-general.webp",
-                    bankDetails: { 
-                        accountName: "Al-Asad Foundation",
-                        bankName: "Jaiz Bank",
-                        accountNumber: "0000000000"
-                    }
-                });
-                setLoading(false);
-                return;
-            }
-
             try {
                 const docRef = doc(db, "donation_funds", fundId);
                 const docSnap = await getDoc(docRef);
@@ -68,8 +50,10 @@ export default function FundDonationWizard({ fundId }) {
                 if (docSnap.exists()) {
                     setFund({ id: docSnap.id, ...docSnap.data() });
                 } else {
-                    // Redirect safely
-                    router.push('/get-involved/donate');
+                    // Redirect safely if fund doesn't exist
+                    console.error("Fund not found:", fundId);
+                    // Optional: You might want to redirect to the main donate page here
+                    // router.push('/get-involved/donate');
                 }
             } catch (error) {
                 console.error("Error fetching fund:", error);
@@ -174,7 +158,12 @@ export default function FundDonationWizard({ fundId }) {
         );
     }
 
-    if (!fund) return null;
+    if (!fund) return (
+        <div className="text-center py-10 text-gray-500">
+            <p>Fund information could not be loaded.</p>
+            <Link href="/get-involved/donate" className="text-brand-gold underline mt-2 inline-block">Return to Donations</Link>
+        </div>
+    );
 
     const bankDetails = fund.bankDetails || {
         accountName: "Al-Asad Education Foundation",
