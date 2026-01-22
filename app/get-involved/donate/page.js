@@ -11,7 +11,7 @@ import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { 
     Heart, ArrowRight, ShieldCheck, Globe, 
-    PieChart, Users, ChevronRight, Gift 
+    PieChart, MessageCircle, ChevronRight, Gift 
 } from 'lucide-react';
 
 export default function DonateOverviewPage() {
@@ -22,8 +22,7 @@ export default function DonateOverviewPage() {
     useEffect(() => {
         const fetchFunds = async () => {
             try {
-                // Fetch only ACTIVE funds
-                // We use a new collection 'donation_funds' for the new structure
+                // Fetch only ACTIVE and PUBLIC funds
                 const q = query(
                     collection(db, "donation_funds"),
                     where("status", "==", "Active"), 
@@ -47,17 +46,6 @@ export default function DonateOverviewPage() {
 
         fetchFunds();
     }, []);
-
-    // --- FALLBACK GENERAL FUND ---
-    // This ensures the page is never empty, even if DB is empty
-    const generalFund = {
-        id: "general",
-        title: "General Impact Fund",
-        tagline: "Support our mission where it's needed most.",
-        description: "Your contribution enables us to respond quickly to urgent community needs, maintain our educational facilities, and support our dedicated volunteers.",
-        coverImage: "fallback.webp", // Ensure you have a fallback image
-        theme: "gold"
-    };
 
     return (
         <div className="min-h-screen flex flex-col bg-white font-lato">
@@ -133,7 +121,7 @@ export default function DonateOverviewPage() {
                     </div>
                 </section>
 
-                {/* 3. FUNDS GRID (The Core) */}
+                {/* 3. FUNDS GRID */}
                 <section id="funds" className="py-20 md:py-28 max-w-7xl mx-auto px-6">
                     <div className="text-center mb-16">
                         <h2 className="font-agency text-4xl text-brand-brown-dark mb-4">Choose a Cause</h2>
@@ -145,17 +133,26 @@ export default function DonateOverviewPage() {
                         <div className="flex justify-center py-20">
                             <Loader size="lg" />
                         </div>
-                    ) : (
+                    ) : funds.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            
-                            {/* GENERAL FUND (Always First/Visible) */}
-                            <FundCard fund={generalFund} isGeneral={true} />
-
                             {/* DYNAMIC FUNDS */}
                             {funds.map(fund => (
                                 <FundCard key={fund.id} fund={fund} />
                             ))}
-
+                        </div>
+                    ) : (
+                        // --- NO FUNDS AVAILABLE STATE ---
+                        <div className="flex flex-col items-center justify-center text-center py-16 bg-gray-50 rounded-3xl border border-gray-100 max-w-2xl mx-auto">
+                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4 border border-gray-100">
+                                <Heart className="w-8 h-8 text-gray-300" />
+                            </div>
+                            <h3 className="font-agency text-2xl text-gray-600 mb-2">No Active Online Campaigns</h3>
+                            <p className="text-gray-500 max-w-md mb-8 px-4">
+                                We currently do not have specific funds listed for online payment. However, your support is vital to our mission. Please reach out to us directly to make a contribution.
+                            </p>
+                            <Link href="/contact" className="inline-flex items-center gap-2 px-6 py-3 bg-brand-brown-dark text-white font-bold rounded-xl hover:bg-brand-gold transition-colors shadow-md">
+                                <MessageCircle className="w-4 h-4" /> Contact Team to Donate
+                            </Link>
                         </div>
                     )}
                 </section>
@@ -166,7 +163,7 @@ export default function DonateOverviewPage() {
                         <h2 className="font-agency text-3xl mb-4">Prefer Bank Transfer or In-Kind Donations?</h2>
                         <p className="text-white/70 mb-8 font-lato">
                             We gratefully accept direct bank transfers, equipment, books, and other resources. 
-                            Click a fund above to see specific bank details, or contact us directly.
+                            Contact our support team for arrangement.
                         </p>
                         <Link href="/contact" className="inline-flex items-center gap-2 text-brand-gold font-bold hover:text-white transition-colors border-b-2 border-brand-gold pb-1 hover:border-white">
                             Contact Support Team <ChevronRight className="w-4 h-4" />
@@ -181,9 +178,9 @@ export default function DonateOverviewPage() {
 }
 
 // --- SUB-COMPONENT: FUND CARD ---
-function FundCard({ fund, isGeneral = false }) {
+function FundCard({ fund }) {
     return (
-        <div className={`group flex flex-col bg-white rounded-3xl overflow-hidden border transition-all duration-300 hover:-translate-y-2 hover:shadow-xl ${isGeneral ? 'border-brand-gold/30 shadow-brand-gold/10' : 'border-gray-100 shadow-sm'}`}>
+        <div className="group flex flex-col bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-xl">
             
             {/* Image Header */}
             <div className="relative w-full h-56 bg-gray-200 overflow-hidden">
@@ -197,15 +194,9 @@ function FundCard({ fund, isGeneral = false }) {
                 
                 {/* Badge */}
                 <div className="absolute top-4 left-4">
-                    {isGeneral ? (
-                        <span className="bg-brand-gold text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
-                            Recommended
-                        </span>
-                    ) : (
-                        <span className="bg-white/90 backdrop-blur text-brand-brown-dark text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
-                            Active Fund
-                        </span>
-                    )}
+                    <span className="bg-white/90 backdrop-blur text-brand-brown-dark text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                        Active Fund
+                    </span>
                 </div>
             </div>
 
@@ -223,21 +214,12 @@ function FundCard({ fund, isGeneral = false }) {
                     {fund.description}
                 </p>
 
-                {/* Progress Bar (Optional - Visual Flair) */}
-                {/* <div className="w-full bg-gray-100 h-1.5 rounded-full mb-6 overflow-hidden">
-                    <div className="bg-green-500 h-full w-[0%]"></div>
-                </div> */}
-
                 {/* Action */}
                 <Link 
                     href={`/get-involved/donate/${fund.id}`} 
-                    className={`w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${
-                        isGeneral 
-                        ? 'bg-brand-brown-dark text-white hover:bg-brand-gold' 
-                        : 'bg-gray-50 text-gray-700 hover:bg-brand-brown-dark hover:text-white'
-                    }`}
+                    className="w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all bg-gray-50 text-gray-700 hover:bg-brand-brown-dark hover:text-white"
                 >
-                    {isGeneral ? <Gift className="w-4 h-4" /> : <Heart className="w-4 h-4" />}
+                    <Heart className="w-4 h-4" />
                     Donate Now
                 </Link>
             </div>
