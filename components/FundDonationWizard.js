@@ -28,7 +28,6 @@ export default function FundDonationWizard({ fundId }) {
     const [donor, setDonor] = useState({ name: '', email: '', phone: '', note: '', anonymous: false });
     const [paymentMethod, setPaymentMethod] = useState('paystack'); 
     
-    // Initialize reference only on mount to prevent hydration mismatch
     const [transactionRef, setTransactionRef] = useState(""); 
 
     const PRESET_AMOUNTS = [1000, 5000, 10000, 20000, 50000, 100000];
@@ -47,6 +46,7 @@ export default function FundDonationWizard({ fundId }) {
                 setFund({
                     id: 'general',
                     title: "General Impact Fund",
+                    tagline: "Support where needed most",
                     description: "Your contribution enables us to respond quickly to urgent community needs.",
                     coverImage: "/images/donate-general.webp",
                     bankDetails: { 
@@ -66,7 +66,8 @@ export default function FundDonationWizard({ fundId }) {
                 if (docSnap.exists()) {
                     setFund({ id: docSnap.id, ...docSnap.data() });
                 } else {
-                    router.push('/get-involved/donate');
+                    // Redirect if invalid
+                    window.location.href = '/get-involved/donate';
                 }
             } catch (error) {
                 console.error("Error fetching fund:", error);
@@ -76,16 +77,15 @@ export default function FundDonationWizard({ fundId }) {
         };
 
         fetchFund();
-    }, [fundId, router]);
+    }, [fundId]);
 
-    // --- PAYSTACK CONFIG (SAFE MODE) ---
-    // Fallback to a placeholder string if key is missing to prevent crash
+    // --- PAYSTACK ---
     const paystackKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "pk_test_placeholder";
     
     const config = {
         reference: transactionRef,
         email: donor.email,
-        amount: amount * 100, // Convert to kobo
+        amount: amount * 100,
         publicKey: paystackKey,
         metadata: {
             fundId: fund?.id,
@@ -94,7 +94,6 @@ export default function FundDonationWizard({ fundId }) {
         }
     };
     
-    // Always call hook, but we control execution in processPayment
     const initializePaystack = usePaystackPayment(config);
 
     // --- HANDLERS ---
@@ -137,12 +136,6 @@ export default function FundDonationWizard({ fundId }) {
 
     const processPayment = () => {
         if (paymentMethod === 'paystack') {
-            // Check for key validity before opening
-            if (!process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY) {
-                alert("Paystack Public Key is missing in environment variables.");
-                return;
-            }
-            
             initializePaystack(
                 (reference) => {
                     recordDonation(reference.reference, 'Success');
@@ -221,6 +214,7 @@ export default function FundDonationWizard({ fundId }) {
                     )}
 
                     <div className="p-8">
+                        {/* STEP 1: AMOUNT */}
                         {step === 1 && (
                             <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                                 <h2 className="font-agency text-3xl text-brand-brown-dark mb-6">Choose Donation Amount</h2>
@@ -237,6 +231,7 @@ export default function FundDonationWizard({ fundId }) {
                             </div>
                         )}
 
+                        {/* STEP 2: DETAILS */}
                         {step === 2 && (
                             <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-5">
                                 <h2 className="font-agency text-3xl text-brand-brown-dark mb-2">Your Information</h2>
@@ -249,6 +244,7 @@ export default function FundDonationWizard({ fundId }) {
                             </div>
                         )}
 
+                        {/* STEP 3: PAYMENT METHOD */}
                         {step === 3 && (
                             <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                                 <h2 className="font-agency text-3xl text-brand-brown-dark mb-2">Payment Method</h2>
@@ -261,6 +257,7 @@ export default function FundDonationWizard({ fundId }) {
                             </div>
                         )}
 
+                        {/* STEP 4: SUCCESS / BANK DETAILS */}
                         {step === 4 && (
                             <div className="animate-in fade-in zoom-in-95 duration-300 text-center">
                                 {paymentMethod === 'paystack' ? (
