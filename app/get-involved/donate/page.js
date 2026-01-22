@@ -160,9 +160,9 @@ export default function DonateOverviewPage() {
                 {/* 4. OFFLINE DONATION CTA */}
                 <section className="bg-brand-brown-dark text-white py-16">
                     <div className="max-w-4xl mx-auto px-6 text-center">
-                        <h2 className="font-agency text-3xl mb-4">Prefer Bank Transfer or In-Kind Donations?</h2>
+                        <h2 className="font-agency text-3xl mb-4">Prefer In-Kind Donations?</h2>
                         <p className="text-white/70 mb-8 font-lato">
-                            We gratefully accept direct bank transfers, equipment, books, and other resources. 
+                            We gratefully accept in-kind support, like food, clothing, stationeries, and other resources. 
                             Contact our support team for arrangement.
                         </p>
                         <Link href="/contact" className="inline-flex items-center gap-2 text-brand-gold font-bold hover:text-white transition-colors border-b-2 border-brand-gold pb-1 hover:border-white">
