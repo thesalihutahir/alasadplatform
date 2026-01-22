@@ -287,7 +287,7 @@ if (isLoading) return <div className="h-screen flex items-center justify-center"
                                         value={formData.name} 
                                         onChange={(e) => setFormData({...formData, name: e.target.value})} 
                                         className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-transparent rounded-xl text-sm focus:bg-white focus:border-brand-gold focus:ring-4 focus:ring-brand-gold/10 transition-all outline-none font-bold text-gray-700 placeholder-gray-400" 
-                                        placeholder="e.g. Dr. Amina Yusuf" 
+                                        placeholder="e.g. Salihu Tahir" 
                                     />
                                 </div>
                             </div>
