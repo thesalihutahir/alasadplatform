@@ -28,7 +28,7 @@ export default function FundDonationWizard({ fundId }) {
     const [donor, setDonor] = useState({ name: '', email: '', phone: '', note: '', anonymous: false });
     const [paymentMethod, setPaymentMethod] = useState('paystack'); 
     
-    // Initialize reference only on mount
+    // Initialize reference only on mount to prevent hydration mismatch
     const [transactionRef, setTransactionRef] = useState(""); 
 
     const PRESET_AMOUNTS = [1000, 5000, 10000, 20000, 50000, 100000];
@@ -78,12 +78,14 @@ export default function FundDonationWizard({ fundId }) {
         fetchFund();
     }, [fundId, router]);
 
-    // --- PAYSTACK ---
-    const paystackKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
+    // --- PAYSTACK CONFIG (SAFE MODE) ---
+    // Fallback to a placeholder string if key is missing to prevent crash
+    const paystackKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "pk_test_placeholder";
+    
     const config = {
         reference: transactionRef,
         email: donor.email,
-        amount: amount * 100,
+        amount: amount * 100, // Convert to kobo
         publicKey: paystackKey,
         metadata: {
             fundId: fund?.id,
@@ -92,6 +94,7 @@ export default function FundDonationWizard({ fundId }) {
         }
     };
     
+    // Always call hook, but we control execution in processPayment
     const initializePaystack = usePaystackPayment(config);
 
     // --- HANDLERS ---
@@ -134,7 +137,12 @@ export default function FundDonationWizard({ fundId }) {
 
     const processPayment = () => {
         if (paymentMethod === 'paystack') {
-            if (!paystackKey) return alert("Paystack key missing.");
+            // Check for key validity before opening
+            if (!process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY) {
+                alert("Paystack Public Key is missing in environment variables.");
+                return;
+            }
+            
             initializePaystack(
                 (reference) => {
                     recordDonation(reference.reference, 'Success');
