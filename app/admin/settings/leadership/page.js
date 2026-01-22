@@ -113,7 +113,7 @@ export default function LeadershipManagerPage() {
 
     // --- REORDER LOGIC ---
     const moveMember = async (index, direction, e) => {
-        e.stopPropagation(); // Prevent opening modal
+        e.stopPropagation();
         if (direction === 'up' && index === 0) return;
         if (direction === 'down' && index === members.length - 1) return;
 
@@ -121,8 +121,6 @@ export default function LeadershipManagerPage() {
         const swapIndex = direction === 'up' ? index - 1 : index + 1;
         const swapMember = members[swapIndex];
 
-        // Optimistically swap orders in Firestore
-        // We swap the 'order' field values between the two documents
         try {
             const currentOrder = currentMember.order;
             const swapOrder = swapMember.order;
@@ -151,7 +149,6 @@ export default function LeadershipManagerPage() {
                 imageUrl = await getDownloadURL(storageRef);
             }
 
-            // Calculate Order: Place at the end of the list
             const maxOrder = members.length > 0 ? Math.max(...members.map(m => m.order || 0)) : 0;
             const newOrder = maxOrder + 1;
 
@@ -161,13 +158,12 @@ export default function LeadershipManagerPage() {
                 image: imageUrl, 
                 createdAt: serverTimestamp() 
             });
-            
-            // Reset
+
             setShowForm(false);
             setFormData({ name: '', position: '', bio: '', visibility: 'Visible' });
             setImageFile(null);
             setImagePreview(null);
-            
+
             showSuccess({
                 title: "Leader Added",
                 message: "New leadership profile created successfully."
@@ -318,7 +314,7 @@ if (loading) return <div className="h-96 flex items-center justify-center"><Load
                 {members.map((member, index) => (
                     <div key={member.id} onClick={() => setViewMember(member)} className={`group bg-white p-5 rounded-2xl shadow-sm border hover:shadow-lg transition-all duration-300 flex items-start gap-5 relative cursor-pointer ${member.visibility === 'Hidden' ? 'border-gray-200 opacity-70' : 'border-gray-100 hover:border-brand-gold/30'}`}>
                         {/* Order Controls - LEFT SIDE */}
-                        <div className="flex flex-col gap-1 pr-3 border-r border-gray-100 justify-center" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex flex-col gap-1 pr-3 border-r border-gray-100 justify-center flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                             <button 
                                 onClick={(e) => moveMember(index, 'up', e)} 
                                 disabled={index === 0}
@@ -339,12 +335,14 @@ if (loading) return <div className="h-96 flex items-center justify-center"><Load
                         <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-gray-100 flex-shrink-0 shadow-inner group-hover:scale-105 transition-transform duration-300">
                             <Image src={member.image || "/fallback.webp"} alt={member.name} fill className="object-cover" />
                         </div>
+                        
+                        {/* Member Details - UPDATED FOR MOBILE */}
                         <div className="flex-grow min-w-0 pt-1">
-                            <h3 className="font-agency text-xl text-brand-brown-dark truncate leading-tight mb-1">{member.name}</h3>
+                            <h3 className="font-agency text-xl text-brand-brown-dark leading-tight mb-1 break-words">{member.name}</h3>
                             <p className="text-xs font-bold text-brand-gold uppercase tracking-wide truncate mb-2">{member.position}</p>
                             {member.visibility === 'Hidden' && <span className="text-[10px] bg-red-50 text-red-500 px-2 py-1 rounded border border-red-100 font-bold flex items-center gap-1 w-fit"><EyeOff className="w-3 h-3" /> Hidden</span>}
                         </div>
-                        
+
                         {/* Quick Actions Overlay */}
                         <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur-sm p-1 rounded-lg shadow-sm">
                             <button onClick={(e) => toggleVisibility(member, e)} className={`p-1.5 rounded-md transition-colors ${member.visibility === 'Visible' ? 'text-gray-400 hover:text-blue-600 hover:bg-blue-50' : 'text-blue-600 bg-blue-50'}`} title="Toggle Visibility">
