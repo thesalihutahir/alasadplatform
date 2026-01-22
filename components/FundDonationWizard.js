@@ -27,14 +27,21 @@ export default function FundDonationWizard({ fundId }) {
     const [donor, setDonor] = useState({ name: '', email: '', phone: '', note: '', anonymous: false });
     const [paymentMethod, setPaymentMethod] = useState('paystack'); 
     
-    // Initialize reference only on mount
+    // Initialize reference state
     const [transactionRef, setTransactionRef] = useState(""); 
 
     const PRESET_AMOUNTS = [1000, 5000, 10000, 20000, 50000, 100000];
     
+    // --- HELPER: Generate New Ref ---
+    const generateRef = () => {
+        const ref = `REF-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        setTransactionRef(ref);
+        return ref;
+    };
+
     // --- ON MOUNT ---
     useEffect(() => {
-        setTransactionRef((new Date()).getTime().toString());
+        generateRef();
     }, []);
 
     // --- FETCH FUND ---
@@ -49,7 +56,7 @@ export default function FundDonationWizard({ fundId }) {
                 if (docSnap.exists()) {
                     setFund({ id: docSnap.id, ...docSnap.data() });
                 } else {
-                    // Redirect if fund does not exist
+                    // Redirect safely if not found (General Fund is handled via ID logic in other components if needed, but removed here as requested)
                     router.push('/get-involved/donate');
                 }
             } catch (error) {
@@ -62,13 +69,13 @@ export default function FundDonationWizard({ fundId }) {
         fetchFund();
     }, [fundId, router]);
 
-    // --- PAYSTACK ---
+    // --- PAYSTACK CONFIG ---
     const paystackKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "pk_test_placeholder";
     
     const config = {
-        reference: transactionRef,
+        reference: transactionRef, // Uses dynamic state reference
         email: donor.email,
-        amount: amount * 100, // Convert to Kobo
+        amount: Math.ceil(amount * 100), // Ensure Integer (Kobo)
         publicKey: paystackKey,
         metadata: {
             fundId: fund?.id || "",
@@ -77,6 +84,7 @@ export default function FundDonationWizard({ fundId }) {
         }
     };
     
+    // Initialize hook safely
     const initializePaystack = usePaystackPayment(config);
 
     // --- HANDLERS ---
@@ -94,16 +102,21 @@ export default function FundDonationWizard({ fundId }) {
     const handleNextStep = () => {
         if (step === 1 && amount < 100) return alert("Minimum donation is ₦100");
         if (step === 2 && !donor.email) return alert("Please provide an email address.");
+        
+        // Regenerate ref when moving to review step to ensure it is fresh for this attempt
+        if (step === 2) generateRef();
+        
         setStep(prev => prev + 1);
     };
 
     const recordDonation = async (ref, status) => {
         try {
+            console.log("Saving Donation...", { ref, status, amount });
             await addDoc(collection(db, "donations"), {
                 fundId: fund.id,
                 fundTitle: fund.title,
                 amount: amount,
-                donorName: donor.anonymous ? "Anonymous" : (donor.name || "Guest Donor"),
+                donorName: donor.anonymous ? "Anonymous" : (donor.name || "Guest"),
                 donorEmail: donor.email,
                 donorPhone: donor.phone || "",
                 message: donor.note || "",
@@ -112,6 +125,7 @@ export default function FundDonationWizard({ fundId }) {
                 status: status,
                 createdAt: serverTimestamp()
             });
+            console.log("Donation Saved!");
         } catch (error) {
             console.error("Error recording donation:", error);
             alert("Payment successful but failed to save record. Please contact support.");
@@ -121,19 +135,27 @@ export default function FundDonationWizard({ fundId }) {
     const processPayment = () => {
         if (paymentMethod === 'paystack') {
             if (paystackKey === "pk_test_placeholder") {
-                alert("Paystack Key not set. Contact Admin.");
+                alert("Paystack Key not set in environment variables.");
                 return;
             }
+            
+            // Trigger Paystack
             initializePaystack(
                 (response) => {
-                    // Paystack returns { reference: "...", status: "success", ... }
+                    // 1. On Success
+                    console.log("Paystack Success:", response);
                     recordDonation(response.reference, 'Success');
-                    setTransactionRef((new Date()).getTime().toString()); // Refresh ref for next time
+                    generateRef(); // Reset ref for next time
                     setStep(4);
                 },
-                () => alert("Payment cancelled.")
+                () => {
+                    // 2. On Close/Cancel
+                    alert("Payment cancelled.");
+                    generateRef(); // Reset ref so they can try again immediately
+                }
             );
         } else {
+            // Manual Bank Transfer
             const manualRef = `BANK-${Date.now().toString().slice(-6)}`;
             setTransactionRef(manualRef);
             recordDonation(manualRef, 'Pending');
@@ -154,15 +176,16 @@ export default function FundDonationWizard({ fundId }) {
         bankName: "Jaiz Bank",
         accountNumber: "0000000000"
     };
-
-    return (
+return (
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16">
+            
             {/* LEFT: FUND DETAILS */}
             <div className="lg:col-span-7">
                 <div className="sticky top-32">
                     <Link href="/get-involved/donate" className="inline-flex items-center text-gray-500 hover:text-brand-brown-dark mb-6 text-xs font-bold uppercase tracking-widest transition-colors">
                         <ArrowLeft className="w-4 h-4 mr-2" /> Back to Funds
                     </Link>
+
                     <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-lg mb-8">
                         <Image src={fund.coverImage || "/fallback.webp"} alt={fund.title} fill className="object-cover" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-8 text-white">
@@ -170,15 +193,17 @@ export default function FundDonationWizard({ fundId }) {
                             {fund.tagline && <p className="text-white/80 font-lato text-lg">{fund.tagline}</p>}
                         </div>
                     </div>
+
                     <div className="prose prose-lg text-gray-600 leading-relaxed font-lato">
                         <h3 className="font-agency text-2xl text-brand-brown-dark">About this Fund</h3>
                         <p>{fund.description}</p>
                     </div>
+
                     <div className="mt-8 p-6 bg-brand-sand/20 rounded-2xl border border-brand-gold/20 flex items-start gap-4">
                         <ShieldCheck className="w-8 h-8 text-brand-gold flex-shrink-0" />
                         <div>
                             <h4 className="font-bold text-brand-brown-dark text-sm mb-1">100% Secure Donation</h4>
-                            <p className="text-xs text-gray-600">Your donation is processed securely.</p>
+                            <p className="text-xs text-gray-600">Your donation is processed securely. We ensure transparency in every project we undertake.</p>
                         </div>
                     </div>
                 </div>
@@ -187,14 +212,19 @@ export default function FundDonationWizard({ fundId }) {
             {/* RIGHT: WIZARD */}
             <div className="lg:col-span-5 relative z-10">
                 <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden sticky top-32">
+                    
                     {step < 4 && (
                         <div className="bg-gray-50 px-8 py-4 border-b border-gray-100 flex justify-between items-center text-xs font-bold text-gray-400 uppercase tracking-wider">
-                            <span className={step >= 1 ? 'text-brand-brown-dark' : ''}>1. Amount</span><ChevronRight className="w-3 h-3" />
-                            <span className={step >= 2 ? 'text-brand-brown-dark' : ''}>2. Details</span><ChevronRight className="w-3 h-3" />
+                            <span className={step >= 1 ? 'text-brand-brown-dark' : ''}>1. Amount</span>
+                            <ChevronRight className="w-3 h-3" />
+                            <span className={step >= 2 ? 'text-brand-brown-dark' : ''}>2. Details</span>
+                            <ChevronRight className="w-3 h-3" />
                             <span className={step >= 3 ? 'text-brand-brown-dark' : ''}>3. Payment</span>
                         </div>
                     )}
+
                     <div className="p-8">
+                        {/* STEP 1: AMOUNT */}
                         {step === 1 && (
                             <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                                 <h2 className="font-agency text-3xl text-brand-brown-dark mb-6">Choose Donation Amount</h2>
@@ -210,6 +240,8 @@ export default function FundDonationWizard({ fundId }) {
                                 <button onClick={handleNextStep} className="w-full py-4 bg-brand-gold text-white font-bold rounded-xl text-lg hover:bg-brand-brown-dark transition-all shadow-lg flex items-center justify-center gap-2">Continue <ArrowRight className="w-5 h-5" /></button>
                             </div>
                         )}
+
+                        {/* STEP 2: DETAILS */}
                         {step === 2 && (
                             <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-5">
                                 <h2 className="font-agency text-3xl text-brand-brown-dark mb-2">Your Information</h2>
@@ -221,6 +253,8 @@ export default function FundDonationWizard({ fundId }) {
                                 <div className="flex gap-3 pt-2"><button onClick={() => setStep(1)} className="px-6 py-4 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200">Back</button><button onClick={handleNextStep} className="flex-grow py-4 bg-brand-gold text-white font-bold rounded-xl hover:bg-brand-brown-dark transition-all shadow-lg">Review & Pay</button></div>
                             </div>
                         )}
+
+                        {/* STEP 3: PAYMENT METHOD */}
                         {step === 3 && (
                             <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                                 <h2 className="font-agency text-3xl text-brand-brown-dark mb-2">Payment Method</h2>
@@ -232,6 +266,8 @@ export default function FundDonationWizard({ fundId }) {
                                 <div className="flex gap-3"><button onClick={() => setStep(2)} className="px-6 py-4 bg-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-200">Back</button><button onClick={processPayment} className="flex-grow py-4 bg-brand-gold text-white font-bold rounded-xl hover:bg-brand-brown-dark transition-all shadow-lg flex items-center justify-center gap-2"><Lock className="w-4 h-4" /> {paymentMethod === 'paystack' ? 'Pay Now' : 'Get Bank Details'}</button></div>
                             </div>
                         )}
+
+                        {/* STEP 4: SUCCESS / BANK DETAILS */}
                         {step === 4 && (
                             <div className="animate-in fade-in zoom-in-95 duration-300 text-center">
                                 {paymentMethod === 'paystack' ? (
