@@ -6,6 +6,8 @@ import Image from 'next/image';
 import { db, storage } from '@/lib/firebase';
 import { collection, query, orderBy, onSnapshot, deleteDoc, doc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+// Context for Custom Modal
+import { useModal } from '@/context/ModalContext';
 import { 
     ArrowLeft, Plus, Trash2, Loader2, UploadCloud, 
     User, BadgeCheck, X, Pencil, Camera, Users, Check, ChevronDown, Eye 
@@ -65,6 +67,7 @@ const CustomSelect = ({ options, value, onChange, placeholder, disabled, icon: I
 };
 
 export default function TeamSettingsPage() {
+    const { showConfirm, showSuccess } = useModal(); // Use Custom Modal
     const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -87,10 +90,10 @@ export default function TeamSettingsPage() {
 
     // --- CONSTANTS ---
     const PRIMARY_ROLES = [
-        "Team Lead", // Updated from Media Team Lead
+        "Team Lead", 
         "Operations Coordinator", 
         "Content Manager",
-        "Financial Manager", // Added New Role
+        "Financial Manager", 
         "Public Relations Officer", 
         "Livestream Lead", 
         "Creative Director",
@@ -153,18 +156,37 @@ export default function TeamSettingsPage() {
             }
 
             await addDoc(collection(db, "team_members"), { ...formData, image: imageUrl, createdAt: serverTimestamp() });
+            
+            // Reset Form
             setShowForm(false);
             setFormData({ name: '', primaryRole: 'Esteemed Member', responsibilities: [] });
             setImageFile(null);
             setImagePreview(null);
-        } catch (error) { console.error("Error adding:", error); alert("Failed to add member."); } 
-        finally { setIsSubmitting(false); }
+            
+            showSuccess({
+                title: "Member Added",
+                message: "New team member has been successfully added.",
+            });
+
+        } catch (error) { 
+            console.error("Error adding:", error); 
+            alert("Failed to add member."); 
+        } finally { 
+            setIsSubmitting(false); 
+        }
     };
 
-    const handleDelete = async (id) => {
-        if (confirm("Delete this member? This cannot be undone.")) {
-            await deleteDoc(doc(db, "team_members", id));
-        }
+    const handleDelete = (id) => {
+        showConfirm({
+            title: "Delete Member?",
+            message: "Are you sure you want to remove this team member? This action cannot be undone.",
+            confirmText: "Yes, Delete",
+            type: "danger",
+            onConfirm: async () => {
+                await deleteDoc(doc(db, "team_members", id));
+                setViewMember(null); // Close view modal if open
+            }
+        });
     };
 
     const roleOptions = PRIMARY_ROLES.map(role => {
@@ -281,7 +303,8 @@ if (loading) return <div className="h-96 flex items-center justify-center"><Load
                     </div>
                 </div>
             )}
-{/* --- MEMBERS GRID LIST --- */}
+
+            {/* --- MEMBERS GRID LIST --- */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {members.map((member) => (
                     <div key={member.id} onClick={() => setViewMember(member)} className="group bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:border-brand-gold/30 hover:shadow-lg transition-all duration-300 flex items-start gap-5 relative cursor-pointer">
@@ -330,7 +353,7 @@ if (loading) return <div className="h-96 flex items-center justify-center"><Load
                             </div>
                             <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end gap-3">
                                 <Link href={`/admin/settings/team/edit/${viewMember.id}`} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-sm transition-colors">Edit Profile</Link>
-                                <button onClick={() => { handleDelete(viewMember.id); setViewMember(null); }} className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl text-sm transition-colors">Delete</button>
+                                <button onClick={() => { handleDelete(viewMember.id); }} className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl text-sm transition-colors">Delete</button>
                             </div>
                         </div>
                     </div>
