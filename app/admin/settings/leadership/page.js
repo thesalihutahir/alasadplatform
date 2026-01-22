@@ -10,7 +10,7 @@ import { useModal } from '@/context/ModalContext';
 import { 
     ArrowLeft, Plus, Trash2, Loader2, UploadCloud, 
     User, Briefcase, X, Pencil, Camera, Eye, 
-    Check, ChevronDown, ListOrdered, EyeOff, FileText
+    Check, ChevronDown, EyeOff, FileText, ArrowUp, ArrowDown
 } from 'lucide-react';
 
 // --- CUSTOM SELECT COMPONENT ---
@@ -75,8 +75,7 @@ export default function LeadershipManagerPage() {
     const [formData, setFormData] = useState({
         name: '',
         position: '',
-        bio: '', // Added Bio
-        order: 1,
+        bio: '', 
         visibility: 'Visible'
     });
 
@@ -112,9 +111,32 @@ export default function LeadershipManagerPage() {
         }
     };
 
+    // --- REORDER LOGIC ---
+    const moveMember = async (index, direction, e) => {
+        e.stopPropagation(); // Prevent opening modal
+        if (direction === 'up' && index === 0) return;
+        if (direction === 'down' && index === members.length - 1) return;
+
+        const currentMember = members[index];
+        const swapIndex = direction === 'up' ? index - 1 : index + 1;
+        const swapMember = members[swapIndex];
+
+        // Optimistically swap orders in Firestore
+        // We swap the 'order' field values between the two documents
+        try {
+            const currentOrder = currentMember.order;
+            const swapOrder = swapMember.order;
+
+            await updateDoc(doc(db, "leadership_members", currentMember.id), { order: swapOrder });
+            await updateDoc(doc(db, "leadership_members", swapMember.id), { order: currentOrder });
+        } catch (error) {
+            console.error("Failed to reorder", error);
+            alert("Failed to reorder items.");
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        // Validation: Added check for bio
         if (!formData.name || !formData.position || !formData.bio) { 
             alert("Name, Position, and Biography are required."); 
             return; 
@@ -129,16 +151,20 @@ export default function LeadershipManagerPage() {
                 imageUrl = await getDownloadURL(storageRef);
             }
 
+            // Calculate Order: Place at the end of the list
+            const maxOrder = members.length > 0 ? Math.max(...members.map(m => m.order || 0)) : 0;
+            const newOrder = maxOrder + 1;
+
             await addDoc(collection(db, "leadership_members"), { 
                 ...formData, 
-                order: Number(formData.order),
+                order: newOrder,
                 image: imageUrl, 
                 createdAt: serverTimestamp() 
             });
             
             // Reset
             setShowForm(false);
-            setFormData({ name: '', position: '', bio: '', order: members.length + 1, visibility: 'Visible' });
+            setFormData({ name: '', position: '', bio: '', visibility: 'Visible' });
             setImageFile(null);
             setImagePreview(null);
             
@@ -227,7 +253,7 @@ if (loading) return <div className="h-96 flex items-center justify-center"><Load
                                 </div>
                             </div>
 
-                            {/* Bio Field (Added) */}
+                            {/* Bio Field */}
                             <div>
                                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 mb-1.5 block">Biography <span className="text-red-500">*</span></label>
                                 <div className="relative">
@@ -244,15 +270,7 @@ if (loading) return <div className="h-96 flex items-center justify-center"><Load
 
                             <hr className="border-gray-100" />
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 mb-2 block">Display Order</label>
-                                    <div className="relative">
-                                        <ListOrdered className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                        <input type="number" min="1" value={formData.order} onChange={(e) => setFormData({...formData, order: e.target.value})} className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-transparent rounded-xl text-sm focus:bg-white focus:border-brand-gold focus:ring-4 focus:ring-brand-gold/10 transition-all outline-none font-bold text-gray-700" />
-                                    </div>
-                                    <p className="text-[10px] text-gray-400 mt-1 ml-1">Lower numbers appear first.</p>
-                                </div>
+                            <div className="grid grid-cols-1">
                                 <div>
                                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1 mb-2 block">Visibility</label>
                                     <CustomSelect 
@@ -297,18 +315,34 @@ if (loading) return <div className="h-96 flex items-center justify-center"><Load
 
             {/* --- LEADERSHIP GRID LIST --- */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                {members.map((member) => (
+                {members.map((member, index) => (
                     <div key={member.id} onClick={() => setViewMember(member)} className={`group bg-white p-5 rounded-2xl shadow-sm border hover:shadow-lg transition-all duration-300 flex items-start gap-5 relative cursor-pointer ${member.visibility === 'Hidden' ? 'border-gray-200 opacity-70' : 'border-gray-100 hover:border-brand-gold/30'}`}>
+                        {/* Order Controls - LEFT SIDE */}
+                        <div className="flex flex-col gap-1 pr-3 border-r border-gray-100 justify-center" onClick={(e) => e.stopPropagation()}>
+                            <button 
+                                onClick={(e) => moveMember(index, 'up', e)} 
+                                disabled={index === 0}
+                                className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-brand-brown-dark disabled:opacity-20 disabled:cursor-not-allowed"
+                            >
+                                <ArrowUp className="w-4 h-4" />
+                            </button>
+                            <span className="text-[10px] font-bold text-center text-gray-300 font-mono">{index + 1}</span>
+                            <button 
+                                onClick={(e) => moveMember(index, 'down', e)} 
+                                disabled={index === members.length - 1}
+                                className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-brand-brown-dark disabled:opacity-20 disabled:cursor-not-allowed"
+                            >
+                                <ArrowDown className="w-4 h-4" />
+                            </button>
+                        </div>
+
                         <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-gray-100 flex-shrink-0 shadow-inner group-hover:scale-105 transition-transform duration-300">
                             <Image src={member.image || "/fallback.webp"} alt={member.name} fill className="object-cover" />
                         </div>
                         <div className="flex-grow min-w-0 pt-1">
                             <h3 className="font-agency text-xl text-brand-brown-dark truncate leading-tight mb-1">{member.name}</h3>
                             <p className="text-xs font-bold text-brand-gold uppercase tracking-wide truncate mb-2">{member.position}</p>
-                            <div className="flex items-center gap-3">
-                                <span className="text-[10px] bg-gray-50 text-gray-500 px-2 py-1 rounded border border-gray-200 font-mono">Order: {member.order}</span>
-                                {member.visibility === 'Hidden' && <span className="text-[10px] bg-red-50 text-red-500 px-2 py-1 rounded border border-red-100 font-bold flex items-center gap-1"><EyeOff className="w-3 h-3" /> Hidden</span>}
-                            </div>
+                            {member.visibility === 'Hidden' && <span className="text-[10px] bg-red-50 text-red-500 px-2 py-1 rounded border border-red-100 font-bold flex items-center gap-1 w-fit"><EyeOff className="w-3 h-3" /> Hidden</span>}
                         </div>
                         
                         {/* Quick Actions Overlay */}
@@ -345,7 +379,7 @@ if (loading) return <div className="h-96 flex items-center justify-center"><Load
                             </div>
                             <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
                                 <div className="text-xs text-gray-500">
-                                    Display Order: <span className="font-bold text-gray-800">{viewMember.order}</span>
+                                    Status: <span className={`font-bold ${viewMember.visibility === 'Hidden' ? 'text-red-500' : 'text-green-600'}`}>{viewMember.visibility}</span>
                                 </div>
                                 <div className="flex gap-2">
                                     <Link href={`/admin/settings/leadership/edit/${viewMember.id}`} className="px-4 py-2 bg-white border border-gray-200 hover:border-brand-gold text-gray-700 font-bold rounded-xl text-xs transition-colors shadow-sm">Edit</Link>
