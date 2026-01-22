@@ -9,7 +9,7 @@ import { usePaystackPayment } from 'react-paystack';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { 
-    ArrowLeft, CreditCard, Landmark, CheckCircle, 
+    ArrowLeft, ArrowRight, CreditCard, Landmark, CheckCircle, 
     Copy, User, Mail, Phone, MessageSquare, ShieldCheck,
     AlertCircle, ChevronRight, Lock, Loader2 
 } from 'lucide-react';
