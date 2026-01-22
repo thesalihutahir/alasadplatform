@@ -4,14 +4,14 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import Loader from '@/components/Loader';
+// Removed external Loader import to prevent crash
 import { usePaystackPayment } from 'react-paystack';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { 
     ArrowLeft, CreditCard, Landmark, CheckCircle, 
     Copy, User, Mail, Phone, MessageSquare, ShieldCheck,
-    AlertCircle, ChevronRight, Lock
+    AlertCircle, ChevronRight, Lock, Loader2 
 } from 'lucide-react';
 
 export default function FundDonationWizard({ fundId }) {
@@ -28,6 +28,7 @@ export default function FundDonationWizard({ fundId }) {
     const [donor, setDonor] = useState({ name: '', email: '', phone: '', note: '', anonymous: false });
     const [paymentMethod, setPaymentMethod] = useState('paystack'); 
     
+    // Initialize reference only on mount
     const [transactionRef, setTransactionRef] = useState(""); 
 
     const PRESET_AMOUNTS = [1000, 5000, 10000, 20000, 50000, 100000];
@@ -42,6 +43,7 @@ export default function FundDonationWizard({ fundId }) {
         const fetchFund = async () => {
             if (!fundId) return;
             
+            // Handle General Fund
             if (fundId === 'general') {
                 setFund({
                     id: 'general',
@@ -66,8 +68,8 @@ export default function FundDonationWizard({ fundId }) {
                 if (docSnap.exists()) {
                     setFund({ id: docSnap.id, ...docSnap.data() });
                 } else {
-                    // Redirect if invalid
-                    window.location.href = '/get-involved/donate';
+                    // Redirect safely
+                    router.push('/get-involved/donate');
                 }
             } catch (error) {
                 console.error("Error fetching fund:", error);
@@ -77,9 +79,10 @@ export default function FundDonationWizard({ fundId }) {
         };
 
         fetchFund();
-    }, [fundId]);
+    }, [fundId, router]);
 
     // --- PAYSTACK ---
+    // Safe Key Retrieval
     const paystackKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "pk_test_placeholder";
     
     const config = {
@@ -88,12 +91,13 @@ export default function FundDonationWizard({ fundId }) {
         amount: amount * 100,
         publicKey: paystackKey,
         metadata: {
-            fundId: fund?.id,
-            fundTitle: fund?.title,
-            donorName: donor.name,
+            fundId: fund?.id || "",
+            fundTitle: fund?.title || "",
+            donorName: donor.name || "",
         }
     };
     
+    // Initialize hook safely
     const initializePaystack = usePaystackPayment(config);
 
     // --- HANDLERS ---
@@ -136,6 +140,10 @@ export default function FundDonationWizard({ fundId }) {
 
     const processPayment = () => {
         if (paymentMethod === 'paystack') {
+            if (paystackKey === "pk_test_placeholder") {
+                alert("Paystack Key not set in environment variables.");
+                return;
+            }
             initializePaystack(
                 (reference) => {
                     recordDonation(reference.reference, 'Success');
@@ -157,7 +165,15 @@ export default function FundDonationWizard({ fundId }) {
         alert("Copied: " + text);
     };
 
-    if (loading) return <Loader size="lg" className="h-screen bg-brand-sand" />;
+    // --- LOADING STATE (Inline Loader) ---
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <Loader2 className="w-10 h-10 animate-spin text-brand-gold" />
+            </div>
+        );
+    }
+
     if (!fund) return null;
 
     const bankDetails = fund.bankDetails || {
@@ -214,7 +230,6 @@ export default function FundDonationWizard({ fundId }) {
                     )}
 
                     <div className="p-8">
-                        {/* STEP 1: AMOUNT */}
                         {step === 1 && (
                             <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                                 <h2 className="font-agency text-3xl text-brand-brown-dark mb-6">Choose Donation Amount</h2>
@@ -231,7 +246,6 @@ export default function FundDonationWizard({ fundId }) {
                             </div>
                         )}
 
-                        {/* STEP 2: DETAILS */}
                         {step === 2 && (
                             <div className="animate-in fade-in slide-in-from-right-4 duration-300 space-y-5">
                                 <h2 className="font-agency text-3xl text-brand-brown-dark mb-2">Your Information</h2>
@@ -244,7 +258,6 @@ export default function FundDonationWizard({ fundId }) {
                             </div>
                         )}
 
-                        {/* STEP 3: PAYMENT METHOD */}
                         {step === 3 && (
                             <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                                 <h2 className="font-agency text-3xl text-brand-brown-dark mb-2">Payment Method</h2>
@@ -257,7 +270,6 @@ export default function FundDonationWizard({ fundId }) {
                             </div>
                         )}
 
-                        {/* STEP 4: SUCCESS / BANK DETAILS */}
                         {step === 4 && (
                             <div className="animate-in fade-in zoom-in-95 duration-300 text-center">
                                 {paymentMethod === 'paystack' ? (
