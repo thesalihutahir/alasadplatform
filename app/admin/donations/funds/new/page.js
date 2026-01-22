@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -8,15 +8,66 @@ import { useRouter } from 'next/navigation';
 import { db, storage } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+// Context
+import { useModal } from '@/context/ModalContext';
 // Icons
 import { 
     ArrowLeft, Save, Loader2, UploadCloud, 
-    LayoutTemplate, AlignLeft, Image as ImageIcon, 
-    Landmark, Hash, CreditCard, Eye, AlertCircle 
+    LayoutTemplate, Image as ImageIcon, 
+    Landmark, Hash, CreditCard, Eye, ChevronDown, Check, Globe, Lock
 } from 'lucide-react';
+
+// --- CUSTOM SELECT COMPONENT ---
+const CustomSelect = ({ options, value, onChange, icon: Icon }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const selectedLabel = options.find(opt => opt.value === value)?.label;
+
+    return (
+        <div className="relative w-full" ref={dropdownRef}>
+            <div 
+                onClick={() => setIsOpen(!isOpen)}
+                className={`w-full px-4 py-3 bg-gray-50 border border-transparent rounded-xl text-sm font-bold flex items-center justify-between cursor-pointer transition-all hover:border-brand-gold/50 ${isOpen ? 'ring-2 ring-brand-gold/20 border-brand-gold bg-white' : ''}`}
+            >
+                <div className="flex items-center gap-2 text-brand-brown-dark">
+                    {Icon && <Icon className="w-4 h-4 text-brand-gold" />}
+                    <span>{selectedLabel}</span>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </div>
+
+            {isOpen && (
+                <div className="absolute z-50 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                    {options.map((opt) => (
+                        <div 
+                            key={opt.value}
+                            onClick={() => { onChange(opt.value); setIsOpen(false); }}
+                            className={`px-4 py-3 text-xs font-medium flex justify-between items-center cursor-pointer hover:bg-brand-sand/10 text-gray-600 ${value === opt.value ? 'bg-brand-sand/20 text-brand-brown-dark font-bold' : ''}`}
+                        >
+                            <span>{opt.label}</span>
+                            {value === opt.value && <Check className="w-3 h-3 text-brand-gold" />}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
 
 export default function CreateFundPage() {
     const router = useRouter();
+    const { showConfirm, showSuccess } = useModal();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
 
@@ -25,8 +76,8 @@ export default function CreateFundPage() {
         title: '',
         tagline: '',
         description: '',
-        status: 'Active', // Active, Paused
-        visibility: 'Public', // Public, Hidden
+        status: 'Active', 
+        visibility: 'Public', 
         bankDetails: {
             bankName: '',
             accountName: '',
@@ -61,50 +112,68 @@ export default function CreateFundPage() {
         }
     };
 
-    const handleSubmit = async (e) => {
+    const confirmSubmit = (e) => {
         e.preventDefault();
         
-        if (!formData.title || !formData.description || !imageFile) {
-            alert("Please fill in all required fields and upload a cover image.");
+        if (!formData.title || !formData.description) {
+            alert("Please fill in the Fund Title and Description.");
             return;
         }
 
+        showConfirm({
+            title: "Publish Fund?",
+            message: "This will create a new donation fund visible to the public (if set to Public).",
+            confirmText: "Yes, Publish",
+            onConfirm: executeCreation
+        });
+    };
+
+    const executeCreation = async () => {
         setIsSubmitting(true);
 
         try {
-            // 1. Upload Cover Image
-            const storageRef = ref(storage, `funds/${Date.now()}_${imageFile.name}`);
-            const uploadTask = uploadBytesResumable(storageRef, imageFile);
+            let downloadURL = "/fallback.webp"; // Default fallback
 
-            uploadTask.on('state_changed', 
-                (snapshot) => {
-                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    setUploadProgress(progress);
-                },
-                (error) => {
-                    console.error("Upload failed", error);
-                    setIsSubmitting(false);
-                },
-                async () => {
-                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            // 1. Upload Cover Image (Only if selected)
+            if (imageFile) {
+                const storageRef = ref(storage, `funds/${Date.now()}_${imageFile.name}`);
+                const uploadTask = uploadBytesResumable(storageRef, imageFile);
 
-                    // 2. Save Fund to Firestore
-                    await addDoc(collection(db, "donation_funds"), {
-                        ...formData,
-                        coverImage: downloadURL,
-                        raised: 0, // Initial stats
-                        donorCount: 0,
-                        createdAt: serverTimestamp()
-                    });
+                await new Promise((resolve, reject) => {
+                    uploadTask.on('state_changed', 
+                        (snapshot) => {
+                            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                            setUploadProgress(progress);
+                        },
+                        (error) => reject(error),
+                        async () => {
+                            downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                            resolve();
+                        }
+                    );
+                });
+            }
 
-                    router.push('/admin/donations');
-                }
-            );
+            // 2. Save Fund to Firestore
+            await addDoc(collection(db, "donation_funds"), {
+                ...formData,
+                coverImage: downloadURL,
+                raised: 0, 
+                donorCount: 0,
+                createdAt: serverTimestamp()
+            });
+
+            showSuccess({
+                title: "Fund Published!",
+                message: "Donors can now contribute to this cause.",
+                onConfirm: () => router.push('/admin/donations')
+            });
 
         } catch (error) {
             console.error("Error creating fund:", error);
-            setIsSubmitting(false);
             alert("Failed to create fund.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -124,7 +193,7 @@ export default function CreateFundPage() {
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <form onSubmit={confirmSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
                 {/* LEFT: MAIN CONTENT */}
                 <div className="lg:col-span-2 space-y-8">
@@ -235,9 +304,40 @@ export default function CreateFundPage() {
 
                 </div>
 
-                {/* RIGHT: SIDEBAR (Visuals & Save) */}
+                {/* RIGHT: SIDEBAR (Visuals & Settings) */}
                 <div className="space-y-8">
                     
+                    {/* Status & Visibility */}
+                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 space-y-4">
+                        <h2 className="font-agency text-xl text-brand-brown-dark mb-2">Fund Settings</h2>
+                        
+                        <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 block">Visibility</label>
+                            <CustomSelect 
+                                icon={Globe}
+                                options={[
+                                    { value: 'Public', label: 'Public (Visible to All)' },
+                                    { value: 'Hidden', label: 'Hidden (Draft)' }
+                                ]}
+                                value={formData.visibility}
+                                onChange={(val) => setFormData(prev => ({ ...prev, visibility: val }))}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 block">Status</label>
+                            <CustomSelect 
+                                icon={Lock}
+                                options={[
+                                    { value: 'Active', label: 'Active (Accepting)' },
+                                    { value: 'Paused', label: 'Paused (No Donations)' }
+                                ]}
+                                value={formData.status}
+                                onChange={(val) => setFormData(prev => ({ ...prev, status: val }))}
+                            />
+                        </div>
+                    </div>
+
                     {/* Image Upload */}
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
                         <h2 className="font-agency text-xl text-brand-brown-dark mb-4 flex items-center gap-2">
@@ -252,7 +352,7 @@ export default function CreateFundPage() {
                                     <div className="text-center text-gray-400 p-4">
                                         <UploadCloud className="w-8 h-8 mx-auto mb-2 opacity-50" />
                                         <span className="text-xs font-bold uppercase tracking-wider block">Click to Upload</span>
-                                        <span className="text-[10px] opacity-70">16:9 Aspect Ratio Recommended</span>
+                                        <span className="text-[10px] opacity-70">Optional. Default used if skipped.</span>
                                     </div>
                                 )}
                             </div>
