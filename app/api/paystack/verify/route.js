@@ -1,8 +1,7 @@
-// src/app/api/paystack/verify/route.js
 import { NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebase-admin'; // Ensure you have firebase-admin set up
+import { db } from '@/lib/firebase';
 import { verifyPaystackTransaction } from '@/lib/paystack';
-import { FieldValue } from 'firebase-admin/firestore';
+import { collection, query, where, getDocs, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 export async function POST(request) {
     try {
@@ -16,33 +15,33 @@ export async function POST(request) {
         const paystackResponse = await verifyPaystackTransaction(reference);
 
         if (!paystackResponse.status || paystackResponse.data.status !== 'success') {
-            return NextResponse.json({ success: false, message: "Transaction not successful" }, { status: 400 });
+            return NextResponse.json({ success: false, message: "Transaction not successful at Paystack" }, { status: 400 });
         }
 
         const pData = paystackResponse.data;
 
-        // 2. Update Firestore (Admin SDK)
-        // We query by reference because doc ID might differ, though best practice is ref = docID
-        const donationsRef = adminDb.collection('donations');
-        const snapshot = await donationsRef.where('reference', '==', reference).limit(1).get();
+        // 2. Find Donation in Firestore
+        const donationsRef = collection(db, 'donations');
+        const q = query(donationsRef, where('reference', '==', reference));
+        const snapshot = await getDocs(q);
 
         if (snapshot.empty) {
             return NextResponse.json({ success: false, message: "Donation record not found" }, { status: 404 });
         }
 
-        const docRef = snapshot.docs[0].ref;
+        const docSnapshot = snapshot.docs[0];
+        const docRef = docSnapshot.ref;
         
-        // Only update if not already success to avoid overwriting audit trails
-        if (snapshot.docs[0].data().status !== 'Success') {
-            await docRef.update({
+        // 3. Update Status
+        if (docSnapshot.data().status !== 'Success') {
+            await updateDoc(docRef, {
                 status: 'Success',
-                paidAt: FieldValue.serverTimestamp(),
-                updatedAt: FieldValue.serverTimestamp(),
+                paidAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
                 paystackReference: pData.reference,
-                paystackTransactionId: pData.id,
+                paystackTransactionId: String(pData.id),
                 paystackChannel: pData.channel,
-                paystackFees: pData.fees,
-                amount: pData.amount / 100, // Ensure exact match
+                amount: pData.amount / 100,
                 gateway: "paystack"
             });
         }
