@@ -10,7 +10,7 @@ import LogoReveal from '@/components/logo-reveal';
 import { 
     LayoutDashboard, FileText, Video, Mic, Users, Handshake, 
     Settings, LogOut, Menu, X, BookOpen, Radio, Image as ImageIcon, 
-    Book, Heart   
+    Book, Heart, FileBarChart   
 } from 'lucide-react';
 
 export default function AdminLayout({ children }) {
@@ -19,73 +19,58 @@ export default function AdminLayout({ children }) {
     const router = useRouter();
     const { user, logout, loading } = useAuth(); 
 
-    // --- ROUTE PROTECTION GUARD ---
+    // Guard: Protect Admin Routes
     useEffect(() => {
         if (!loading && pathname !== '/admin/login') {
-            // 1. Not Logged In
             if (!user) {
                 router.push('/admin/login');
                 return;
             }
-            // 2. Logged In but No Role (Unauthorized)
             if (!user.role) {
-                logout(); // Force logout to clear state
+                logout(); 
                 router.push('/admin/login?error=unauthorized');
             }
         }
     }, [user, loading, pathname, router, logout]);
 
-    // Allow the login page to render without the sidebar
-    if (pathname === '/admin/login') {
-        return <>{children}</>;
-    }
+    if (pathname === '/admin/login') return <>{children}</>;
 
-    // Loading State
     if (loading) {
         return (
             <div className="h-screen w-full flex items-center justify-center bg-white">
-                <div className="w-full max-w-sm px-10">
-                    <LogoReveal />
-                </div>
+                <div className="w-full max-w-sm px-10"><LogoReveal /></div>
             </div>
         );
     }
 
-    // Only render dashboard if authorized
     if (!user || !user.role) return null;
 
-    // Define Menu Items
-    const allMenuItems = [
-        { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/dashboard', restricted: false },
-        { name: 'Manage Blogs', icon: FileText, href: '/admin/blogs', restricted: false },
-        { name: 'Manage Programs', icon: BookOpen, href: '/admin/programs', restricted: true },
-        { name: 'Video Library', icon: Video, href: '/admin/videos', restricted: false },
-        { name: 'Audio Library', icon: Mic, href: '/admin/audios', restricted: false },
-        { name: 'Podcasts', icon: Radio, href: '/admin/podcasts', restricted: false },
-        { name: 'Photo Gallery', icon: ImageIcon, href: '/admin/gallery', restricted: false },
-        { name: 'eBooks', icon: Book, href: '/admin/ebooks', restricted: false },
-        { name: 'Donations', icon: Heart, href: '/admin/donations', restricted: true }, 
-        { name: 'Volunteers', icon: Users, href: '/admin/volunteers', restricted: true },
-        { name: 'Partnerships', icon: Handshake, href: '/admin/partners', restricted: true },
-        { name: 'Settings', icon: Settings, href: '/admin/settings', restricted: true },
+    // v1.1 Change: All items visible to all admins
+    const menuItems = [
+        { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/dashboard' },
+        { name: 'Donations', icon: Heart, href: '/admin/donations' },
+        { name: 'Audit Log', icon: FileBarChart, href: '/admin/audit' }, // New
+        { name: 'Manage Blogs', icon: FileText, href: '/admin/blogs' },
+        { name: 'Manage Programs', icon: BookOpen, href: '/admin/programs' },
+        { name: 'Video Library', icon: Video, href: '/admin/videos' },
+        { name: 'Audio Library', icon: Mic, href: '/admin/audios' },
+        { name: 'Podcasts', icon: Radio, href: '/admin/podcasts' },
+        { name: 'Photo Gallery', icon: ImageIcon, href: '/admin/gallery' },
+        { name: 'eBooks', icon: Book, href: '/admin/ebooks' },
+        { name: 'Volunteers', icon: Users, href: '/admin/volunteers' },
+        { name: 'Partnerships', icon: Handshake, href: '/admin/partners' },
+        { name: 'Settings', icon: Settings, href: '/admin/settings' },
     ];
-
-    const menuItems = allMenuItems.filter(item => {
-        if (user?.role === 'super_admin') return true; 
-        return !item.restricted;
-    });
 
     const getInitials = (name) => name ? name.charAt(0).toUpperCase() : 'A';
 
     return (
         <div className="min-h-screen bg-gray-50 flex font-lato">
-            {/* Mobile Overlay */}
             <div 
                 className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
                 onClick={() => setIsSidebarOpen(false)}
             />
 
-            {/* Sidebar */}
             <aside 
                 className={`fixed lg:sticky top-0 left-0 h-screen w-72 bg-[#432e16] text-white z-50 transform transition-transform duration-300 ease-in-out lg:translate-x-0 flex flex-col shadow-2xl ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
             >
@@ -124,15 +109,15 @@ export default function AdminLayout({ children }) {
                 </nav>
 
                 <div className="p-4 border-t border-white/10 bg-[#3a2813]">
-                    <div className="flex items-center gap-3 p-2 rounded-lg mb-3 opacity-90">
-                         <div className="relative w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-bold border-2 border-white/20 overflow-hidden">
+                    <Link href="/admin/profile" className="flex items-center gap-3 p-2 rounded-lg mb-3 hover:bg-white/5 transition-colors group">
+                         <div className="relative w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-bold border-2 border-white/20 overflow-hidden group-hover:border-[#d17600]">
                             {user?.photoURL ? <Image src={user.photoURL} alt="Profile" fill className="object-cover" /> : <span>{getInitials(user?.displayName)}</span>}
                         </div>
                         <div className="flex-grow min-w-0">
                             <p className="text-sm font-bold text-white truncate">{user?.displayName || 'Admin'}</p>
                             <p className="text-[10px] text-white/50 truncate capitalize">{user?.role?.replace('_', ' ') || 'Staff'}</p>
                         </div>
-                    </div>
+                    </Link>
                     <button 
                         onClick={() => logout()}
                         className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-red-500/10 text-red-300 hover:bg-red-500 hover:text-white transition-all text-xs font-bold uppercase tracking-wider border border-red-500/20"
@@ -142,7 +127,6 @@ export default function AdminLayout({ children }) {
                 </div>
             </aside>
 
-            {/* Main Content */}
             <div className="flex-grow flex flex-col min-w-0 h-screen overflow-y-auto bg-gray-50">
                 <header className="lg:hidden bg-white border-b border-gray-200 p-4 flex items-center justify-between sticky top-0 z-30 shadow-sm">
                     <div className="flex items-center gap-3">
