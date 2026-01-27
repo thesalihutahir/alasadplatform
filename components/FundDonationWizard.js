@@ -7,11 +7,11 @@ import { useRouter } from 'next/navigation';
 import { usePaystackPayment } from 'react-paystack';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { generateReceipt } from '@/lib/pdfGenerator'; // Import PDF generator
+import { generateReceipt } from '@/lib/pdfGenerator';
 import { 
     ArrowLeft, ArrowRight, CreditCard, Landmark, CheckCircle, 
     Copy, User, Mail, Phone, MessageSquare, ShieldCheck,
-    AlertCircle, ChevronRight, Lock, Loader2, Download, FileText
+    AlertCircle, ChevronRight, Lock, Loader2, Download, FileText, Share2
 } from 'lucide-react';
 
 export default function FundDonationWizard({ fundId }) {
@@ -31,7 +31,7 @@ export default function FundDonationWizard({ fundId }) {
     // Initialize reference state
     const [transactionRef, setTransactionRef] = useState(""); 
     
-    // State to hold the final transaction object for the receipt button
+    // State to hold the final transaction object for the receipt display
     const [finalTransaction, setFinalTransaction] = useState(null);
 
     const PRESET_AMOUNTS = [1000, 5000, 10000, 20000, 50000, 100000];
@@ -123,25 +123,26 @@ export default function FundDonationWizard({ fundId }) {
             method: paymentMethod,
             reference: ref,
             status: status,
-            createdAt: serverTimestamp() // Note: This field won't display in PDF immediately since it's a Firestore object
+            createdAt: new Date().toISOString() // Use string for instant display, Firestore will use serverTimestamp
         };
 
-        // Save to State for the Receipt Button
+        // Save to State for the Receipt Display
         setFinalTransaction(transactionData);
 
         // Generate PDF Automatically
         try {
             generateReceipt(transactionData);
         } catch (e) {
-            console.error("Auto-download failed (browser might have blocked it):", e);
+            console.error("Auto-download failed:", e);
         }
 
         // Save to Database
         try {
-            await addDoc(collection(db, "donations"), transactionData);
+            // Create a copy for Firestore with serverTimestamp
+            const firestoreData = { ...transactionData, createdAt: serverTimestamp() };
+            await addDoc(collection(db, "donations"), firestoreData);
         } catch (error) {
             console.error("Error recording donation:", error);
-            alert("Payment successful but failed to save record. Please contact support.");
         }
     };
 
@@ -284,25 +285,40 @@ export default function FundDonationWizard({ fundId }) {
                                     <>
                                         <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle className="w-10 h-10 text-green-600" /></div>
                                         <h2 className="font-agency text-3xl text-brand-brown-dark mb-2">Donation Successful!</h2>
-                                        <p className="text-gray-500 text-sm mb-4">Thank you, {donor.name || 'Donor'}! Your support means everything.</p>
+                                        <p className="text-gray-500 text-sm mb-6">May Allah reward you abundantly.</p>
                                         
-                                        {/* Auto-generated Receipt Button */}
+                                        {/* DIGITAL RECEIPT CARD */}
                                         {finalTransaction && (
-                                            <button 
-                                                onClick={() => generateReceipt(finalTransaction)}
-                                                className="mb-8 inline-flex items-center gap-2 px-6 py-3 bg-brand-sand/30 text-brand-brown-dark font-bold rounded-xl hover:bg-brand-sand/50 transition-colors"
-                                            >
-                                                <Download className="w-4 h-4" /> Download Receipt
-                                            </button>
+                                            <div className="bg-brand-sand/10 border border-brand-gold/30 rounded-2xl p-6 mb-8 text-left relative overflow-hidden">
+                                                <div className="absolute top-0 right-0 bg-brand-gold text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase">Official Receipt</div>
+                                                <div className="space-y-3">
+                                                    <div className="flex justify-between items-center border-b border-brand-gold/10 pb-3">
+                                                        <span className="text-xs text-gray-500 uppercase font-bold">Amount Paid</span>
+                                                        <span className="text-2xl font-agency font-bold text-brand-brown-dark">₦{Number(finalTransaction.amount).toLocaleString()}</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                                        <div><span className="block text-xs text-gray-400">Reference</span><span className="font-mono font-bold text-gray-700">{finalTransaction.reference}</span></div>
+                                                        <div><span className="block text-xs text-gray-400">Date</span><span className="font-bold text-gray-700">{new Date().toLocaleDateString()}</span></div>
+                                                        <div><span className="block text-xs text-gray-400">Donor</span><span className="font-bold text-gray-700">{finalTransaction.donorName}</span></div>
+                                                        <div><span className="block text-xs text-gray-400">Method</span><span className="font-bold text-gray-700 capitalize">{finalTransaction.method}</span></div>
+                                                    </div>
+                                                </div>
+                                                <button 
+                                                    onClick={() => generateReceipt(finalTransaction)}
+                                                    className="w-full mt-6 py-3 bg-brand-brown-dark text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-brand-gold transition-colors"
+                                                >
+                                                    <Download className="w-4 h-4" /> Save Receipt PDF
+                                                </button>
+                                            </div>
                                         )}
 
-                                        <Link href="/" className="block w-full py-4 bg-brand-brown-dark text-white font-bold rounded-xl hover:bg-brand-gold transition-colors">Return Home</Link>
+                                        <Link href="/" className="block w-full py-4 text-gray-500 font-bold hover:text-brand-brown-dark transition-colors">Return Home</Link>
                                     </>
                                 ) : (
                                     <>
                                         <div className="w-16 h-16 bg-brand-sand/30 rounded-full flex items-center justify-center mx-auto mb-6 text-brand-brown-dark"><Landmark className="w-8 h-8" /></div>
                                         <h2 className="font-agency text-2xl text-brand-brown-dark mb-2">Bank Transfer Details</h2>
-                                        <p className="text-gray-500 text-xs mb-6 px-4">Transfer <strong className="text-black">₦{amount.toLocaleString()}</strong> to the account below.</p>
+                                        <p className="text-gray-500 text-xs mb-6 px-4">Please transfer <strong className="text-black">₦{amount.toLocaleString()}</strong> to:</p>
                                         
                                         <div className="bg-gray-50 rounded-2xl p-5 text-left space-y-4 mb-6 border border-gray-200">
                                             <div><p className="text-xs text-gray-400 uppercase font-bold">Bank Name</p><p className="font-bold text-gray-800">{bankDetails.bankName}</p></div>
