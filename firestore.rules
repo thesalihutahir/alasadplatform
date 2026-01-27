@@ -1,0 +1,109 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- HELPER FUNCTIONS ---
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Fetch the user's role from the 'users' collection
+    function getUserData() {
+      return get( /databases/$(database)/documents/users/$(request.auth.uid) ).data;
+    }
+
+    // specific role checks
+    function isSuperAdmin() {
+      return isAuthenticated() && getUserData().role == 'super_admin';
+    }
+    
+    function isFinanceAdmin() {
+      return isAuthenticated() && (getUserData().role == 'finance_admin' || getUserData().role == 'super_admin');
+    }
+
+    function isContentAdmin() {
+      return isAuthenticated() && (
+        getUserData().role == 'content_admin' || 
+        getUserData().role == 'super_admin'
+      );
+    }
+
+    // --- COLLECTION RULES ---
+
+    // 1. USERS COLLECTION (Strict)
+    // Only the user themselves can read/write their own profile (for login check)
+    // Super Admins can manage all users.
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isSuperAdmin());
+      allow write: if isSuperAdmin(); // Only Super Admin can change roles/active status
+      allow update: if isAuthenticated() && request.auth.uid == userId; // Allow users to update own profile (photo/name)
+    }
+
+    // 2. PUBLIC CONTENT (Blogs, News, Videos, etc.)
+    // Readable by everyone. Writable by Content/Super Admins.
+    match /articles/{docId} {
+      allow read: if true;
+      allow write: if isContentAdmin();
+    }
+    match /news/{docId} {
+      allow read: if true;
+      allow write: if isContentAdmin();
+    }
+    match /research/{docId} {
+      allow read: if true;
+      allow write: if isContentAdmin();
+    }
+    match /videos/{docId} {
+      allow read: if true;
+      allow write: if isContentAdmin();
+    }
+    match /audios/{docId} {
+      allow read: if true;
+      allow write: if isContentAdmin();
+    }
+    match /gallery/{docId} {
+      allow read: if true;
+      allow write: if isContentAdmin();
+    }
+    match /ebooks/{docId} {
+      allow read: if true;
+      allow write: if isContentAdmin();
+    }
+    
+    // 3. DONATION FUNDS (Public Read / Admin Write)
+    match /donation_funds/{docId} {
+      allow read: if true;
+      allow write: if isFinanceAdmin();
+    }
+
+    // 4. DONATIONS (Sensitive Transaction Data)
+    // Public can CREATE (to donate), but NOT read or update.
+    // Finance Admins can read and update (verify).
+    match /donations/{docId} {
+      allow create: if true; // Anyone can donate
+      allow read, update, delete: if isFinanceAdmin();
+    }
+
+    // 5. VOLUNTEERS & PARTNERS (Public Create / Admin Read)
+    match /volunteers/{docId} {
+      allow create: if true;
+      allow read, update, delete: if isContentAdmin();
+    }
+    match /partners/{docId} {
+      allow create: if true;
+      allow read, update, delete: if isContentAdmin();
+    }
+
+    // 6. AUDIT LOGS (Strictly Internal)
+    // Admins can create logs (automatically via app logic) and read them.
+    // No one can delete or update a log once written (Audit integrity).
+    match /audit_logs/{docId} {
+      allow read: if isAuthenticated(); // Any logged-in admin can view logs
+      allow create: if isAuthenticated(); // Admins create logs
+      allow update, delete: if false; // Logs are immutable
+    }
+  }
+}
