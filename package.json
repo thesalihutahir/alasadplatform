@@ -20,7 +20,9 @@
     "@tailwindcss/typography": "^0.5.10",
     "react-pdf": "^9.1.0",
     "react-paystack": "^6.0.0",
-    "react-reader": "^2.0.2"
+    "react-reader": "^2.0.2",
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.8.2"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.19",
