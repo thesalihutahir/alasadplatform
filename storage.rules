@@ -1,36 +1,94 @@
-rules_version = '2';
+// storage.rules (UPDATED, drop-in replacement)
 
+rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Helper: Check if user is an admin
-    function isAdmin() {
-      return request.auth != null; 
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // 1. Blog & Content Images
+    function hasUserDoc() {
+      return isAuthenticated() && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid));
+    }
+
+    function userDoc() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid));
+    }
+
+    function isAdmin() {
+      return hasUserDoc()
+        && userDoc().data.active == true
+        && (userDoc().data.role in ['super_admin', 'content_admin', 'finance_admin']);
+    }
+
+    function isFinanceOrSuper() {
+      return isAdmin() && (userDoc().data.role in ['super_admin', 'finance_admin']);
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isPdf() {
+      return request.resource.contentType == 'application/pdf';
+    }
+
+    function smallEnough(maxMB) {
+      return request.resource.size < maxMB * 1024 * 1024;
+    }
+
+    // 1) Blog & Content Images
     match /blog_images/{allPaths=**} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() && isImage() && smallEnough(10);
     }
-    
-    // 2. Research PDFs
+
+    // 2) Research PDFs
     match /research_pdfs/{allPaths=**} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() && isPdf() && smallEnough(60);
     }
 
-    // 3. Admin Profile Photos (FIXED SYNTAX)
-    // Matches any file in the admins folder, checks if filename starts with User UID
-    match /admins/{fileName} {
+    // 3) eBooks (pdfs + covers)
+    match /ebooks/{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null && fileName.matches(request.auth.uid + '_.*');
+      allow write: if isAdmin() && (isPdf() || isImage()) && smallEnough(100);
     }
 
-    // 4. General Gallery
+    // 4) General Gallery
     match /gallery/{allPaths=**} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() && isImage() && smallEnough(15);
+    }
+
+    // 5) Team + Leadership images
+    match /team/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && smallEnough(10);
+    }
+
+    match /leadership/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && smallEnough(10);
+    }
+
+    // 6) Admin Profile Photos
+    // Keep your current convention: {uid}_anything.ext
+    match /admins/{fileName} {
+      allow read: if isAdmin(); // safer than public
+      allow write: if isAuthenticated() && fileName.matches(request.auth.uid + '_.*') && isImage() && smallEnough(10);
+    }
+
+    // 7) Donation receipts/proofs (private, finance/super only)
+    match /donation_receipts/{allPaths=**} {
+      allow read: if isAdmin();
+      allow write: if isFinanceOrSuper() && (isImage() || isPdf()) && smallEnough(20);
+    }
+
+    // Default deny
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }
