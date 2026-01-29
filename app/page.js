@@ -39,15 +39,23 @@ export default function HomePage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // A) Fetch Latest 3 Published Blogs
-                const blogsQuery = query(
-                    collection(db, 'blogs'),
+                // A) Fetch Latest 3 Articles
+                const articlesQuery = query(
+                    collection(db, 'articles'),
+                    where('status', '==', 'published'),
+                    orderBy('publishedAt', 'desc'),
+                    limit(3)
+                );
+
+                // B) Fetch Latest 3 News
+                const newsQuery = query(
+                    collection(db, 'news'),
                     where('status', '==', 'published'),
                     orderBy('publishedAt', 'desc'),
                     limit(3)
                 );
                 
-                // B) Fetch Latest 2 Published Audios
+                // C) Fetch Latest 2 Audios
                 const audiosQuery = query(
                     collection(db, 'audios'),
                     where('status', '==', 'published'),
@@ -55,7 +63,7 @@ export default function HomePage() {
                     limit(2)
                 );
 
-                // C) Fetch Latest 1 Published Video
+                // D) Fetch Latest 1 Video
                 const videosQuery = query(
                     collection(db, 'videos'),
                     where('status', '==', 'published'),
@@ -64,27 +72,47 @@ export default function HomePage() {
                 );
 
                 // Execute all fetches in parallel
-                const [blogsSnap, audiosSnap, videosSnap] = await Promise.all([
-                    getDocs(blogsQuery),
+                const [articlesSnap, newsSnap, audiosSnap, videosSnap] = await Promise.all([
+                    getDocs(articlesQuery),
+                    getDocs(newsQuery),
                     getDocs(audiosQuery),
                     getDocs(videosQuery)
                 ]);
 
-                // Process Blogs
-                const blogsData = blogsSnap.docs.map(doc => ({
+                // --- PROCESS MIXED UPDATES (Articles + News) ---
+                const articlesData = articlesSnap.docs.map(doc => ({
                     id: doc.id,
+                    type: 'article', // Tag source
+                    displayCategory: 'Article',
                     ...doc.data()
                 }));
-                setLatestUpdates(blogsData);
 
-                // Process Audios
+                const newsData = newsSnap.docs.map(doc => ({
+                    id: doc.id,
+                    type: 'news', // Tag source
+                    displayCategory: 'News',
+                    ...doc.data()
+                }));
+
+                // Combine, Sort by Date Descending, and Take Top 3
+                const combinedUpdates = [...articlesData, ...newsData]
+                    .sort((a, b) => {
+                        const dateA = a.publishedAt?.seconds || 0;
+                        const dateB = b.publishedAt?.seconds || 0;
+                        return dateB - dateA;
+                    })
+                    .slice(0, 3);
+
+                setLatestUpdates(combinedUpdates);
+
+                // --- PROCESS AUDIOS ---
                 const audiosData = audiosSnap.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
                 }));
                 setLatestAudios(audiosData);
 
-                // Process Video
+                // --- PROCESS VIDEO ---
                 if (!videosSnap.empty) {
                     const vDoc = videosSnap.docs[0];
                     setLatestVideo({ id: vDoc.id, ...vDoc.data() });
@@ -100,7 +128,7 @@ export default function HomePage() {
         fetchData();
     }, []);
 
-    // Helper: Extract YouTube ID if needed
+    // Helper: Extract YouTube ID
     const getYouTubeId = (url) => {
         if (!url) return null;
         const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -111,7 +139,6 @@ export default function HomePage() {
     // Helper: Format Date
     const formatDate = (timestamp) => {
         if (!timestamp) return '';
-        // Handle Firestore Timestamp or ISO string
         const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
         return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     };
@@ -138,7 +165,7 @@ export default function HomePage() {
             <Header />
 
             <main className="flex-grow">
-                {/* 1. HERO SECTION (Static - Preserved) */}
+                {/* 1. HERO SECTION (Static) */}
                 <section className="w-full relative bg-white h-[60vh] md:h-[80vh] min-h-[500px]">
                     <div className="relative w-full h-full">
                         <Image src="/images/heroes/home-main-hero.webp" alt="Al-Asad Education Foundation" fill className="object-cover object-top" priority />
@@ -156,7 +183,7 @@ export default function HomePage() {
                     </div>
                 </section>
 
-                {/* 2. ICON NAVIGATION (Static - Preserved) */}
+                {/* 2. ICON NAVIGATION (Static) */}
                 <section className="py-8 md:py-16 px-6 bg-white relative z-20 -mt-6 md:-mt-0 rounded-t-3xl md:rounded-none">
                      <div className="max-w-5xl mx-auto">
                         <div className="grid grid-cols-4 gap-3 md:gap-12 justify-items-center">
@@ -172,7 +199,8 @@ export default function HomePage() {
                 <section className="md:hidden py-2 px-8 flex justify-center pb-8">
                     <Link href="/get-involved/donate" className="w-full max-w-xs py-3 text-center font-agency text-xl text-white bg-brand-gold rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95">Make a Donation</Link>
                 </section>
-{/* 4. LATEST UPDATES (DYNAMIC) */}
+
+                {/* 4. LATEST UPDATES (DYNAMIC: Articles + News) */}
                 <section className="py-12 md:py-20 px-6 bg-brand-sand/30">
                     <div className="max-w-7xl mx-auto">
                         <div className="flex justify-between items-end mb-8 md:mb-12">
@@ -187,9 +215,14 @@ export default function HomePage() {
                             ) : latestUpdates.length > 0 ? (
                                 latestUpdates.map((item) => {
                                     const dateObj = formatDayMonth(item.publishedAt);
+                                    
+                                    // Determine destination URL based on type
+                                    // We append ?type= to help the reader page if needed, or purely for analytics
+                                    const readUrl = `/blogs/read/${item.id}?type=${item.type}`;
+                                    
                                     return (
                                         <div key={item.id} className="bg-white rounded-2xl overflow-hidden shadow-md group border border-transparent hover:border-brand-gold/20 transition-all hover:shadow-xl flex flex-col h-full">
-                                            <Link href={`/blogs/read/${item.id}`} className="block flex-grow">
+                                            <Link href={readUrl} className="block flex-grow">
                                                 <div className="relative w-full h-48 md:h-56 overflow-hidden bg-gray-200">
                                                     {item.coverImage ? (
                                                         <Image src={item.coverImage} alt={item.title} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
@@ -201,16 +234,17 @@ export default function HomePage() {
                                                     </div>
                                                 </div>
                                                 <div className="p-6 flex flex-col h-full">
-                                                    {item.category && (
-                                                        <div className="flex items-center gap-2 mb-3">
-                                                            <span className="font-lato text-[10px] font-bold text-brand-gold uppercase tracking-wider bg-brand-gold/10 px-2 py-0.5 rounded-full">{item.category}</span>
-                                                        </div>
-                                                    )}
+                                                    <div className="flex items-center gap-2 mb-3">
+                                                        {/* Dynamic Category Label */}
+                                                        <span className="font-lato text-[10px] font-bold text-brand-gold uppercase tracking-wider bg-brand-gold/10 px-2 py-0.5 rounded-full">
+                                                            {item.category || item.displayCategory || "Update"}
+                                                        </span>
+                                                    </div>
                                                     <h3 className="font-agency text-xl md:text-2xl text-brand-brown-dark mb-3 leading-tight group-hover:text-brand-gold transition-colors line-clamp-2">
                                                         {item.title}
                                                     </h3>
                                                     <p className="font-lato text-sm text-brand-brown line-clamp-3 leading-relaxed opacity-80 mb-4 flex-grow">
-                                                        {item.excerpt || "Click to read more details about this update..."}
+                                                        {item.excerpt || "Click to read more details..."}
                                                     </p>
                                                     <span className="inline-flex items-center text-xs font-bold text-brand-brown-dark uppercase tracking-widest group-hover:text-brand-gold transition-colors mt-auto">
                                                         Read Full Story <ArrowRight className="w-3 h-3 ml-1" />
@@ -257,7 +291,6 @@ export default function HomePage() {
                                                 <iframe className="absolute inset-0 w-full h-full" src={`https://www.youtube.com/embed/${getYouTubeId(latestVideo.videoUrl)}?rel=0&modestbranding=1&autoplay=1`} title={latestVideo.title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
                                             )
                                         ) : (
-                                            // Fallback Static if no dynamic video
                                             <div className="absolute inset-0 flex items-center justify-center text-gray-500 font-agency text-xl">No recent videos found.</div>
                                         )}
                                     </div>
@@ -322,7 +355,7 @@ export default function HomePage() {
                             </div>
                         </div>
 
-                        {/* UPCOMING EVENTS (Static - No Collection Exists) */}
+                        {/* UPCOMING EVENTS (Static) */}
                         <div className="mt-16 md:mt-24">
                             <div className="flex justify-between items-end mb-8">
                                 <h2 className="font-agency text-2xl md:text-5xl text-brand-brown-dark">Upcoming Events</h2>
@@ -359,7 +392,7 @@ export default function HomePage() {
                     </div>
                 </section>
 
-                {/* 6. VISION AND MISSION (Static - Preserved) */}
+                {/* 6. VISION AND MISSION & 7. QUOTE & 8. NEWSLETTER (Preserved) */}
                 <section className="relative py-16 md:py-24 px-6 bg-brand-gold overflow-hidden">
                     <div className="absolute inset-0 mix-blend-overlay">
                         <Image src="/images/chairman/sheikh1.webp" alt="Background pattern overlay" fill className="object-cover opacity-20" />
@@ -394,33 +427,23 @@ export default function HomePage() {
                     </div>
                 </section>
 
-                {/* 7. ARABIC QUOTE (REFACTORED: Card Style, Arabic Font, No Harakat) */}
                 <section className="py-12 md:py-16 px-6 text-center bg-white">
                     <div className="max-w-3xl mx-auto bg-white border border-brand-gold/20 rounded-2xl shadow-sm p-8 md:p-12 relative overflow-hidden">
-                        {/* Decorative Quote Marks */}
                         <div className="absolute top-4 left-4 text-6xl text-brand-sand/60 font-serif leading-none">“</div>
                         <div className="absolute bottom-4 right-4 text-6xl text-brand-sand/60 font-serif leading-none">”</div>
-                        
                         <div className="relative z-10">
-                            {/* Arabic Text: Font changed to Amiri (Arabic), No Harakat */}
                             <h2 className="font-arabic text-3xl md:text-5xl text-brand-gold leading-relaxed mb-6 drop-shadow-sm dir-rtl">
                                 قل هل يستوي الذين يعلمون والذين لا يعلمون
                             </h2>
-                            <p className="font-agency text-lg md:text-2xl text-brand-brown-dark/90 uppercase tracking-wider mb-2">
-                                "Say, 'Are those who know equal to those who do not know?'"
-                            </p>
+                            <p className="font-agency text-lg md:text-2xl text-brand-brown-dark/90 uppercase tracking-wider mb-2">"Say, 'Are those who know equal to those who do not know?'"</p>
                             <p className="font-lato text-brand-brown/70 text-xs md:text-sm italic">— The Holy Qur'an, Surah Az-Zumar (39:9)</p>
                         </div>
                     </div>
-                    
                     <div className="mt-8">
-                        <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark leading-tight max-w-3xl mx-auto">
-                            Join us in building a future shaped by knowledge and faith.
-                        </h2>
+                        <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark leading-tight max-w-3xl mx-auto">Join us in building a future shaped by knowledge and faith.</h2>
                     </div>
                 </section>
 
-                {/* 8. NEWSLETTER SUBSCRIPTION (Preserved) */}
                 <section className="py-16 md:py-24 px-6 bg-brand-brown-dark text-white text-center">
                     <div className="max-w-4xl mx-auto">
                         <div className="w-16 h-16 md:w-20 md:h-20 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6 text-brand-gold">
