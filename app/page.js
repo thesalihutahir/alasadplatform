@@ -190,7 +190,7 @@ export default function HomePage() {
     return (
         <div className="min-h-screen flex flex-col bg-white font-lato text-brand-brown-dark">
             {showSplash && (
-                <div className={`fixed inset-0 z-[100] bg-white/95 backdrop-blur-sm flex items-center justify-center transition-opacity duration-700 ease-out ${fadeOut ? 'opacity-0' : 'opacity-100'}`}>
+                <div className={`fixed inset-0 z-[100] bg-white/75 backdrop-blur-sm flex items-center justify-center transition-opacity duration-700 ease-out ${fadeOut ? 'opacity-0' : 'opacity-100'}`}>
                     <div className="w-full max-w-md p-8"><LogoReveal /></div>
                 </div>
             )}
