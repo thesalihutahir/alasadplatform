@@ -18,7 +18,7 @@ import {
 
 export default function HomePage() {
     // --- UI State ---
-    const [showSplash, setShowSplash] = useState(true);
+    const [showSplash, setShowSplash] = useState(false); // Default to false, check logic first
     const [fadeOut, setFadeOut] = useState(false);
     
     // --- Data State ---
@@ -30,11 +30,49 @@ export default function HomePage() {
     const [upcomingEvents, setUpcomingEvents] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // --- 1. Splash Screen Timer ---
+    // --- 1. Smart Splash Logic ---
     useEffect(() => {
-        const timer1 = setTimeout(() => setFadeOut(true), 3500);
-        const timer2 = setTimeout(() => setShowSplash(false), 4200);
-        return () => { clearTimeout(timer1); clearTimeout(timer2); };
+        const checkSplashLogic = () => {
+            const lastActive = localStorage.getItem('lastActiveTime');
+            const sessionActive = sessionStorage.getItem('sessionActive');
+            const now = Date.now();
+            const INACTIVITY_LIMIT = 5 * 60 * 1000; // 5 minutes
+
+            let shouldShow = false;
+
+            // Scenario A: First time in this tab session
+            if (!sessionActive) {
+                shouldShow = true;
+                sessionStorage.setItem('sessionActive', 'true');
+            } 
+            // Scenario B: Inactivity timeout exceeded
+            else if (lastActive && (now - parseInt(lastActive) > INACTIVITY_LIMIT)) {
+                shouldShow = true;
+            }
+
+            // Update activity timestamp
+            localStorage.setItem('lastActiveTime', now.toString());
+
+            if (shouldShow) {
+                setShowSplash(true);
+                const timer1 = setTimeout(() => setFadeOut(true), 3500);
+                const timer2 = setTimeout(() => setShowSplash(false), 4200);
+                return () => { clearTimeout(timer1); clearTimeout(timer2); };
+            }
+        };
+
+        // Run check
+        checkSplashLogic();
+
+        // Add activity listener to update timestamp
+        const updateActivity = () => localStorage.setItem('lastActiveTime', Date.now().toString());
+        window.addEventListener('click', updateActivity);
+        window.addEventListener('scroll', updateActivity);
+        
+        return () => {
+            window.removeEventListener('click', updateActivity);
+            window.removeEventListener('scroll', updateActivity);
+        };
     }, []);
 
     // --- 2. Data Fetching ---
@@ -151,7 +189,7 @@ export default function HomePage() {
     return (
         <div className="min-h-screen flex flex-col bg-white font-lato text-brand-brown-dark">
             {showSplash && (
-                <div className={`fixed inset-0 z-[100] bg-white flex items-center justify-center transition-opacity duration-700 ease-out ${fadeOut ? 'opacity-0' : 'opacity-100'}`}>
+                <div className={`fixed inset-0 z-[100] bg-white/95 backdrop-blur-sm flex items-center justify-center transition-opacity duration-700 ease-out ${fadeOut ? 'opacity-0' : 'opacity-100'}`}>
                     <div className="w-full max-w-md p-8"><LogoReveal /></div>
                 </div>
             )}
@@ -477,64 +515,64 @@ export default function HomePage() {
                                 ))
                             ) : (
                                 <div className="col-span-3 text-center py-12 bg-white rounded-2xl border border-dashed border-gray-200">
-                                    <p className="text-gray-400">No upcoming events scheduled at this time.</p>
+                                    <p className="text-gray-400">No events scheduled at this time.</p>
                                 </div>
                             )}
                         </div>
                     </div>
                 </section>
-                {/* 8. VISION AND MISSION (Refactored Cards + Fluid Icons) */}
+                {/* 8. VISION AND MISSION (Glassmorphic + Fluid Icons) */}
                 <section className="relative py-20 px-6 bg-brand-gold overflow-hidden">
                     <div className="absolute inset-0 mix-blend-overlay">
                         <Image src="/images/chairman/sheikh1.webp" alt="Background pattern overlay" fill className="object-cover opacity-20" />
                     </div>
                     <div className="relative z-10 max-w-6xl mx-auto">
                         
-                        {/* Cards Container */}
+                        {/* Cards Container - Glass Effect */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
                             {/* Vision Card */}
-                            <div className="bg-white/95 backdrop-blur-sm p-10 rounded-3xl shadow-xl border-t-4 border-brand-brown-dark transform hover:-translate-y-1 transition-transform duration-300">
-                                <h2 className="font-agency text-3xl text-brand-brown-dark mb-4 flex items-center gap-3">
-                                    <span className="w-8 h-1 bg-brand-gold rounded-full"></span> Vision
+                            <div className="bg-white/10 backdrop-blur-md p-10 rounded-3xl shadow-xl border border-white/20 transform hover:-translate-y-1 transition-transform duration-300">
+                                <h2 className="font-agency text-3xl text-white mb-4 flex items-center gap-3">
+                                    <span className="w-8 h-1 bg-white/50 rounded-full"></span> Vision
                                 </h2>
-                                <p className="font-lato text-lg leading-relaxed text-gray-700">
+                                <p className="font-lato text-lg leading-relaxed text-white/90">
                                     To be a leading force in transforming education through Qur'an values, excellence in learning, and empowerment of communities.
                                 </p>
                             </div>
 
                             {/* Mission Card */}
-                            <div className="bg-white/95 backdrop-blur-sm p-10 rounded-3xl shadow-xl border-t-4 border-brand-brown-dark transform hover:-translate-y-1 transition-transform duration-300">
-                                <h2 className="font-agency text-3xl text-brand-brown-dark mb-4 flex items-center gap-3">
-                                    <span className="w-8 h-1 bg-brand-gold rounded-full"></span> Mission
+                            <div className="bg-white/10 backdrop-blur-md p-10 rounded-3xl shadow-xl border border-white/20 transform hover:-translate-y-1 transition-transform duration-300">
+                                <h2 className="font-agency text-3xl text-white mb-4 flex items-center gap-3">
+                                    <span className="w-8 h-1 bg-white/50 rounded-full"></span> Mission
                                 </h2>
-                                <p className="font-lato text-lg leading-relaxed text-gray-700">
+                                <p className="font-lato text-lg leading-relaxed text-white/90">
                                     Expanding access to knowledge through Qur'an-centered and community driven education that nurtures both mind and soul.
                                 </p>
                             </div>
                         </div>
 
-                        {/* Fluid Icons Layout */}
-                        <div className="flex flex-wrap justify-center gap-8 md:gap-16">
-                            <div className="flex flex-col items-center group cursor-default">
-                                <div className="w-20 h-20 mb-4 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center transition-transform group-hover:scale-110 group-hover:bg-white group-hover:text-brand-gold text-white border border-white/30 shadow-lg">
-                                    <GraduationCap className="w-9 h-9" strokeWidth={1.5} />
+                        {/* Responsive Fluid Icons Layout */}
+                        <div className="flex flex-wrap justify-center gap-8 md:gap-12 lg:gap-16">
+                            <Link href="/programs/educational-support" className="flex flex-col items-center group cursor-pointer w-24 md:w-32">
+                                <div className="w-16 h-16 md:w-20 md:h-20 mb-3 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center transition-transform group-hover:scale-110 group-hover:bg-white group-hover:text-brand-gold text-white border border-white/30 shadow-lg">
+                                    <GraduationCap className="w-8 h-8 md:w-9 md:h-9" strokeWidth={1.5} />
                                 </div>
-                                <span className="font-agency text-sm text-white tracking-wide text-center uppercase font-bold opacity-90 group-hover:opacity-100">Educational<br/> Support</span>
-                            </div>
+                                <span className="font-agency text-xs md:text-sm text-white tracking-wide text-center uppercase font-bold opacity-80 group-hover:opacity-100">Educational<br/> Support</span>
+                            </Link>
 
-                            <div className="flex flex-col items-center group cursor-default">
-                                <div className="w-20 h-20 mb-4 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center transition-transform group-hover:scale-110 group-hover:bg-white group-hover:text-brand-gold text-white border border-white/30 shadow-lg">
-                                    <HandHeart className="w-9 h-9" strokeWidth={1.5} />
+                            <Link href="/programs/community-development" className="flex flex-col items-center group cursor-pointer w-24 md:w-32">
+                                <div className="w-16 h-16 md:w-20 md:h-20 mb-3 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center transition-transform group-hover:scale-110 group-hover:bg-white group-hover:text-brand-gold text-white border border-white/30 shadow-lg">
+                                    <HandHeart className="w-8 h-8 md:w-9 md:h-9" strokeWidth={1.5} />
                                 </div>
-                                <span className="font-agency text-sm text-white tracking-wide text-center uppercase font-bold opacity-90 group-hover:opacity-100">Community<br/> Development</span>
-                            </div>
+                                <span className="font-agency text-xs md:text-sm text-white tracking-wide text-center uppercase font-bold opacity-80 group-hover:opacity-100">Community<br/> Development</span>
+                            </Link>
 
-                            <div className="flex flex-col items-center group cursor-default">
-                                <div className="w-20 h-20 mb-4 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center transition-transform group-hover:scale-110 group-hover:bg-white group-hover:text-brand-gold text-white border border-white/30 shadow-lg">
-                                    <Lightbulb className="w-9 h-9" strokeWidth={1.5} />
+                            <Link href="/programs/training-and-innovation" className="flex flex-col items-center group cursor-pointer w-24 md:w-32">
+                                <div className="w-16 h-16 md:w-20 md:h-20 mb-3 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center transition-transform group-hover:scale-110 group-hover:bg-white group-hover:text-brand-gold text-white border border-white/30 shadow-lg">
+                                    <Lightbulb className="w-8 h-8 md:w-9 md:h-9" strokeWidth={1.5} />
                                 </div>
-                                <span className="font-agency text-sm text-white tracking-wide text-center uppercase font-bold opacity-90 group-hover:opacity-100">Training &<br/> Innovation</span>
-                            </div>
+                                <span className="font-agency text-xs md:text-sm text-white tracking-wide text-center uppercase font-bold opacity-80 group-hover:opacity-100">Training &<br/> Innovation</span>
+                            </Link>
                         </div>
                     </div>
                 </section>
