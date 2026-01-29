@@ -12,20 +12,22 @@ import { collection, query, where, orderBy, limit, getDocs } from 'firebase/fire
 
 import { 
     Play, ArrowRight, Calendar, Clock, Download, ChevronRight,
-    ClipboardList, MonitorPlay, Newspaper, Users,
-    GraduationCap, HandHeart, Lightbulb
+    ClipboardList, MonitorPlay, Newspaper, Users, MapPin,
+    GraduationCap, HandHeart, Lightbulb, Mic
 } from 'lucide-react'; 
 
 export default function HomePage() {
     // --- UI State ---
     const [showSplash, setShowSplash] = useState(true);
     const [fadeOut, setFadeOut] = useState(false);
-    const [playVideo, setPlayVideo] = useState(false);
-
+    
     // --- Data State ---
     const [latestUpdates, setLatestUpdates] = useState([]);
     const [latestAudios, setLatestAudios] = useState([]);
     const [latestVideo, setLatestVideo] = useState(null);
+    const [latestPodcast, setLatestPodcast] = useState(null);
+    const [featuredProgram, setFeaturedProgram] = useState(null);
+    const [upcomingEvents, setUpcomingEvents] = useState([]);
     const [loading, setLoading] = useState(true);
 
     // --- 1. Splash Screen Timer ---
@@ -35,55 +37,46 @@ export default function HomePage() {
         return () => { clearTimeout(timer1); clearTimeout(timer2); };
     }, []);
 
-    // --- 2. Data Fetching (Real Data) ---
+    // --- 2. Data Fetching ---
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // A) Fetch Latest 3 Articles
-                const articlesQuery = query(
-                    collection(db, 'articles'),
-                    where('status', '==', 'published'),
-                    orderBy('publishedAt', 'desc'),
-                    limit(3)
-                );
-
-                // B) Fetch Latest 3 News
-                const newsQuery = query(
-                    collection(db, 'news'),
-                    where('status', '==', 'published'),
-                    orderBy('publishedAt', 'desc'),
-                    limit(3)
-                );
+                // A) Updates (Articles & News)
+                // Note: Based on upload page, 'articles' has 'status' and 'createdAt'. 'news' has 'status' and 'createdAt'.
+                const articlesQuery = query(collection(db, 'articles'), where('status', '==', 'Published'), orderBy('createdAt', 'desc'), limit(3));
+                const newsQuery = query(collection(db, 'news'), where('status', '==', 'Published'), orderBy('createdAt', 'desc'), limit(3));
                 
-                // C) Fetch Latest 2 Audios
-                const audiosQuery = query(
-                    collection(db, 'audios'),
-                    where('status', '==', 'published'),
-                    orderBy('date', 'desc'),
-                    limit(2)
-                );
+                // B) Media (Videos, Podcasts, Audios)
+                const videosQuery = query(collection(db, 'videos'), orderBy('createdAt', 'desc'), limit(1));
+                const podcastsQuery = query(collection(db, 'podcasts'), orderBy('createdAt', 'desc'), limit(1));
+                // Note: Audios upload page doesn't seem to have a 'status' field in formData, assuming all are valid or check your rules
+                const audiosQuery = query(collection(db, 'audios'), orderBy('createdAt', 'desc'), limit(3));
 
-                // D) Fetch Latest 1 Video
-                const videosQuery = query(
-                    collection(db, 'videos'),
-                    where('status', '==', 'published'),
-                    orderBy('date', 'desc'),
-                    limit(1)
-                );
+                // C) Programs (Active)
+                const programQuery = query(collection(db, 'programs'), where('status', '==', 'Active'), orderBy('createdAt', 'desc'), limit(1));
 
-                // Execute all fetches in parallel
-                const [articlesSnap, newsSnap, audiosSnap, videosSnap] = await Promise.all([
+                // D) Events
+                const eventsQuery = query(collection(db, 'events'), where('status', '==', 'Upcoming'), orderBy('date', 'asc'), limit(3));
+
+                // Execute all fetches
+                const [articlesSnap, newsSnap, videosSnap, podcastsSnap, audiosSnap, programSnap, eventsSnap] = await Promise.all([
                     getDocs(articlesQuery),
                     getDocs(newsQuery),
+                    getDocs(videosQuery),
+                    getDocs(podcastsQuery),
                     getDocs(audiosQuery),
-                    getDocs(videosQuery)
+                    getDocs(programQuery),
+                    getDocs(eventsQuery)
                 ]);
 
-                // --- PROCESS MIXED UPDATES (Articles + News) ---
+                // --- PROCESS UPDATES ---
+                // Mapping based on upload page fields: 'featuredImage' is the image field for both
                 const articlesData = articlesSnap.docs.map(doc => ({
                     id: doc.id,
                     type: 'article', 
                     displayCategory: 'Article',
+                    image: doc.data().featuredImage, 
+                    date: doc.data().createdAt,
                     ...doc.data()
                 }));
 
@@ -91,32 +84,30 @@ export default function HomePage() {
                     id: doc.id,
                     type: 'news', 
                     displayCategory: 'News',
+                    title: doc.data().headline, // News uses 'headline'
+                    excerpt: doc.data().shortDescription, // News uses 'shortDescription'
+                    image: doc.data().featuredImage,
+                    date: doc.data().createdAt,
                     ...doc.data()
                 }));
 
-                // Combine, Sort by Date Descending, and Take Top 3
+                // Combine & Sort
                 const combinedUpdates = [...articlesData, ...newsData]
-                    .sort((a, b) => {
-                        const dateA = a.publishedAt?.seconds || 0;
-                        const dateB = b.publishedAt?.seconds || 0;
-                        return dateB - dateA;
-                    })
+                    .sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0))
                     .slice(0, 3);
-
                 setLatestUpdates(combinedUpdates);
 
-                // --- PROCESS AUDIOS ---
-                const audiosData = audiosSnap.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-                setLatestAudios(audiosData);
+                // --- PROCESS MEDIA ---
+                if (!videosSnap.empty) setLatestVideo({ id: videosSnap.docs[0].id, ...videosSnap.docs[0].data() });
+                if (!podcastsSnap.empty) setLatestPodcast({ id: podcastsSnap.docs[0].id, ...podcastsSnap.docs[0].data() });
+                
+                setLatestAudios(audiosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
-                // --- PROCESS VIDEO ---
-                if (!videosSnap.empty) {
-                    const vDoc = videosSnap.docs[0];
-                    setLatestVideo({ id: vDoc.id, ...vDoc.data() });
-                }
+                // --- PROCESS PROGRAM ---
+                if (!programSnap.empty) setFeaturedProgram({ id: programSnap.docs[0].id, ...programSnap.docs[0].data() });
+
+                // --- PROCESS EVENTS ---
+                setUpcomingEvents(eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
             } catch (error) {
                 console.error("Error fetching homepage data:", error);
@@ -128,23 +119,10 @@ export default function HomePage() {
         fetchData();
     }, []);
 
-    // Helper: Extract YouTube ID
-    const getYouTubeId = (url) => {
-        if (!url) return null;
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-        const match = url.match(regExp);
-        return (match && match[2].length === 11) ? match[2] : null;
-    };
-
     // Helper: Format Date
-    const formatDate = (timestamp) => {
-        if (!timestamp) return '';
-        const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
-        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-    };
-
     const formatDayMonth = (timestamp) => {
         if (!timestamp) return { day: '01', month: 'JAN' };
+        // Handle Firestore Timestamp vs Date String
         const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
         return {
             day: date.getDate(),
@@ -152,10 +130,15 @@ export default function HomePage() {
         };
     };
 
+    const formatSimpleDate = (dateStr) => {
+        if (!dateStr) return '';
+        return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    };
+
     return (
         <div className="min-h-screen flex flex-col bg-white font-lato text-brand-brown-dark">
             
-            {/* --- 0. SPLASH SCREEN --- */}
+            {/* --- SPLASH SCREEN --- */}
             {showSplash && (
                 <div className={`fixed inset-0 z-[100] bg-white flex items-center justify-center transition-opacity duration-700 ease-out ${fadeOut ? 'opacity-0' : 'opacity-100'}`}>
                     <div className="w-full max-w-md p-8"><LogoReveal /></div>
@@ -183,7 +166,7 @@ export default function HomePage() {
                     </div>
                 </section>
 
-                {/* 2. ICON NAVIGATION (Static) */}
+                {/* 2. ICON NAVIGATION */}
                 <section className="py-8 md:py-16 px-6 bg-white relative z-20 -mt-6 md:-mt-0 rounded-t-3xl md:rounded-none">
                      <div className="max-w-5xl mx-auto">
                         <div className="grid grid-cols-4 gap-3 md:gap-12 justify-items-center">
@@ -195,12 +178,12 @@ export default function HomePage() {
                     </div>
                 </section>
                 
-                {/* 3. MOBILE ACTION BUTTON */}
+                {/* 3. MOBILE ACTION */}
                 <section className="md:hidden py-2 px-8 flex justify-center pb-8">
                     <Link href="/get-involved/donate" className="w-full max-w-xs py-3 text-center font-agency text-xl text-white bg-brand-gold rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95">Make a Donation</Link>
                 </section>
 
-                {/* 4. LATEST UPDATES (DYNAMIC: Articles + News) */}
+                {/* 4. LATEST UPDATES (Dynamic Articles + News) */}
                 <section className="py-12 md:py-20 px-6 bg-brand-sand/30">
                     <div className="max-w-7xl mx-auto">
                         <div className="flex justify-between items-end mb-8 md:mb-12">
@@ -210,21 +193,19 @@ export default function HomePage() {
                         
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
                             {loading ? (
-                                // Skeletons
                                 [1, 2, 3].map(i => <div key={i} className="bg-white rounded-2xl h-80 animate-pulse border border-gray-100" />)
                             ) : latestUpdates.length > 0 ? (
                                 latestUpdates.map((item) => {
-                                    const dateObj = formatDayMonth(item.publishedAt);
-                                    
-                                    // Determine destination URL based on type
-                                    const readUrl = `/blogs/read/${item.id}?type=${item.type}`;
+                                    const dateObj = formatDayMonth(item.date);
+                                    // Construct Link: Articles go to read page, News to general news or specific? Assuming /blogs/read logic works for both if ID is valid
+                                    const readUrl = item.type === 'news' ? `/blogs/news` : `/blogs/read/${item.id}`; // Simple fallback
                                     
                                     return (
                                         <div key={item.id} className="bg-white rounded-2xl overflow-hidden shadow-md group border border-transparent hover:border-brand-gold/20 transition-all hover:shadow-xl flex flex-col h-full">
                                             <Link href={readUrl} className="block flex-grow">
                                                 <div className="relative w-full h-48 md:h-56 overflow-hidden bg-gray-200">
-                                                    {item.coverImage ? (
-                                                        <Image src={item.coverImage} alt={item.title} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
+                                                    {item.image ? (
+                                                        <Image src={item.image} alt={item.title} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
                                                     ) : (
                                                         <div className="w-full h-full flex items-center justify-center text-gray-400 font-agency">No Image</div>
                                                     )}
@@ -234,7 +215,6 @@ export default function HomePage() {
                                                 </div>
                                                 <div className="p-6 flex flex-col h-full">
                                                     <div className="flex items-center gap-2 mb-3">
-                                                        {/* Dynamic Category Label */}
                                                         <span className="font-lato text-[10px] font-bold text-brand-gold uppercase tracking-wider bg-brand-gold/10 px-2 py-0.5 rounded-full">
                                                             {item.category || item.displayCategory || "Update"}
                                                         </span>
@@ -260,50 +240,108 @@ export default function HomePage() {
                     </div>
                 </section>
 
-                {/* 5. MEDIA PREVIEWS (DYNAMIC) */}
+                {/* 5. LATEST PROGRAM (Dynamic) */}
+                <section className="py-12 px-6 bg-white border-b border-gray-50">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="flex justify-between items-end mb-8">
+                            <h2 className="font-agency text-2xl md:text-5xl text-brand-brown-dark">Active Program</h2>
+                            <Link href="/programs" className="text-xs md:text-sm font-bold text-brand-gold uppercase tracking-widest hover:underline flex items-center gap-1">View All <ArrowRight className="w-4 h-4" /></Link>
+                        </div>
+                        {loading ? (
+                            <div className="w-full h-64 bg-gray-100 rounded-3xl animate-pulse"></div>
+                        ) : featuredProgram ? (
+                            <div className="relative rounded-3xl overflow-hidden shadow-xl group">
+                                <div className="absolute inset-0">
+                                    <Image src={featuredProgram.coverImage || "/hero.jpg"} alt={featuredProgram.title} fill className="object-cover transition-transform duration-1000 group-hover:scale-105" />
+                                    <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent"></div>
+                                </div>
+                                <div className="relative z-10 p-8 md:p-12 flex flex-col h-full justify-end md:justify-center max-w-3xl">
+                                    <span className="inline-block px-3 py-1 bg-brand-gold text-white text-[10px] md:text-xs font-bold uppercase rounded shadow-sm w-fit mb-4">
+                                        {featuredProgram.category}
+                                    </span>
+                                    <h3 className="font-agency text-3xl md:text-5xl text-white mb-4 leading-tight">{featuredProgram.title}</h3>
+                                    <p className="font-lato text-white/90 text-sm md:text-lg mb-8 leading-relaxed max-w-xl">{featuredProgram.excerpt}</p>
+                                    <Link href={`/programs/${featuredProgram.id}`} className="px-8 py-3 bg-white text-brand-brown-dark font-bold rounded-full hover:bg-brand-gold hover:text-white transition-all w-fit">
+                                        View Program Details
+                                    </Link>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center py-10 bg-gray-50 rounded-3xl">
+                                <p className="text-gray-400">No active programs found.</p>
+                            </div>
+                        )}
+                    </div>
+                </section>
+
+                {/* 6. MEDIA PREVIEWS (Dynamic Video & Podcast Split) */}
                 <section className="py-12 md:py-20 px-6 bg-white">
                     <div className="max-w-7xl mx-auto">
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
                             
-                            {/* LEFT: LATEST VIDEO (Dynamic) */}
-                            <div className="lg:col-span-2 flex flex-col">
-                                <div className="flex justify-between items-end mb-6">
-                                    <h2 className="font-agency text-3xl md:text-5xl text-brand-brown-dark">Latest Video</h2>
+                            {/* LEFT: LATEST VIDEO & PODCAST (Side by Side) */}
+                            <div className="lg:col-span-2 flex flex-col gap-8">
+                                <div className="flex justify-between items-end">
+                                    <h2 className="font-agency text-3xl md:text-5xl text-brand-brown-dark">Latest Media</h2>
+                                    <Link href="/media" className="lg:hidden text-xs font-bold text-brand-gold uppercase tracking-widest">View All</Link>
                                 </div>
-                                <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex-grow flex flex-col">
-                                    <div className="relative w-full aspect-video bg-black group">
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
+                                    {/* 1. Latest Video */}
+                                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
                                         {latestVideo ? (
-                                            !playVideo ? (
-                                                <button onClick={() => setPlayVideo(true)} className="absolute inset-0 w-full h-full relative">
-                                                    {latestVideo.thumbnail ? (
-                                                        <Image src={latestVideo.thumbnail} alt="Video Thumbnail" fill className="object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
-                                                    ) : (
-                                                        <div className="absolute inset-0 bg-gray-900" />
-                                                    )}
-                                                    <div className="absolute inset-0 flex items-center justify-center">
-                                                        <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:bg-brand-gold group-hover:scale-110 transition-all duration-300 shadow-lg border border-white/50">
-                                                            <Play className="w-6 h-6 md:w-8 md:h-8 text-white fill-current" />
+                                            <>
+                                                <div className="relative aspect-video bg-black group">
+                                                    <Link href={`/media/videos/${latestVideo.id}`} className="absolute inset-0">
+                                                        {latestVideo.thumbnail && (
+                                                            <Image src={latestVideo.thumbnail} alt={latestVideo.title} fill className="object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
+                                                        )}
+                                                        <div className="absolute inset-0 flex items-center justify-center">
+                                                            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:bg-brand-gold transition-colors">
+                                                                <Play className="w-5 h-5 text-white fill-current" />
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </button>
-                                            ) : (
-                                                <iframe className="absolute inset-0 w-full h-full" src={`https://www.youtube.com/embed/${getYouTubeId(latestVideo.videoUrl)}?rel=0&modestbranding=1&autoplay=1`} title={latestVideo.title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
-                                            )
+                                                    </Link>
+                                                </div>
+                                                <div className="p-5 flex-grow flex flex-col">
+                                                    <span className="text-[10px] font-bold text-brand-gold uppercase mb-2">Latest Video</span>
+                                                    <h3 className="font-agency text-xl text-brand-brown-dark mb-2 leading-tight line-clamp-2">{latestVideo.title}</h3>
+                                                    <p className="text-xs text-gray-500 line-clamp-2 mb-4 flex-grow">{latestVideo.description}</p>
+                                                    <Link href="/media/videos" className="text-xs font-bold text-brand-brown-dark hover:text-brand-gold transition-colors flex items-center gap-1">Watch More <ChevronRight className="w-3 h-3"/></Link>
+                                                </div>
+                                            </>
                                         ) : (
-                                            <div className="absolute inset-0 flex items-center justify-center text-gray-500 font-agency text-xl">No recent videos found.</div>
+                                            <div className="h-full flex items-center justify-center bg-gray-50 text-gray-400 p-8 text-center">No videos yet</div>
                                         )}
                                     </div>
-                                    {latestVideo && (
-                                        <div className="p-6 md:p-8">
-                                            <div className="flex items-center gap-3 mb-3">
-                                                <span className="inline-block px-3 py-1 bg-brand-gold text-white text-[10px] md:text-xs font-bold uppercase rounded shadow-sm">New Video</span>
-                                                <span className="text-gray-400 text-xs flex items-center gap-1"><Clock className="w-3 h-3" /> {latestVideo.duration || "N/A"}</span>
-                                            </div>
-                                            <h3 className="font-agency text-2xl md:text-4xl text-brand-brown-dark mb-3 leading-tight">{latestVideo.title}</h3>
-                                            <p className="font-lato text-sm md:text-base text-brand-brown mb-6 leading-relaxed max-w-2xl">{latestVideo.description || "Watch our latest lecture."}</p>
-                                            <Link href="/media/videos" className="inline-flex items-center text-xs font-bold text-brand-gold uppercase tracking-widest hover:underline">Watch Full Series <ChevronRight className="w-4 h-4 ml-1" /></Link>
-                                        </div>
-                                    )}
+
+                                    {/* 2. Latest Podcast */}
+                                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
+                                        {latestPodcast ? (
+                                            <>
+                                                <div className="relative aspect-video bg-gray-900 group">
+                                                    <Link href={`/media/podcasts/play/${latestPodcast.id}`} className="absolute inset-0">
+                                                        {latestPodcast.thumbnail && (
+                                                            <Image src={latestPodcast.thumbnail} alt={latestPodcast.title} fill className="object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
+                                                        )}
+                                                        <div className="absolute inset-0 flex items-center justify-center">
+                                                            <div className="w-12 h-12 bg-brand-gold rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                                                <Mic className="w-5 h-5 text-white" />
+                                                            </div>
+                                                        </div>
+                                                    </Link>
+                                                </div>
+                                                <div className="p-5 flex-grow flex flex-col">
+                                                    <span className="text-[10px] font-bold text-blue-600 uppercase mb-2">Latest Podcast</span>
+                                                    <h3 className="font-agency text-xl text-brand-brown-dark mb-2 leading-tight line-clamp-2">{latestPodcast.title}</h3>
+                                                    <p className="text-xs text-gray-500 line-clamp-2 mb-4 flex-grow">{latestPodcast.description}</p>
+                                                    <Link href="/media/podcasts" className="text-xs font-bold text-brand-brown-dark hover:text-brand-gold transition-colors flex items-center gap-1">Listen to Series <ChevronRight className="w-3 h-3"/></Link>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="h-full flex items-center justify-center bg-gray-50 text-gray-400 p-8 text-center">No podcasts yet</div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
@@ -326,16 +364,11 @@ export default function HomePage() {
                                                 <div className="flex-grow min-w-0">
                                                     <div className="flex justify-between items-start mb-1">
                                                         <span className="text-[10px] font-bold text-brand-gold uppercase tracking-widest">{audio.category || "Audio"}</span>
-                                                        <span className="text-[10px] text-gray-400 font-lato">{audio.duration}</span>
                                                     </div>
                                                     <h3 className="font-agency text-lg text-brand-brown-dark leading-tight truncate group-hover:text-brand-gold transition-colors">{audio.title}</h3>
                                                     <div className="flex items-center gap-3 mt-1">
-                                                        <p className="text-[10px] text-gray-500 font-lato flex items-center gap-1"><Calendar className="w-3 h-3" /> {formatDate(audio.date)}</p>
                                                         {audio.fileSize && (
-                                                            <>
-                                                                <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                                                                <p className="text-[10px] text-gray-500 font-lato">{audio.fileSize}</p>
-                                                            </>
+                                                            <p className="text-[10px] text-gray-500 font-lato">{audio.fileSize}</p>
                                                         )}
                                                     </div>
                                                 </div>
@@ -354,27 +387,36 @@ export default function HomePage() {
                             </div>
                         </div>
 
-                        {/* UPCOMING EVENTS (Static) */}
+                        {/* 7. UPCOMING EVENTS (Dynamic) */}
                         <div className="mt-16 md:mt-24">
                             <div className="flex justify-between items-end mb-8">
                                 <h2 className="font-agency text-2xl md:text-5xl text-brand-brown-dark">Upcoming Events</h2>
                             </div>
                             <div className="flex overflow-x-auto pb-4 gap-4 scrollbar-hide md:grid md:grid-cols-3 md:overflow-visible">
-                                <div className="min-w-[280px] bg-white rounded-2xl overflow-hidden shadow-md border border-gray-100 flex flex-col group hover:shadow-xl transition-all">
-                                    <div className="bg-brand-brown-dark text-white text-center py-2 font-agency text-lg tracking-widest group-hover:bg-brand-gold transition-colors">RAMADAN 2025</div>
-                                    <div className="p-8 flex-grow flex flex-col justify-center text-center bg-brand-sand/10 group-hover:bg-brand-sand/30 transition-colors">
-                                        <h3 className="font-agency text-2xl md:text-3xl text-brand-brown-dark mb-3">Annual Tafsir</h3>
-                                        <p className="font-lato text-sm text-brand-brown mb-6 px-4">Join us for the daily commentary of the Holy Qur'an during the blessed month.</p>
-                                        <span className="text-xs font-bold text-brand-gold uppercase tracking-widest border border-brand-gold/30 rounded-full px-6 py-2 mx-auto">Coming Soon</span>
+                                {loading ? (
+                                    [1, 2, 3].map(i => <div key={i} className="min-w-[280px] h-64 bg-gray-100 rounded-2xl animate-pulse"></div>)
+                                ) : upcomingEvents.length > 0 ? (
+                                    upcomingEvents.map(event => (
+                                        <div key={event.id} className="min-w-[280px] bg-white rounded-2xl overflow-hidden shadow-md border border-gray-100 flex flex-col group hover:shadow-xl transition-all">
+                                            <div className="bg-brand-brown-dark text-white text-center py-2 font-agency text-lg tracking-widest group-hover:bg-brand-gold transition-colors">
+                                                {formatSimpleDate(event.date).toUpperCase()}
+                                            </div>
+                                            <div className="p-8 flex-grow flex flex-col justify-center text-center bg-brand-sand/10 group-hover:bg-brand-sand/30 transition-colors">
+                                                <h3 className="font-agency text-2xl md:text-3xl text-brand-brown-dark mb-3 line-clamp-2">{event.title}</h3>
+                                                <p className="font-lato text-sm text-brand-brown mb-6 px-4 line-clamp-3">{event.description}</p>
+                                                <div className="mt-auto">
+                                                    <span className="text-xs font-bold text-brand-gold uppercase tracking-widest border border-brand-gold/30 rounded-full px-6 py-2 mx-auto">
+                                                        {event.location ? event.location.split(' ')[0] : 'View Details'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="col-span-3 text-center py-12 bg-gray-50 rounded-2xl">
+                                        <p className="text-gray-400">No upcoming events scheduled at this time.</p>
                                     </div>
-                                </div>
-                                <div className="hidden md:flex min-w-[280px] bg-white rounded-2xl overflow-hidden shadow-md border border-gray-100 flex-col group hover:shadow-xl transition-all opacity-70">
-                                     <div className="bg-gray-200 text-gray-500 text-center py-2 font-agency text-lg tracking-widest">SHAWWAL 2025</div>
-                                    <div className="p-8 flex-grow flex flex-col justify-center text-center bg-gray-50">
-                                        <h3 className="font-agency text-2xl md:text-3xl text-gray-400 mb-3">Community Eid Fest</h3>
-                                        <p className="font-lato text-sm text-gray-400 mb-6 px-4">Annual gathering for the Ummah to celebrate Eid.</p>
-                                    </div>
-                                </div>
+                                )}
                             </div>
                         </div>
 
@@ -391,7 +433,7 @@ export default function HomePage() {
                     </div>
                 </section>
 
-                {/* 6. VISION AND MISSION & 7. QUOTE & 8. NEWSLETTER (Preserved) */}
+                {/* 8. VISION AND MISSION & 9. QUOTE & 10. NEWSLETTER (Preserved) */}
                 <section className="relative py-16 md:py-24 px-6 bg-brand-gold overflow-hidden">
                     <div className="absolute inset-0 mix-blend-overlay">
                         <Image src="/images/chairman/sheikh1.webp" alt="Background pattern overlay" fill className="object-cover opacity-20" />
