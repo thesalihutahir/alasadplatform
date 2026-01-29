@@ -16,9 +16,8 @@ export default function AboutPage() {
     useEffect(() => {
         const fetchLeaders = async () => {
             try {
-                // Fetch only visible leaders, ordered by 'order'
                 const q = query(
-                    collection(db, "leadership_members"),
+                    collection(db, "leadership_team"), // Corrected collection name based on Master Map
                     where("visibility", "==", "Visible"),
                     orderBy("order", "asc")
                 );
@@ -47,7 +46,7 @@ export default function AboutPage() {
 
             <main className="flex-grow pb-0">
 
-                {/* 1. HERO SECTION (Parallax Feel) */}
+                {/* 1. HERO SECTION */}
                 <section className="relative h-[60vh] md:h-[70vh] w-full flex items-center justify-center overflow-hidden">
                     <Image
                         src="/images/heroes/about-hero.webp" 
@@ -56,7 +55,7 @@ export default function AboutPage() {
                         className="object-cover object-center"
                         priority
                     />
-                    <div className="absolute inset-0 bg-black/50"></div>
+                    <div className="absolute inset-0 bg-black/60"></div>
                     <div className="relative z-10 text-center px-6 max-w-4xl mx-auto text-white">
                         <span className="block font-lato text-brand-gold text-sm md:text-base tracking-[0.2em] uppercase mb-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
                             Our Essence
@@ -92,7 +91,7 @@ export default function AboutPage() {
                                 </p>
                             </div>
                         </div>
-                        
+
                         {/* Interactive Grid of Mission/Vision */}
                         <div className="grid grid-cols-1 gap-6">
                             <div className="bg-brand-brown-dark text-white p-8 md:p-10 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 group relative overflow-hidden">
@@ -114,12 +113,12 @@ export default function AboutPage() {
                     </div>
                 </section>
 
-                {/* 3. FOUNDER'S MESSAGE (Redesigned) */}
+                {/* 3. FOUNDER'S MESSAGE */}
                 <section className="bg-gray-50 py-20 md:py-32 px-6">
                     <div className="max-w-6xl mx-auto bg-white rounded-[3rem] shadow-2xl overflow-hidden flex flex-col lg:flex-row">
                         <div className="lg:w-2/5 relative h-80 lg:h-auto bg-brand-brown-dark">
                             <Image 
-                                src="/sheikhhero.jpg" 
+                                src="/images/chairman/sheikh1.webp" 
                                 alt="Founder" 
                                 fill 
                                 className="object-cover opacity-90"
@@ -142,7 +141,8 @@ export default function AboutPage() {
                                 </p>
                             </div>
                             <div className="mt-8">
-                                <Image src="/signature.png" alt="Signature" width={150} height={60} className="opacity-60" />
+                                {/* Use a styled text signature if image not available, or keep image if you have it */}
+                                <p className="font-arabic text-3xl text-brand-brown-dark opacity-70 transform -rotate-2">الشيخ منير جعفر</p>
                             </div>
                         </div>
                     </div>
@@ -171,7 +171,7 @@ export default function AboutPage() {
                     </div>
                 </section>
 
-                {/* 5. DYNAMIC LEADERSHIP TEAM */}
+                {/* 5. DYNAMIC LEADERSHIP TEAM (Fixed Hover Logic) */}
                 <section className="py-20 md:py-32 px-6 md:px-12 lg:px-24 max-w-7xl mx-auto">
                     <div className="text-center mb-16">
                         <h2 className="font-agency text-4xl md:text-6xl text-brand-brown-dark mb-4">
@@ -189,29 +189,32 @@ export default function AboutPage() {
                     ) : leaders.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                             {leaders.map((leader) => (
-                                <div key={leader.id} className="group relative bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-500">
-                                    {/* Image Container */}
-                                    <div className="relative h-80 w-full overflow-hidden bg-gray-200">
-                                        <Image 
-                                            src={leader.image || "/fallback.webp"} 
-                                            alt={leader.name} 
-                                            fill 
-                                            className="object-cover transition-transform duration-700 group-hover:scale-105" 
-                                        />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
-                                        
-                                        {/* Name Overlay (Initial View) */}
-                                        <div className="absolute bottom-0 left-0 w-full p-6 text-white transform translate-y-0 group-hover:-translate-y-2 transition-transform duration-500">
-                                            <h3 className="font-agency text-3xl leading-none mb-1 text-shadow-sm">{leader.name}</h3>
+                                <div key={leader.id} className="group relative bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-500 h-[450px]">
+                                    
+                                    {/* Image (Fills Card) */}
+                                    <Image 
+                                        src={leader.image || "/fallback.webp"} 
+                                        alt={leader.name} 
+                                        fill 
+                                        className="object-cover transition-transform duration-700 group-hover:scale-110" 
+                                    />
+                                    
+                                    {/* Gradient Overlay */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity"></div>
+
+                                    {/* Info Content (Absolute Positioning for smooth slide) */}
+                                    <div className="absolute bottom-0 left-0 w-full p-8 text-white transform translate-y-24 group-hover:translate-y-0 transition-transform duration-500 ease-out">
+                                        <div className="mb-6">
+                                            <h3 className="font-agency text-3xl leading-none mb-2 text-shadow-sm">{leader.name}</h3>
                                             <p className="text-xs font-bold text-brand-gold uppercase tracking-widest">{leader.position}</p>
                                         </div>
-                                    </div>
-
-                                    {/* Hidden Bio (Slide Up Effect) */}
-                                    <div className="bg-white p-6 h-0 opacity-0 group-hover:h-auto group-hover:opacity-100 transition-all duration-500 border-t border-gray-100">
-                                        <p className="text-sm text-gray-600 leading-relaxed line-clamp-4">
-                                            {leader.bio}
-                                        </p>
+                                        
+                                        {/* Bio - Visible on Hover */}
+                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-100 border-t border-white/20 pt-4">
+                                            <p className="text-sm text-white/90 leading-relaxed line-clamp-4">
+                                                {leader.bio || "A dedicated leader serving the foundation with excellence and vision."}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
