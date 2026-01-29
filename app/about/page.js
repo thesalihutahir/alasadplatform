@@ -335,3 +335,24 @@ export default function AboutPage() {
                         </div>
                     )}
                 </section>
+{/* 6. CLOSING STATEMENT (Refined Design) */}
+                <section className="py-24 px-6 bg-brand-sand/20 border-t border-brand-gold/10">
+                    <div className="max-w-3xl mx-auto text-center animate-in zoom-in-95 duration-1000 delay-200">
+                        <div className="w-12 h-1 bg-brand-gold/50 mx-auto mb-8 rounded-full"></div>
+                        <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark leading-snug tracking-wide">
+                            "Al-Asad Education Foundation continues its journey with humility, purpose, and trust in Allah, seeking to educate, uplift, and serve, today and for generations to come."
+                        </h2>
+                        <div className="mt-8 flex justify-center">
+                            <div className="h-1 w-1 bg-brand-brown-dark/20 rounded-full mx-1"></div>
+                            <div className="h-1 w-1 bg-brand-brown-dark/20 rounded-full mx-1"></div>
+                            <div className="h-1 w-1 bg-brand-brown-dark/20 rounded-full mx-1"></div>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+
+            <Footer />
+        </div>
+    );
+}
