@@ -30,7 +30,7 @@ export default function ProgramDetailsPage() {
     const [program, setProgram] = useState(null);
     const [relatedPrograms, setRelatedPrograms] = useState([]);
     const [loading, setLoading] = useState(true);
-    
+
     // Share State
     const [copied, setCopied] = useState(false);
 
@@ -65,7 +65,7 @@ export default function ProgramDetailsPage() {
                     const related = relatedSnap.docs
                         .map(d => ({ id: d.id, ...d.data() }))
                         .filter(p => p.id !== id); 
-                    
+
                     setRelatedPrograms(related);
                 } else {
                     router.push('/programs'); 
@@ -174,11 +174,11 @@ export default function ProgramDetailsPage() {
                     {/* LEFT: MAIN ARTICLE */}
                     <div className="lg:col-span-2">
                         <div className="bg-white rounded-t-3xl shadow-sm p-6 md:p-10 border border-gray-100">
-                            
-                            {/* Summary Box */}
-                            <div className="bg-brand-sand/10 border-l-4 border-brand-gold p-6 md:p-8 rounded-r-xl mb-10">
-                                <h3 className="font-agency text-2xl text-brand-brown-dark mb-2">Program Summary</h3>
-                                <p className="text-lg text-brand-brown font-medium italic leading-relaxed">
+
+                            {/* Summary Box (Refined & Smaller) */}
+                            <div className="bg-brand-sand/10 border-l-2 border-brand-gold p-4 md:p-5 rounded-r-lg mb-8">
+                                <h3 className="font-agency text-lg text-brand-brown-dark mb-1 opacity-80 uppercase tracking-wide">Summary</h3>
+                                <p className="text-base md:text-lg text-brand-brown font-medium italic leading-relaxed">
                                     "{program.excerpt}"
                                 </p>
                             </div>
@@ -200,7 +200,7 @@ export default function ProgramDetailsPage() {
                                         {copied ? "Copied Link" : "Share Program"}
                                     </button>
                                 </div>
-                                
+
                                 {program.status === 'Active' && (
                                     <Link 
                                         href="/get-involved/donate"
@@ -217,7 +217,7 @@ export default function ProgramDetailsPage() {
                     {/* RIGHT: SIDEBAR (Sticky on Desktop) */}
                     <div className="lg:col-span-1 space-y-8 pt-0 lg:pt-10">
                         <div className="lg:sticky lg:top-24 space-y-8">
-                            
+
                             {/* Key Pillars Widget */}
                             <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-lg">
                                 <h3 className="font-agency text-2xl text-brand-brown-dark mb-4 border-b border-gray-100 pb-2">Impact Areas</h3>
