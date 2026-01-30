@@ -8,8 +8,8 @@ import Footer from '@/components/Footer';
 import Loader from '@/components/Loader';
 // Firebase Imports
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
-import { Play, ListVideo, Clock, Filter, Loader2, ArrowUpDown, Search, X, ChevronRight } from 'lucide-react';
+import { collection, query, orderBy, getDocs, limit } from 'firebase/firestore';
+import { Play, ListVideo, Clock, Filter, Loader2, ArrowUpDown, Search, X, ChevronRight, Calendar } from 'lucide-react';
 
 export default function VideosPage() {
 
@@ -21,9 +21,9 @@ export default function VideosPage() {
     // Filters & Search
     const [activeFilter, setActiveFilter] = useState("All Videos");
     const [searchTerm, setSearchTerm] = useState("");
-    const [visibleCount, setVisibleCount] = useState(6);
+    const [visibleCount, setVisibleCount] = useState(9); // Show 9 initially
 
-    // Sort Order State ('desc' = Newest First)
+    // Sort Order State ('desc' = Newest Date Recorded First)
     const [sortOrder, setSortOrder] = useState('desc');
 
     const filters = ["All Videos", "English", "Hausa", "Arabic"];
@@ -32,8 +32,9 @@ export default function VideosPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // 1. Fetch Videos
-                const qVideos = query(collection(db, "videos"), orderBy("createdAt", "desc"));
+                // 1. Fetch Videos (Safety Limit 100)
+                // We fetch by createdAt to get the latest uploads, then sort by manual date client-side
+                const qVideos = query(collection(db, "videos"), orderBy("createdAt", "desc"), limit(100));
                 const videoSnapshot = await getDocs(qVideos);
                 const fetchedVideos = videoSnapshot.docs.map(doc => ({
                     id: doc.id,
@@ -49,14 +50,11 @@ export default function VideosPage() {
                     ...doc.data()
                 }));
 
-                // 3. CALCULATE REAL COUNTS (Robust Logic)
+                // 3. CALCULATE REAL COUNTS (Robust: ID -> Title Match)
                 fetchedPlaylists = fetchedPlaylists.map(playlist => {
-                    // Try exact ID match first, fallback to Title match
                     const realCount = fetchedVideos.filter(v => 
-                        (v.playlistId && v.playlistId === playlist.id) || 
-                        (!v.playlistId && v.playlist === playlist.title)
+                        v.playlistId === playlist.id || v.playlist === playlist.title
                     ).length;
-                    
                     return { ...playlist, count: realCount };
                 });
 
@@ -73,10 +71,11 @@ export default function VideosPage() {
     }, []);
 
     // --- HELPERS ---
-    const formatDate = (val) => {
-        if (!val) return '';
-        // Handle Firestore Timestamp or Date String
-        const date = val.seconds ? new Date(val.seconds * 1000) : new Date(val);
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        // Handle invalid dates gracefully
+        if (isNaN(date.getTime())) return '';
         return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     };
 
@@ -85,19 +84,17 @@ export default function VideosPage() {
         const arabicPattern = /[\u0600-\u06FF]/;
         return arabicPattern.test(text) ? 'rtl' : 'ltr';
     };
-
-    // --- FILTER & SORT LOGIC ---
+// --- FILTER & SORT LOGIC ---
     const filteredVideos = videos.filter(video => {
         const matchesCategory = activeFilter === "All Videos" || video.category === activeFilter;
         const matchesSearch = video.title.toLowerCase().includes(searchTerm.toLowerCase());
         return matchesCategory && matchesSearch;
     });
 
+    // Sorting by Manual Date (Reverted to original logic as requested)
     const sortedVideos = [...filteredVideos].sort((a, b) => {
-        // Prefer 'createdAt' timestamp, fallback to 'date' string
-        const dateA = a.createdAt ? a.createdAt.seconds : new Date(a.date || 0).getTime() / 1000;
-        const dateB = b.createdAt ? b.createdAt.seconds : new Date(b.date || 0).getTime() / 1000;
-        
+        const dateA = new Date(a.date || 0); 
+        const dateB = new Date(b.date || 0);
         return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
     });
 
@@ -142,7 +139,7 @@ export default function VideosPage() {
                         {/* 2. PLAYLISTS / SERIES SECTION */}
                         {playlists.length > 0 && (
                             <section className="px-6 md:px-12 lg:px-24 mb-12">
-                                {/* HEADER: Flex Row + Styled Button */}
+                                {/* HEADER */}
                                 <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
                                     <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark">
                                         <span className="hidden sm:inline">Featured </span>Playlists
@@ -177,8 +174,8 @@ export default function VideosPage() {
                                                         <ListVideo className="w-8 h-8 text-white" />
                                                     </div>
                                                 </div>
-                                                <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1">
-                                                    <ListVideo className="w-3 h-3" /> {playlist.count} Videos
+                                                <div className="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1">
+                                                    <ListVideo className="w-3 h-3" /> {playlist.count}
                                                 </div>
                                             </div>
 
@@ -186,8 +183,8 @@ export default function VideosPage() {
                                                 <h3 className={`font-agency text-lg md:text-xl text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors line-clamp-1 ${getDir(playlist.title) === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
                                                     {playlist.title}
                                                 </h3>
-                                                <p className="text-xs text-gray-500 mt-1 font-bold uppercase tracking-wider group-hover:text-brand-gold/80 transition-colors">
-                                                    {getDir(playlist.title) === 'rtl' ? 'عرض السلسلة ←' : 'View Series →'}
+                                                <p className="text-xs text-gray-500 mt-1 font-bold uppercase tracking-wider group-hover:text-brand-brown transition-colors">
+                                                    {getDir(playlist.title) === 'rtl' ? 'عرض السلسلة ←' : 'View Playlist'}
                                                 </p>
                                             </div>
                                         </Link>
@@ -198,7 +195,6 @@ export default function VideosPage() {
 
                         {/* 3. SEARCH & FILTERS SECTION */}
                         <section className="px-6 md:px-12 lg:px-24 mb-8">
-
                             {/* SEARCH BAR */}
                             <div className="max-w-2xl mx-auto mb-6">
                                 <div className="relative group">
@@ -211,10 +207,7 @@ export default function VideosPage() {
                                         className="w-full pl-12 pr-10 py-3.5 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 focus:bg-white transition-all shadow-sm"
                                     />
                                     {searchTerm && (
-                                        <button 
-                                            onClick={() => setSearchTerm('')}
-                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors"
-                                        >
+                                        <button onClick={() => setSearchTerm('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors">
                                             <X className="w-4 h-4" />
                                         </button>
                                     )}
@@ -242,16 +235,13 @@ export default function VideosPage() {
                                 ))}
                             </div>
                         </section>
-
-                        {/* 4. ALL VIDEOS GRID */}
+{/* 4. ALL VIDEOS GRID (Polished) */}
                         <section className="px-6 md:px-12 lg:px-24 max-w-7xl mx-auto">
-                             {/* UPDATED HEADER: Always Row, Proper Alignment */}
                              <div className="flex flex-row items-center justify-between gap-4 mb-6 md:mb-8">
                                 <h2 className="font-agency text-2xl md:text-4xl text-brand-brown-dark whitespace-nowrap">
                                     Recent Uploads
                                 </h2>
 
-                                {/* SORTING BUTTON */}
                                 <button 
                                     onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
                                     className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 hover:text-brand-brown-dark transition-all shadow-sm whitespace-nowrap flex-shrink-0"
@@ -270,7 +260,7 @@ export default function VideosPage() {
                                             <Link 
                                                 key={video.id} 
                                                 href={`/media/videos/${video.id}`} 
-                                                className="group block bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 transition-all hover:shadow-xl hover:border-brand-gold/20 hover:-translate-y-1 duration-300"
+                                                className="group block bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 transition-all hover:shadow-xl hover:border-brand-gold/20"
                                             >
                                                 {/* Thumbnail Container */}
                                                 <div className="relative w-full aspect-video bg-black">
@@ -281,45 +271,45 @@ export default function VideosPage() {
                                                         className="object-cover opacity-90 group-hover:opacity-100 transition-opacity"
                                                     />
                                                     <div className="absolute inset-0 flex items-center justify-center">
-                                                        <div className="w-12 h-12 md:w-16 md:h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:bg-brand-gold group-hover:scale-110 transition-all duration-300 shadow-md border border-white/40">
+                                                        <div className="w-12 h-12 md:w-16 md:h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:bg-brand-gold group-hover:scale-110 transition-all duration-300 shadow-md">
                                                             <Play className="w-5 h-5 md:w-7 md:h-7 text-white fill-current ml-1" />
                                                         </div>
-                                                    </div>
-                                                    <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1">
-                                                        <Clock className="w-3 h-3" /> Watch
                                                     </div>
                                                 </div>
 
                                                 {/* Content */}
-                                                <div className="p-5 flex flex-col h-full bg-white" dir={dir}>
-                                                    {/* Meta Row: Category & Date */}
-                                                    <div className="flex justify-between items-center mb-3" dir="ltr">
-                                                        <span className="text-[10px] font-bold text-brand-brown-dark bg-brand-sand px-2 py-1 rounded uppercase tracking-wider border border-brand-gold/10">
+                                                <div className="p-5 flex flex-col h-full" dir={dir}>
+                                                    {/* Meta Row: Cleaner Design */}
+                                                    <div className="flex items-center gap-3 mb-3 text-[10px] uppercase font-bold tracking-wider" dir="ltr">
+                                                        <span className="text-brand-gold">
                                                             {video.category}
                                                         </span>
-                                                        <span className="text-[10px] text-gray-400 font-bold">
-                                                            {formatDate(video.createdAt || video.date)}
+                                                        <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                                        <span className="text-gray-400 flex items-center gap-1">
+                                                            <Calendar className="w-3 h-3" /> {formatDate(video.date)}
                                                         </span>
                                                     </div>
 
                                                     {/* Title */}
-                                                    <h3 className={`font-agency text-xl md:text-2xl text-brand-brown-dark leading-tight mb-2 group-hover:text-brand-gold transition-colors line-clamp-2 ${dir === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
+                                                    <h3 className={`font-agency text-xl md:text-2xl text-brand-brown-dark leading-tight mb-2 group-hover:text-brand-gold transition-colors ${dir === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
                                                         {video.title}
                                                     </h3>
 
-                                                    {/* Description (Reduced visual noise) */}
-                                                    <p className={`text-sm text-gray-500 line-clamp-2 leading-relaxed ${dir === 'rtl' ? 'font-arabic' : 'font-lato'}`}>
-                                                        {video.description || "Click to watch full video..."}
-                                                    </p>
+                                                    {/* Description */}
+                                                    {video.description && (
+                                                        <p className={`text-sm text-gray-500 line-clamp-2 leading-relaxed hover:text-gray-900 transition-colors ${dir === 'rtl' ? 'font-arabic' : 'font-lato'}`}>
+                                                            {video.description}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </Link>
                                         );
                                     })}
                                 </div>
                             ) : (
-                                <div className="text-center py-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-                                    <Play className="w-12 h-12 mx-auto mb-3 opacity-20 text-gray-400" />
-                                    <p className="text-gray-400">No videos found matching your criteria.</p>
+                                <div className="text-center py-12 text-gray-400">
+                                    <Play className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                    <p>No videos found matching your criteria.</p>
                                 </div>
                             )}
                         </section>
@@ -329,7 +319,7 @@ export default function VideosPage() {
                             <section className="py-12 text-center">
                                 <button 
                                     onClick={() => setVisibleCount(prev => prev + 6)}
-                                    className="px-8 py-3 border-2 border-brand-sand text-brand-brown-dark rounded-full font-agency text-lg hover:bg-brand-brown-dark hover:text-white transition-colors uppercase tracking-wide shadow-sm"
+                                    className="px-8 py-3 border-2 border-brand-sand text-brand-brown-dark rounded-full font-agency text-lg hover:bg-brand-brown-dark hover:text-white transition-colors uppercase tracking-wide"
                                 >
                                     Load More Videos
                                 </button>
