@@ -47,27 +47,27 @@ export default function AboutPage() {
             <main className="flex-grow pb-0">
 
                 {/* 1. HERO SECTION */}
-                <section className="relative h-[60vh] md:h-[70vh] w-full flex items-center justify-center overflow-hidden group">
+                <section className="relative h-[60vh] md:h-[70vh] w-full flex items-center justify-center overflow-hidden">
                     <Image
                         src="/images/heroes/about-hero.webp" 
                         alt="About Al-Asad Foundation"
                         fill
-                        className="object-cover object-center transition-transform duration-[2000ms] group-hover:scale-105"
+                        className="object-cover object-center"
                         priority
                     />
-                    {/* Gradient Overlay */}
+                    {/* Gradient Overlay for better text readability */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/30"></div>
                     
                     <div className="relative z-10 text-center px-6 max-w-5xl mx-auto text-white">
-                        <div className="inline-block mb-4 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-100 fill-mode-forwards opacity-0" style={{ animationFillMode: 'forwards' }}>
-                            <span className="bg-white/10 backdrop-blur-md border border-white/20 text-white text-[10px] md:text-xs font-bold uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
+                        <div className="inline-block mb-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                            <span className="bg-white/10 backdrop-blur-md border border-white/20 text-white text-[10px] md:text-xs font-bold uppercase tracking-widest px-4 py-1.5 rounded-full">
                                 Our Essence
                             </span>
                         </div>
-                        <h1 className="font-agency text-5xl md:text-7xl lg:text-8xl leading-none mb-6 drop-shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200 fill-mode-forwards opacity-0" style={{ animationFillMode: 'forwards' }}>
+                        <h1 className="font-agency text-5xl md:text-7xl lg:text-8xl leading-none mb-6 drop-shadow-lg animate-in fade-in slide-in-from-bottom-6 duration-1000">
                             Faith. Knowledge. Service.
                         </h1>
-                        <p className="font-lato text-lg md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed font-light animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300 fill-mode-forwards opacity-0" style={{ animationFillMode: 'forwards' }}>
+                        <p className="font-lato text-lg md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed font-light animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
                             Building minds, nurturing character, and serving communities through Islamic education and purposeful action.
                         </p>
                     </div>
@@ -78,10 +78,11 @@ export default function AboutPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-start">
                         
                         {/* Left: Text Content */}
-                        <div className="relative animate-in fade-in slide-in-from-left-8 duration-1000 delay-300">
+                        <div className="relative">
                             <h2 className="font-agency text-4xl md:text-6xl text-brand-brown-dark mb-8 leading-[0.9]">
                                 We Are More Than <br/> Just A Foundation.
                             </h2>
+                            {/* FIXED: Changed alignment to text-left to remove awkward spacing rivers */}
                             <div className="space-y-6 text-gray-600 text-lg leading-relaxed text-left font-lato">
                                 <p>
                                     Al-Asad Education Foundation is an Islamic educational and community-focused organisation established in the early 2000s, dedicated to the preservation, transmission, and practical application of authentic Islamic knowledge.
@@ -100,10 +101,10 @@ export default function AboutPage() {
                             </div>
                         </div>
 
-                        {/* Right: Mission & Vision Cards */}
-                        <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-right-8 duration-1000 delay-500">
+                        {/* Right: Mission & Vision Cards (Clean & Modern) */}
+                        <div className="flex flex-col gap-8">
                             {/* Mission */}
-                            <div className="bg-brand-sand/30 p-8 md:p-10 rounded-3xl border border-brand-gold/10 hover:border-brand-gold/30 transition-all duration-500 hover:shadow-lg transform hover:-translate-y-1">
+                            <div className="bg-brand-sand/30 p-8 md:p-10 rounded-3xl border border-brand-gold/10 hover:border-brand-gold/30 transition-all duration-300">
                                 <div className="flex items-center gap-4 mb-4">
                                     <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-brand-gold shadow-sm">
                                         <Target className="w-6 h-6" />
@@ -111,12 +112,12 @@ export default function AboutPage() {
                                     <h3 className="font-agency text-3xl text-brand-brown-dark">Our Mission</h3>
                                 </div>
                                 <p className="text-brand-brown leading-relaxed text-lg">
-                                    Expanding access to knowledge through Qur'an-centered and community driven education that nurtures both mind and soul.
+                                    To provide accessible, authentic Islamic education; to nurture moral excellence and intellectual discipline; and to serve communities through programmes that reflect the values of Islam with clarity, balance, and compassion.
                                 </p>
                             </div>
 
                             {/* Vision */}
-                            <div className="bg-white p-8 md:p-10 rounded-3xl border border-gray-100 shadow-xl shadow-gray-100/50 hover:shadow-2xl hover:shadow-gray-200/50 transition-all duration-500 transform hover:-translate-y-1">
+                            <div className="bg-white p-8 md:p-10 rounded-3xl border border-gray-100 shadow-xl shadow-gray-100/50 hover:shadow-2xl hover:shadow-gray-200/50 transition-all duration-300">
                                 <div className="flex items-center gap-4 mb-4">
                                     <div className="w-12 h-12 bg-brand-brown-dark rounded-full flex items-center justify-center text-white shadow-sm">
                                         <Eye className="w-6 h-6" />
@@ -124,7 +125,7 @@ export default function AboutPage() {
                                     <h3 className="font-agency text-3xl text-brand-brown-dark">Our Vision</h3>
                                 </div>
                                 <p className="text-gray-600 leading-relaxed text-lg">
-                                    To be a leading force in transforming education through Qur'an values, excellence in learning, and empowerment of communities.
+                                    To raise generations grounded in faith, guided by knowledge, and committed to service, individuals who embody Islamic values and contribute meaningfully to society locally and beyond.
                                 </p>
                             </div>
                         </div>
@@ -134,14 +135,14 @@ export default function AboutPage() {
 
                 {/* 3. FOUNDER'S MESSAGE */}
                 <section className="bg-brand-sand/20 py-20 md:py-32 px-6">
-                    <div className="max-w-6xl mx-auto bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col lg:flex-row border border-gray-100 animate-in fade-in zoom-in-95 duration-1000">
+                    <div className="max-w-6xl mx-auto bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col lg:flex-row border border-gray-100">
                         {/* Image Side */}
-                        <div className="lg:w-5/12 relative h-[500px] lg:h-auto bg-brand-brown-dark group overflow-hidden">
+                        <div className="lg:w-5/12 relative h-[500px] lg:h-auto bg-brand-brown-dark">
                             <Image 
                                 src="/images/chairman/sheikh2.webp" 
                                 alt="Sheikh Goni Dr. Muneer Ja‘afar Katsina" 
                                 fill 
-                                className="object-cover object-top opacity-95 transition-transform duration-1000 group-hover:scale-105"
+                                className="object-cover object-top opacity-95"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent lg:bg-gradient-to-r"></div>
                             <div className="absolute bottom-8 left-8 text-white z-10 pr-8">
@@ -230,7 +231,7 @@ export default function AboutPage() {
                                             fill 
                                             className="object-cover object-top transition-transform duration-700 group-hover:scale-105" 
                                         />
-                                        {/* Gradient Overlay */}
+                                        {/* Gradient Overlay - Always visible but darker on hover */}
                                         <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-dark via-brand-brown-dark/40 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-500"></div>
                                         
                                         {/* Content Positioned at Bottom */}
@@ -258,23 +259,13 @@ export default function AboutPage() {
                     )}
                 </section>
 
-                {/* 6. CLOSING STATEMENT (Futuristic Redesign) */}
-                <section className="py-24 px-6 bg-white relative overflow-hidden">
-                    {/* Subtle Background Elements */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-brand-gold/5 rounded-full blur-3xl pointer-events-none"></div>
-                    
-                    <div className="max-w-5xl mx-auto relative z-10">
-                        <div className="bg-white/80 backdrop-blur-xl border border-brand-brown-dark/5 rounded-[3rem] p-10 md:p-16 shadow-2xl text-center transform hover:scale-[1.01] transition-transform duration-700">
-                            <div className="w-20 h-1.5 bg-gradient-to-r from-brand-gold to-brand-brown-dark mx-auto mb-10 rounded-full"></div>
-                            
-                            <h2 className="font-agency text-3xl md:text-5xl lg:text-6xl text-brand-brown-dark leading-tight mb-6">
-                                "Seeking to educate, uplift, and serve, today and for generations to come."
-                            </h2>
-                            
-                            <p className="font-lato text-lg text-gray-500 max-w-2xl mx-auto">
-                                Al-Asad Education Foundation continues its journey with humility, purpose, and trust in Allah.
-                            </p>
-                        </div>
+                {/* 6. CLOSING STATEMENT */}
+                <section className="py-20 px-6 bg-brand-sand/30 border-t border-brand-gold/10">
+                    <div className="max-w-4xl mx-auto text-center">
+                        <div className="w-16 h-1 bg-brand-gold mx-auto mb-8 rounded-full"></div>
+                        <h2 className="font-agency text-3xl md:text-5xl text-brand-brown-dark leading-snug">
+                            "Al-Asad Education Foundation continues its journey with humility, purpose, and trust in Allah, seeking to educate, uplift, and serve, today and for generations to come."
+                        </h2>
                     </div>
                 </section>
 
