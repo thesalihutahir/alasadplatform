@@ -123,6 +123,7 @@ export default function VideosPage() {
                         <h1 className="font-agency text-4xl md:text-6xl lg:text-7xl text-brand-brown-dark mb-4 drop-shadow-md">
                             Video Library
                         </h1>
+<p className="text-xs text-red-500 font-bold">DEBUG: videos page updated</p>
                         <div className="w-16 md:w-24 h-1 bg-brand-gold mx-auto rounded-full mb-6"></div>
                         <p className="font-lato text-brand-brown text-sm md:text-xl max-w-2xl mx-auto leading-relaxed font-medium">
                             Watch lectures, sermons, and event highlights from Al-Asad Education Foundation. Explore our curated series and latest uploads.
