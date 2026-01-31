@@ -261,7 +261,7 @@ export default function VideosPage() {
                                                     className="group relative flex items-start gap-4 p-3 rounded-2xl bg-white border border-gray-100 hover:border-brand-gold/30 hover:bg-brand-sand/10 transition-all duration-300"
                                                 >
                                                     {/* Thumbnail (Square) */}
-                                                    <div className="relative w-18 md:w-32 aspect-square flex-shrink-0 bg-black rounded-xl overflow-hidden border border-gray-100 shadow-sm">
+                                                    <div className="relative w-24 md:w-32 aspect-square flex-shrink-0 bg-black rounded-xl overflow-hidden border border-gray-100 shadow-sm">
                                                         <Image
                                                             src={video.thumbnail || "/fallback.webp"}
                                                             alt={video.title}
