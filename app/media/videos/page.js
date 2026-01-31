@@ -248,7 +248,7 @@ export default function VideosPage() {
                                     </button>
                                 </div>
 
-                                {/* LIST ROWS (Redesigned: Square Thumb, No Desc) */}
+                                {/* LIST ROWS */}
                                 {visibleVideos.length > 0 ? (
                                     <div className="flex flex-col gap-4">
                                         {visibleVideos.map((video) => {
@@ -260,13 +260,13 @@ export default function VideosPage() {
                                                     href={`/media/videos/${video.id}`} 
                                                     className="group relative flex items-start gap-4 p-3 rounded-2xl bg-white border border-gray-100 hover:border-brand-gold/30 hover:bg-brand-sand/10 transition-all duration-300"
                                                 >
-                                                    {/* Thumbnail (Square) */}
+                                                    {/* Thumbnail (Square) with Increased Zoom */}
                                                     <div className="relative w-24 md:w-32 aspect-square flex-shrink-0 bg-black rounded-xl overflow-hidden border border-gray-100 shadow-sm">
                                                         <Image
                                                             src={video.thumbnail || "/fallback.webp"}
                                                             alt={video.title}
                                                             fill
-                                                            className="object-cover opacity-90 group-hover:opacity-100 transition-opacity"
+                                                            className="object-cover object-center scale-110 group-hover:scale-125 transition-transform duration-700" 
                                                         />
                                                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                                             <div className="w-8 h-8 bg-black/50 backdrop-blur rounded-full flex items-center justify-center text-white">
@@ -295,7 +295,7 @@ export default function VideosPage() {
 
                                                             {/* Title with Expand Logic */}
                                                             <div className="relative pr-6">
-                                                                <h3 className={`font-agency text-lg md:text-xl text-brand-brown-dark leading-snug group-hover:text-brand-gold transition-colors ${isExpanded ? '' : 'line-clamp-2'} ${dir === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
+                                                                <h3 className={`font-agency text-lg md:text-xl text-brand-brown-dark leading-snug group-hover:text-brand-gold transition-colors ${isExpanded ? '' : 'line-clamp-3'} ${dir === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
                                                                     {video.title}
                                                                 </h3>
                                                                 
