@@ -289,7 +289,7 @@ export default function VideosPage() {
 
                                                         {/* Title with Expand Logic */}
                                                         <div className="relative pr-6">
-                                                            <h3 className={`font-agency text-lg md:text-xl text-brand-brown-dark leading-snug group-hover:text-brand-gold transition-colors ${isExpanded ? '' : 'line-clamp-3'} ${dir === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
+                                                            <h3 className={`font-agency text-lg md:text-xl text-brand-brown-dark leading-snug group-hover:text-brand-gold transition-colors ${isExpanded ? '' : 'line-clamp-2'} ${dir === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
                                                                 {video.title}
                                                             </h3>
                                                             
