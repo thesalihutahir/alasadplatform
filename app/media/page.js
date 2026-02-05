@@ -11,7 +11,7 @@ import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Play, Mic, Video, BookOpen, Camera, Headphones, ArrowRight, Loader2, Library, Eye } from 'lucide-react';
 
 export default function MediaPage() {
-    
+
     // --- STATE ---
     const [latestItems, setLatestItems] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -71,13 +71,12 @@ export default function MediaPage() {
                     return snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() };
                 };
 
-                // Execute all fetches in parallel
-                const [video, audio, podcast, ebook, gallery] = await Promise.all([
+                // Execute all fetches in parallel (EXCLUDING GALLERY)
+                const [video, audio, podcast, ebook] = await Promise.all([
                     fetchOne('videos'),
                     fetchOne('audios'),
                     fetchOne('podcasts'),
-                    fetchOne('ebooks'),
-                    fetchOne('gallery_photos') // Assuming this collection name based on typical structure
+                    fetchOne('ebooks')
                 ]);
 
                 // Normalize Data Structure for Rendering
@@ -85,8 +84,7 @@ export default function MediaPage() {
                     video && { ...video, type: 'Video', link: `/media/videos/${video.id}`, cta: 'Watch Video', icon: Play },
                     audio && { ...audio, type: 'Audio', link: `/media/audios/play/${audio.id}`, cta: 'Listen Now', icon: Mic },
                     podcast && { ...podcast, type: 'Podcast', link: `/media/podcasts/play/${podcast.id}`, cta: 'Start Listening', icon: Headphones },
-                    ebook && { ...ebook, type: 'eBook', link: `/media/ebooks/read/${ebook.id}`, cta: 'Read Publication', icon: BookOpen },
-                    gallery && { ...gallery, type: 'Gallery', link: '/media/gallery', cta: 'View Photos', icon: Camera } // Gallery usually links to main gallery if single photo
+                    ebook && { ...ebook, type: 'eBook', link: `/media/ebooks/read/${ebook.id}`, cta: 'Read Publication', icon: BookOpen }
                 ].filter(Boolean); // Remove nulls
 
                 setLatestItems(items);
@@ -176,7 +174,7 @@ export default function MediaPage() {
                                                 </p>
                                             </div>
                                         </div>
-                                        
+
                                         {/* Accent Line */}
                                         <div className="w-full h-0.5 bg-white/20 mt-6 overflow-hidden rounded-full">
                                             <div className="h-full w-full bg-brand-gold transform -translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
@@ -188,7 +186,7 @@ export default function MediaPage() {
                     </div>
                 </section>
 
-                                {/* 3. FEATURED / LATEST UPLOADS (Updated Grid) */}
+                {/* 3. FEATURED / LATEST UPLOADS (Redesigned List - No Gallery) */}
                 {loading ? (
                     <div className="flex justify-center items-center py-20">
                         <Loader2 className="w-10 h-10 text-brand-gold animate-spin" />
@@ -204,45 +202,55 @@ export default function MediaPage() {
                             </div>
                         </div>
 
-                        <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-4">
                             {latestItems.map((item, idx) => {
                                 const TypeIcon = item.icon;
                                 return (
                                     <Link 
                                         key={item.id} 
                                         href={item.link}
-                                        className="group flex items-center gap-4 bg-white p-3 rounded-xl border border-gray-100 hover:border-brand-gold/30 hover:bg-brand-sand/10 transition-all duration-300"
+                                        className="group relative flex items-start gap-4 p-3 rounded-2xl bg-white border border-gray-100 hover:border-brand-gold/30 hover:bg-brand-sand/10 transition-all duration-300"
                                     >
-                                        {/* Minimal Thumbnail */}
-                                        <div className="relative w-20 h-20 md:w-24 md:h-16 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden border border-gray-50">
+                                        {/* Thumbnail (Square, Zoomed) */}
+                                        <div className="relative w-24 md:w-32 aspect-square flex-shrink-0 bg-gray-100 rounded-xl overflow-hidden border border-gray-100 shadow-sm">
                                             <Image 
                                                 src={item.thumbnail || item.coverImage || item.image || "/fallback.webp"} 
                                                 alt={item.title} 
                                                 fill 
-                                                className="object-cover transition-transform duration-500 group-hover:scale-105" 
+                                                className="object-cover object-center scale-110 group-hover:scale-125 transition-transform duration-700" 
                                             />
-                                            <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors"></div>
-                                        </div>
-
-                                        {/* Text Info */}
-                                        <div className="flex-grow min-w-0 py-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-[9px] font-bold uppercase tracking-wider text-brand-gold border border-brand-gold/20 px-1.5 py-0.5 rounded-sm">
-                                                    {item.type}
-                                                </span>
+                                            {/* Type Icon Overlay */}
+                                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                <div className="w-8 h-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/50 text-white shadow-lg">
+                                                    <TypeIcon className="w-4 h-4 fill-current" />
+                                                </div>
                                             </div>
-                                            <h3 className="font-agency text-lg md:text-xl text-brand-brown-dark leading-tight line-clamp-1 group-hover:text-brand-gold transition-colors">
-                                                {item.title || "Untitled Content"}
-                                            </h3>
-                                            <p className="font-lato text-xs text-gray-500 line-clamp-1 mt-0.5">
-                                                {item.description || item.excerpt || item.caption || "Click to view full details."}
-                                            </p>
                                         </div>
 
-                                        {/* Action Icon */}
-                                        <div className="flex-shrink-0 pr-2">
-                                            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-50 text-gray-300 group-hover:bg-brand-gold group-hover:text-white transition-all duration-300">
-                                                <ArrowRight className="w-4 h-4" />
+                                        {/* Info Stack */}
+                                        <div className="flex-grow min-w-0 py-1 flex flex-col justify-between h-full">
+                                            <div>
+                                                {/* Meta Row */}
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className="text-[9px] font-bold text-brand-gold border border-brand-gold/20 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                                        {item.type}
+                                                    </span>
+                                                </div>
+
+                                                {/* Title */}
+                                                <h3 className="font-agency text-lg md:text-xl text-brand-brown-dark leading-snug group-hover:text-brand-gold transition-colors line-clamp-2">
+                                                    {item.title || "Untitled Content"}
+                                                </h3>
+                                                
+                                                {/* Optional: Short Description removed to match Video page style strictness, or keep if preferred. Keeping title + meta as per Video Page style. */}
+                                            </div>
+
+                                            {/* Footer Row */}
+                                            <div className="mt-2 pt-2 border-t border-gray-50 flex items-center justify-between">
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">New Addition</span>
+                                                <span className="w-6 h-6 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-brand-gold group-hover:text-white transition-colors">
+                                                    <ArrowRight className="w-3 h-3" />
+                                                </span>
                                             </div>
                                         </div>
                                     </Link>
@@ -251,7 +259,6 @@ export default function MediaPage() {
                         </div>
                     </section>
                 )}
-
 
             </main>
 
