@@ -217,7 +217,7 @@ export default function MediaPage() {
                                                 src={item.thumbnail || item.coverImage || item.image || "/fallback.webp"} 
                                                 alt={item.title} 
                                                 fill 
-                                                className="object-cover object-center scale-130 group-hover:scale-145 transition-transform duration-700" 
+                                                className="object-cover object-center scale-120 group-hover:scale-125 transition-transform duration-700" 
                                             />
                                             {/* Subtle Overlay */}
                                             <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors"></div>
