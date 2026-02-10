@@ -149,8 +149,7 @@ export default function WatchVideoPage() {
     );
 
     const dir = getDir(video.title);
-
-    return (
+return (
         <div className="min-h-screen flex flex-col bg-[#FAFAFA] font-lato">
             <Header />
 
@@ -167,6 +166,18 @@ export default function WatchVideoPage() {
                             className="object-cover blur-[80px] scale-110"
                         />
                     </div>
+                    
+                    {/* NEW: Overlay Picture (Futuristic Effect) */}
+                    <div className="absolute inset-0 z-0">
+                        <Image
+                            src={video.thumbnail || "/fallback.webp"}
+                            alt=""
+                            fill
+                            className="object-cover opacity-10 mix-blend-overlay scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-dark via-brand-brown-dark/50 to-transparent"></div>
+                    </div>
+
                     {/* Ambient Glow */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-brand-gold/5 blur-[120px] rounded-full pointer-events-none"></div>
 
@@ -184,8 +195,9 @@ export default function WatchVideoPage() {
                     
                     {/* A) THE PLAYER (Overlaps Boundary) */}
                     <div className="w-full bg-black rounded-3xl overflow-hidden shadow-2xl aspect-video relative ring-1 ring-white/10 border border-white/5 mb-12">
+                        {/* UPDATE: controls=0 added */}
                         <iframe 
-                            src={`https://www.youtube.com/embed/${video.videoId}?autoplay=1&rel=0`} 
+                            src={`https://www.youtube.com/embed/${video.videoId}?autoplay=1&rel=0&controls=0&modestbranding=1`} 
                             title={video.title}
                             className="absolute inset-0 w-full h-full"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
@@ -228,13 +240,18 @@ export default function WatchVideoPage() {
                                     </div>
                                 </div>
 
-                                {/* Minimalist Title */}
-                                <h1 className={`text-3xl lg:text-4xl font-bold text-brand-brown-dark mb-6 leading-tight ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
+                                {/* Minimalist Title (Reduced Size 50%) */}
+                                <h1 className={`text-xl md:text-2xl font-bold text-brand-brown-dark mb-6 leading-tight ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
                                     {video.title}
                                 </h1>
 
-                                {/* Description */}
+                                {/* Description with Playlist Info */}
                                 <div className={`prose prose-sm md:prose-base max-w-none text-gray-600 leading-relaxed whitespace-pre-line ${dir === 'rtl' ? 'font-arabic text-right' : 'font-lato'}`}>
+                                    {video.playlist && (
+                                        <p className="text-xs font-bold text-brand-gold mb-2 uppercase tracking-wide">
+                                            From Series: {video.playlist}
+                                        </p>
+                                    )}
                                     {video.description}
                                 </div>
                             </div>
