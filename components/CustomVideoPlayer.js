@@ -4,226 +4,239 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import { Play, Pause, Volume2, VolumeX, Maximize, Minimize, Settings } from 'lucide-react';
+import { 
+    Play, Pause, Volume2, VolumeX, Maximize, Minimize, 
+    Settings, RotateCcw, RotateCw 
+} from 'lucide-react';
 
-// Singleton loader for YouTube API
-let ytApiPromise = null;
+// --- Singleton API Loader ---
+// Prevents race conditions or overwriting window.onYouTubeIframeAPIReady
+let apiPromise = null;
 const loadYouTubeAPI = () => {
-    if (ytApiPromise) return ytApiPromise;
-    ytApiPromise = new Promise((resolve) => {
+    if (apiPromise) return apiPromise;
+    apiPromise = new Promise((resolve) => {
         if (window.YT && window.YT.Player) {
             resolve(window.YT);
             return;
         }
+        window.onYouTubeIframeAPIReady = () => resolve(window.YT);
         const tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         const firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-        window.onYouTubeIframeAPIReady = () => resolve(window.YT);
     });
-    return ytApiPromise;
+    return apiPromise;
 };
 
 export default function CustomVideoPlayer({ videoId, thumbnail, title }) {
-    // Refs
-    const playerRef = useRef(null);
+    // --- Refs ---
     const containerRef = useRef(null);
+    const playerRef = useRef(null); // The YT Player instance
     const progressInterval = useRef(null);
-    const controlsTimeout = useRef(null);
-    const lastTapTime = useRef(0);
-    const tapTimeout = useRef(null);
+    const lastTapRef = useRef(0);
+    const controlsTimeoutRef = useRef(null);
 
-    // State
+    // --- State ---
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
     const [duration, setDuration] = useState(0);
     const [isMuted, setIsMuted] = useState(false);
     const [volume, setVolume] = useState(100);
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [showControls, setShowControls] = useState(true);
-    const [gestureToast, setGestureToast] = useState(null); // { text: "-10s", side: "left" }
+    const [showControls, setShowControls] = useState(false); // Default hidden, tap to show
+    const [toast, setToast] = useState({ show: false, text: '', icon: null, side: 'center' });
 
-    // --- 1. Initialize Player ---
+    // --- 1. Initialization & Cleanup ---
     useEffect(() => {
-        let playerInstance = null;
+        let isMounted = true;
 
-        const init = async () => {
-            const YT = await loadYouTubeAPI();
-            
-            playerInstance = new YT.Player(`yt-player-${videoId}`, {
+        loadYouTubeAPI().then((YT) => {
+            if (!isMounted) return;
+
+            // Destroy existing if re-initializing
+            if (playerRef.current) {
+                playerRef.current.destroy();
+            }
+
+            playerRef.current = new YT.Player(`yt-player-${videoId}`, {
                 videoId: videoId,
                 height: '100%',
                 width: '100%',
                 playerVars: {
                     autoplay: 0,
-                    controls: 0,
+                    controls: 0, // No native controls
                     modestbranding: 1,
                     rel: 0,
                     showinfo: 0,
                     iv_load_policy: 3,
                     fs: 0,
-                    disablekb: 1, // Disable default YT keyboard controls to use our own
-                    playsinline: 1
+                    playsinline: 1 // iOS plays inline
                 },
                 events: {
                     onReady: (event) => {
-                        playerRef.current = event.target;
-                        // Poll for duration (sometimes 0 initially)
-                        const checkDuration = setInterval(() => {
+                        // Poll for duration as it might be 0 initially
+                        const durationInterval = setInterval(() => {
                             const d = event.target.getDuration();
                             if (d > 0) {
                                 setDuration(d);
-                                clearInterval(checkDuration);
+                                clearInterval(durationInterval);
                             }
                         }, 500);
                     },
                     onStateChange: (event) => {
-                        // SYNC PLAY STATE
-                        setIsPlaying(event.data === YT.PlayerState.PLAYING);
-                        if (event.data === YT.PlayerState.ENDED) {
-                            setIsPlaying(false);
-                            setShowControls(true);
+                        const playing = event.data === YT.PlayerState.PLAYING;
+                        setIsPlaying(playing);
+                        
+                        // Auto-hide controls when playing starts
+                        if (playing) {
+                            resetControlsTimeout();
                         }
                     }
                 }
             });
-        };
+        });
 
-        init();
+        // Document Fullscreen Sync
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
 
         return () => {
-            if (playerInstance && playerInstance.destroy) {
-                playerInstance.destroy();
+            isMounted = false;
+            if (playerRef.current && typeof playerRef.current.destroy === 'function') {
+                playerRef.current.destroy();
             }
             clearInterval(progressInterval.current);
-            clearTimeout(controlsTimeout.current);
+            clearTimeout(controlsTimeoutRef.current);
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
         };
     }, [videoId]);
 
-    // --- 2. Progress Loop ---
+    // --- 2. Progress Loop (Raf) ---
     useEffect(() => {
         if (isPlaying) {
-            progressInterval.current = setInterval(() => {
-                if (playerRef.current && playerRef.current.getCurrentTime) {
-                    const current = playerRef.current.getCurrentTime();
-                    // Avoid NaN
-                    const safeDuration = duration || 1;
-                    setProgress((current / safeDuration) * 100);
-                }
-            }, 250); // 250ms update for smoother bar
+            progressInterval.current = requestAnimationFrame(updateProgress);
         } else {
-            clearInterval(progressInterval.current);
+            cancelAnimationFrame(progressInterval.current);
         }
-        return () => clearInterval(progressInterval.current);
+
+        function updateProgress() {
+            if (playerRef.current && playerRef.current.getCurrentTime) {
+                const currentTime = playerRef.current.getCurrentTime();
+                const d = duration || playerRef.current.getDuration() || 1; // Avoid divide by zero
+                setProgress((currentTime / d) * 100);
+            }
+            if (isPlaying) {
+                progressInterval.current = requestAnimationFrame(updateProgress);
+            }
+        }
+
+        return () => cancelAnimationFrame(progressInterval.current);
     }, [isPlaying, duration]);
 
-    // --- 3. Fullscreen Sync ---
-    useEffect(() => {
-        const handleFsChange = () => {
-            setIsFullscreen(!!document.fullscreenElement);
-        };
-        document.addEventListener('fullscreenchange', handleFsChange);
-        return () => document.removeEventListener('fullscreenchange', handleFsChange);
-    }, []);
+    // --- 3. Interaction Handlers ---
 
-    // --- 4. Controls Logic ---
-    const showControlsTemporarily = useCallback(() => {
+    const resetControlsTimeout = useCallback(() => {
+        clearTimeout(controlsTimeoutRef.current);
         setShowControls(true);
-        clearTimeout(controlsTimeout.current);
         if (isPlaying) {
-            controlsTimeout.current = setTimeout(() => setShowControls(false), 3000);
+            controlsTimeoutRef.current = setTimeout(() => {
+                setShowControls(false);
+            }, 3000);
         }
     }, [isPlaying]);
 
-    useEffect(() => {
-        showControlsTemporarily();
-    }, [isPlaying, showControlsTemporarily]);
-
-    // --- Actions ---
     const togglePlay = (e) => {
         e?.stopPropagation();
-        if (!playerRef.current) return;
         if (isPlaying) playerRef.current.pauseVideo();
         else playerRef.current.playVideo();
     };
 
     const handleSeek = (e) => {
-        e.stopPropagation();
-        const newVal = parseFloat(e.target.value);
-        setProgress(newVal);
-        if (playerRef.current && duration > 0) {
-            playerRef.current.seekTo((newVal / 100) * duration, true);
-        }
+        const val = parseFloat(e.target.value);
+        const newTime = (val / 100) * duration;
+        playerRef.current.seekTo(newTime, true);
+        setProgress(val);
+        resetControlsTimeout();
     };
 
     const toggleMute = (e) => {
-        e.stopPropagation();
-        if (!playerRef.current) return;
+        e?.stopPropagation();
         if (isMuted) {
             playerRef.current.unMute();
-            playerRef.current.setVolume(volume || 100);
-            setIsMuted(false);
+            if (volume === 0) {
+                playerRef.current.setVolume(50);
+                setVolume(50);
+            }
         } else {
             playerRef.current.mute();
-            setIsMuted(true);
         }
+        setIsMuted(!isMuted);
     };
 
     const handleVolumeChange = (e) => {
         e.stopPropagation();
         const newVol = parseInt(e.target.value);
         setVolume(newVol);
-        if (playerRef.current) {
-            playerRef.current.setVolume(newVol);
-            if (newVol > 0 && isMuted) {
-                playerRef.current.unMute();
-                setIsMuted(false);
-            }
+        playerRef.current.setVolume(newVol);
+        if (newVol > 0 && isMuted) {
+            setIsMuted(false);
+            playerRef.current.unMute();
+        }
+        if (newVol === 0 && !isMuted) {
+            setIsMuted(true);
+            playerRef.current.mute();
         }
     };
 
-    const toggleFullscreenAction = (e) => {
+    const toggleFullscreen = (e) => {
         e?.stopPropagation();
-        if (!containerRef.current) return;
         if (!document.fullscreenElement) {
-            containerRef.current.requestFullscreen().catch(console.error);
+            containerRef.current.requestFullscreen().catch(err => console.log(err));
         } else {
-            document.exitFullscreen().catch(console.error);
+            document.exitFullscreen();
         }
     };
 
-    // --- Gestures (Tap / Double Tap) ---
-    const handleGestureLayerClick = (e) => {
+    // --- 4. Gesture Handling (Double Tap / Single Tap) ---
+    const handleGestureClick = (e) => {
         const now = Date.now();
-        const tapDelay = 300;
         const rect = containerRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const width = rect.width;
         
-        // Check double tap
-        if (now - lastTapTime.current < tapDelay) {
-            clearTimeout(tapTimeout.current);
-            // Double Tap Logic
+        // Check for double tap (within 300ms)
+        if (now - lastTapRef.current < 300) {
+            clearTimeout(controlsTimeoutRef.current); // Cancel toggle hide
+            
+            // Determine zone
             if (x < width * 0.35) {
-                // Left 35% -> Seek Back
+                // Left Double Tap
                 seekRelative(-10);
-                triggerToast("-10s", "left");
+                showToast("-10s", <RotateCcw className="w-6 h-6" />, 'left');
             } else if (x > width * 0.65) {
-                // Right 35% -> Seek Forward
+                // Right Double Tap
                 seekRelative(10);
-                triggerToast("+10s", "right");
+                showToast("+10s", <RotateCw className="w-6 h-6" />, 'right');
             } else {
-                // Center -> Toggle Play
+                // Center Double Tap (Toggle Play/Pause Force)
                 togglePlay();
+                showToast(isPlaying ? "Pause" : "Play", isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />, 'center');
             }
+            lastTapRef.current = 0; // Reset
         } else {
-            // Single Tap Wait
-            tapTimeout.current = setTimeout(() => {
-                // Toggle Controls visibility on single tap
-                setShowControls(prev => !prev);
-            }, tapDelay);
+            // Single Tap
+            lastTapRef.current = now;
+            // Delay slightly to wait for potential double tap, or just toggle controls immediately
+            if (showControls) {
+                // If controls are showing and we tap empty space, hide them
+                // But we usually want to toggle.
+                resetControlsTimeout();
+            } else {
+                setShowControls(true);
+            }
         }
-        lastTapTime.current = now;
     };
 
     const seekRelative = (seconds) => {
@@ -232,134 +245,148 @@ export default function CustomVideoPlayer({ videoId, thumbnail, title }) {
         playerRef.current.seekTo(current + seconds, true);
     };
 
-    const triggerToast = (text, side) => {
-        setGestureToast({ text, side });
-        setTimeout(() => setGestureToast(null), 800);
+    const showToast = (text, icon, side) => {
+        setToast({ show: true, text, icon, side });
+        setTimeout(() => setToast(prev => ({ ...prev, show: false })), 800);
     };
 
+    // --- Helpers ---
     const formatTime = (time) => {
         if (!time || isNaN(time)) return "0:00";
-        const m = Math.floor(time / 60);
-        const s = Math.floor(time % 60);
-        return `${m}:${s < 10 ? '0' : ''}${s}`;
-    };
-
-    const handleKeyDown = (e) => {
-        if (e.code === 'Space') {
-            e.preventDefault();
-            togglePlay();
-        } else if (e.code === 'ArrowRight') {
-            seekRelative(5);
-        } else if (e.code === 'ArrowLeft') {
-            seekRelative(-5);
-        }
+        const minutes = Math.floor(time / 60);
+        const seconds = Math.floor(time % 60);
+        return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
     };
 
     return (
         <div 
             ref={containerRef}
-            className="relative w-full h-full bg-black rounded-3xl overflow-hidden group shadow-2xl ring-1 ring-white/10 outline-none"
-            onMouseMove={showControlsTemporarily}
-            onMouseLeave={() => isPlaying && setShowControls(false)}
-            tabIndex="0"
-            onKeyDown={handleKeyDown}
-            aria-label="Video Player"
+            className="relative w-full aspect-video bg-black rounded-3xl overflow-hidden group shadow-2xl ring-1 ring-white/10 select-none"
+            onKeyDown={(e) => {
+                if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    togglePlay();
+                }
+            }}
+            tabIndex="0" // Make accessible
         >
-            {/* 1. YouTube Iframe (Hidden UI) */}
-            <div id={`yt-player-${videoId}`} className="w-full h-full pointer-events-none select-none scale-[1.01]" /> 
-            {/* Scale 1.01 removes tiny pixel gaps */}
+            {/* The Iframe (Pointer Events None to allow custom gestures) */}
+            <div className="absolute inset-0 pointer-events-none">
+                <div id={`yt-player-${videoId}`} className="w-full h-full" />
+            </div>
 
-            {/* 2. Gesture Layer (Invisible Interaction) */}
+            {/* Gesture Layer (Invisible) */}
             <div 
                 className="absolute inset-0 z-10 cursor-pointer"
-                onClick={handleGestureLayerClick}
-            />
+                onClick={handleGestureClick}
+                onMouseMove={resetControlsTimeout} // Desktop hover keeps controls alive
+            ></div>
 
-            {/* 3. Gesture Toasts */}
-            {gestureToast && (
-                <div className={`absolute top-1/2 -translate-y-1/2 z-30 pointer-events-none flex flex-col items-center justify-center bg-black/60 backdrop-blur-md text-white rounded-full w-20 h-20 animate-ping-once transition-all ${gestureToast.side === 'left' ? 'left-[10%]' : 'right-[10%]'}`}>
-                    {gestureToast.side === 'left' ? <SkipBack className="w-6 h-6 mb-1" /> : <SkipForward className="w-6 h-6 mb-1" />}
-                    <span className="text-xs font-bold">{gestureToast.text}</span>
+            {/* Toast Animations */}
+            {toast.show && (
+                <div className={`absolute top-1/2 -translate-y-1/2 z-30 flex flex-col items-center justify-center pointer-events-none animate-in fade-in zoom-in duration-200 
+                    ${toast.side === 'left' ? 'left-1/4' : toast.side === 'right' ? 'right-1/4' : 'left-1/2 -translate-x-1/2'}`}>
+                    <div className="w-12 h-12 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white mb-2">
+                        {toast.icon}
+                    </div>
+                    <span className="text-white font-bold text-sm drop-shadow-md">{toast.text}</span>
                 </div>
             )}
 
-            {/* 4. Center Play Button (Paused State) */}
-            {!isPlaying && (
-                <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
-                    <button 
-                        onClick={(e) => {
-                            // Pass click through to togglePlay, ensure pointer-events-auto
-                            togglePlay(e);
-                        }}
-                        className="pointer-events-auto w-20 h-20 bg-brand-gold/90 backdrop-blur-md rounded-full flex items-center justify-center text-white shadow-xl hover:scale-110 transition-transform cursor-pointer"
-                        aria-label="Play Video"
-                    >
-                        <Play className="w-8 h-8 fill-current ml-1" />
-                    </button>
-                </div>
-            )}
-
-            {/* 5. Minimal Bottom Controls */}
+            {/* Controls Overlay */}
             <div 
-                className={`absolute bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-4 pb-4 pt-12 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                className={`absolute inset-0 flex flex-col justify-between pointer-events-none z-20 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}
             >
-                {/* Progress Bar */}
-                <div className="relative group/progress h-1.5 hover:h-3 transition-all bg-white/20 rounded-full cursor-pointer mb-3">
-                    <div 
-                        className="absolute left-0 top-0 bottom-0 bg-brand-gold rounded-full" 
-                        style={{ width: `${progress}%` }}
-                    />
-                    <input 
-                        type="range" 
-                        min="0" 
-                        max="100" 
-                        step="0.1"
-                        value={progress} 
-                        onChange={handleSeek}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        aria-label="Seek Slider"
-                    />
+                {/* Top: Branding Only */}
+                <div className="p-4 flex justify-end">
+                    <div className="bg-black/30 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-2">
+                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                        <Image src="/images/logo-symbol.webp" alt="Logo" width={16} height={16} className="w-4 h-4 opacity-90" />
+                    </div>
                 </div>
 
-                <div className="flex items-center justify-between">
-                    {/* Left: Play / Volume / Time */}
-                    <div className="flex items-center gap-4">
-                        <button onClick={togglePlay} className="text-white hover:text-brand-gold transition-colors focus:outline-none" aria-label={isPlaying ? "Pause" : "Play"}>
-                            {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current" />}
-                        </button>
-                        
-                        <div className="flex items-center gap-2 group/vol">
-                            <button onClick={toggleMute} className="text-white hover:text-brand-gold focus:outline-none" aria-label="Mute Toggle">
-                                {isMuted || volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                            </button>
-                            {/* Desktop Hover Expand / Mobile Fixed (handled by Tailwind 'group-hover' media queries logic or keep simple) */}
-                            {/* Simplifying for mobile stability: Always show small slider on desktop, hide on mobile? 
-                               Req says: "Volume slider should NOT expand on hover on mobile." 
-                               We'll make it always visible but small, or use CSS media hover. */}
-                            <div className="w-0 overflow-hidden md:group-hover/vol:w-20 transition-all duration-300 hidden md:block">
-                                <input 
-                                    type="range" 
-                                    min="0" 
-                                    max="100" 
-                                    value={isMuted ? 0 : volume} 
-                                    onChange={handleVolumeChange}
-                                    className="h-1 w-20 bg-white/30 rounded-lg appearance-none cursor-pointer accent-brand-gold" 
-                                    aria-label="Volume Slider"
-                                />
-                            </div>
+                {/* Center: Big Play Button (Pointer events auto to allow click through gesture layer if needed, but gesture layer handles clicks generally. We can make this visual only or clickable) */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                    {!isPlaying && (
+                        <div className="w-16 h-16 bg-brand-gold/90 backdrop-blur-md rounded-full flex items-center justify-center text-white shadow-xl scale-100 hover:scale-110 transition-transform">
+                            <Play className="w-6 h-6 fill-current ml-1" />
                         </div>
+                    )}
+                </div>
 
-                        <span className="text-xs font-mono font-bold text-white/90 tracking-wide select-none">
-                            {formatTime((progress / 100) * duration)} / {formatTime(duration)}
-                        </span>
+                {/* Bottom: Control Bar */}
+                <div className="bg-gradient-to-t from-black/90 via-black/60 to-transparent px-4 pb-4 pt-12 pointer-events-auto">
+                    
+                    {/* Progress Bar */}
+                    <div className="relative group/progress h-1.5 hover:h-3 transition-all bg-white/20 rounded-full cursor-pointer mb-3">
+                        <div 
+                            className="absolute left-0 top-0 bottom-0 bg-brand-gold rounded-full transition-all" 
+                            style={{ width: `${progress}%` }}
+                        >
+                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow scale-0 group-hover/progress:scale-100 transition-transform" />
+                        </div>
+                        <input 
+                            type="range" 
+                            min="0" 
+                            max="100" 
+                            step="0.1"
+                            value={progress} 
+                            onChange={handleSeek}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            aria-label="Seek video"
+                        />
                     </div>
 
-                    {/* Right: Settings / Fullscreen */}
-                    <div className="flex items-center gap-4">
-                        {/* Settings removed for minimal UI as requested in prompt "Make controls minimal" */}
-                        <button onClick={toggleFullscreenAction} className="text-white hover:text-brand-gold focus:outline-none" aria-label="Toggle Fullscreen">
-                            {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
-                        </button>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <button 
+                                onClick={togglePlay} 
+                                className="text-white hover:text-brand-gold transition-colors focus:outline-none"
+                                aria-label={isPlaying ? "Pause" : "Play"}
+                            >
+                                {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current" />}
+                            </button>
+                            
+                            {/* Volume Controls */}
+                            <div className="flex items-center gap-2 group/vol">
+                                <button 
+                                    onClick={toggleMute} 
+                                    className="text-white hover:text-brand-gold focus:outline-none"
+                                    aria-label={isMuted ? "Unmute" : "Mute"}
+                                >
+                                    {isMuted || volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                                </button>
+                                {/* Volume Slider: Hidden on mobile (w-0), expands on desktop hover */}
+                                <div className="w-0 overflow-hidden md:group-hover/vol:w-20 transition-all duration-300">
+                                    <input 
+                                        type="range" 
+                                        min="0" 
+                                        max="100" 
+                                        value={isMuted ? 0 : volume} 
+                                        onChange={handleVolumeChange}
+                                        className="h-1 w-20 bg-white/30 rounded-lg appearance-none cursor-pointer" 
+                                        aria-label="Volume"
+                                    />
+                                </div>
+                            </div>
+
+                            <span className="text-xs font-mono font-bold text-white/80 select-none">
+                                {formatTime((progress / 100) * duration)} / {formatTime(duration)}
+                            </span>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <button className="text-white/70 hover:text-white" aria-label="Settings">
+                                <Settings className="w-5 h-5" />
+                            </button>
+                            <button 
+                                onClick={toggleFullscreen} 
+                                className="text-white hover:text-brand-gold"
+                                aria-label="Toggle Fullscreen"
+                            >
+                                {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
