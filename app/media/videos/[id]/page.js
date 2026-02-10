@@ -156,157 +156,116 @@ export default function WatchVideoPage() {
 
             <main className="flex-grow">
                 
-                {/* 1. CINEMATIC PLAYER HERO */}
-                <div className="relative w-full bg-[#0A0A0A] overflow-hidden">
-                    {/* Ambient Glow Effects */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-full bg-brand-brown-dark/20 blur-[150px] rounded-full pointer-events-none opacity-50"></div>
-                    
-                    <div className="max-w-[1800px] mx-auto px-4 md:px-8 lg:px-12 py-8 lg:py-12 relative z-10">
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                            
-                            {/* Main Player (Span 8) */}
-                            <div className="lg:col-span-8 xl:col-span-9">
-                                <div className="w-full bg-black rounded-3xl overflow-hidden shadow-2xl aspect-video relative z-10 border border-white/10 ring-1 ring-white/5 group">
-                                    <iframe 
-                                        src={`https://www.youtube.com/embed/${video.videoId}?autoplay=1&rel=0`} 
-                                        title={video.title}
-                                        className="absolute inset-0 w-full h-full"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                        allowFullScreen
-                                    ></iframe>
-                                </div>
-                            </div>
+                {/* 1. AMBIENT CINEMA HERO */}
+                <div className="relative w-full bg-[#050505] overflow-hidden pt-8 pb-12 lg:py-16">
+                    {/* Ambient Background (Blurred Thumbnail Loop) */}
+                    <div className="absolute inset-0 pointer-events-none opacity-40">
+                        <Image 
+                            src={video.thumbnail || "/fallback.webp"} 
+                            alt="" 
+                            fill 
+                            className="object-cover blur-[100px] scale-110 saturate-150"
+                        />
+                        <div className="absolute inset-0 bg-black/40"></div>
+                    </div>
 
-                            {/* Desktop Sidebar: Up Next (Span 4) - Styled as Glass Card */}
-                            <div className="hidden lg:block lg:col-span-4 xl:col-span-3 space-y-6 h-full">
-                                <div className="h-full bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-md flex flex-col">
-                                    <div className="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
-                                        <p className="text-xs font-bold text-brand-gold uppercase tracking-[0.2em] flex items-center gap-2">
-                                            <Play className="w-3 h-3 fill-current" /> Up Next
-                                        </p>
-                                    </div>
-
-                                    {nextVideo ? (
-                                        <Link href={`/media/videos/${nextVideo.id}`} className="group block flex-grow">
-                                            <div className="relative w-full aspect-video rounded-2xl overflow-hidden mb-5 bg-black/50 border border-white/10 shadow-lg">
-                                                <Image 
-                                                    src={nextVideo.thumbnail || "/fallback.webp"} 
-                                                    alt={nextVideo.title} 
-                                                    fill 
-                                                    className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700"
-                                                />
-                                                <div className="absolute inset-0 flex items-center justify-center">
-                                                    <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 group-hover:bg-brand-gold group-hover:border-brand-gold transition-all duration-300 shadow-xl">
-                                                        <Play className="w-5 h-5 fill-current ml-0.5" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <h3 className="text-white font-agency text-2xl lg:text-3xl leading-none mb-3 group-hover:text-brand-gold transition-colors">
-                                                {nextVideo.title}
-                                            </h3>
-                                            
-                                            {/* Mini Meta for Next Video */}
-                                            <div className="flex items-center gap-3 text-[10px] uppercase font-bold tracking-wider text-white/40">
-                                                <span>{formatDate(nextVideo.date)}</span>
-                                                <span className="w-1 h-1 bg-white/20 rounded-full"></span>
-                                                <span>{nextVideo.category}</span>
-                                            </div>
-                                        </Link>
-                                    ) : (
-                                        <div className="flex-grow flex flex-col items-center justify-center text-center opacity-50">
-                                            <Film className="w-8 h-8 text-white mb-3" />
-                                            <p className="text-white text-xs max-w-[150px]">You are watching the latest upload.</p>
-                                        </div>
-                                    )}
-                                </div>
+                    <div className="max-w-[1400px] mx-auto px-4 md:px-8 relative z-10">
+                        {/* Glassmorphic Player Container */}
+                        <div className="w-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] p-2 md:p-4 shadow-2xl">
+                            <div className="w-full bg-black rounded-[1.5rem] overflow-hidden aspect-video relative shadow-inner ring-1 ring-white/5">
+                                <iframe 
+                                    src={`https://www.youtube.com/embed/${video.videoId}?autoplay=1&rel=0`} 
+                                    title={video.title}
+                                    className="absolute inset-0 w-full h-full"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                    allowFullScreen
+                                ></iframe>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* 2. INFO & LIST SECTION */}
-                <div className="max-w-[1800px] mx-auto w-full px-4 md:px-8 lg:px-12 py-12 lg:py-16">
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
+                {/* 2. CONTENT GRID */}
+                <div className="max-w-[1400px] mx-auto w-full px-4 md:px-8 py-10">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
                         
-                        {/* LEFT: INFO BLOCK (Span 8) */}
-                        <div className="lg:col-span-8 xl:col-span-9">
-                            <div dir={dir}>
-                                {/* Meta Strip */}
-                                <div className="flex flex-wrap items-center gap-4 mb-6" dir="ltr">
-                                    <span className="px-3 py-1 bg-brand-brown-dark text-white text-[10px] font-bold uppercase rounded-full tracking-wider">
+                        {/* LEFT: INFO CARD (Subtle & Clean) */}
+                        <div className="lg:col-span-8">
+                            <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm" dir={dir}>
+                                {/* Meta Row */}
+                                <div className="flex flex-wrap items-center gap-4 mb-6 text-xs font-bold uppercase tracking-wider" dir="ltr">
+                                    <span className="text-brand-gold bg-brand-gold/10 px-3 py-1 rounded-full">
                                         {video.category}
                                     </span>
                                     {video.playlist && (
-                                        <div className="flex items-center gap-2 text-brand-gold text-[10px] font-bold uppercase tracking-wider border border-brand-gold/20 px-3 py-1 rounded-full">
-                                            <ListVideo className="w-3 h-3" /> 
-                                            <span className="truncate max-w-[200px]" title={video.playlist}>
-                                                {video.playlist}
+                                        <>
+                                            <span className="text-gray-300">•</span>
+                                            <span className="text-gray-500 flex items-center gap-1.5">
+                                                <ListVideo className="w-3 h-3" /> {video.playlist}
                                             </span>
-                                        </div>
+                                        </>
                                     )}
-                                    <div className="w-px h-4 bg-gray-200 hidden sm:block"></div>
-                                    <div className="flex items-center gap-2 text-xs font-bold text-gray-400">
-                                        <Calendar className="w-3 h-3" /> {formatDate(video.date)}
-                                    </div>
+                                    <span className="text-gray-300 ml-auto flex items-center gap-2 normal-case font-medium">
+                                        <Calendar className="w-3.5 h-3.5" /> {formatDate(video.date)}
+                                    </span>
                                 </div>
 
-                                {/* Title */}
-                                <h1 className={`text-4xl md:text-5xl lg:text-6xl font-bold text-brand-brown-dark mb-8 leading-[1.1] ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
+                                {/* Minimalist Title */}
+                                <h1 className={`text-3xl font-bold text-brand-brown-dark mb-6 leading-tight ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
                                     {video.title}
                                 </h1>
 
-                                {/* Actions & Description */}
-                                <div className="border-t border-gray-100 pt-8 flex flex-col md:flex-row gap-10 items-start">
-                                    <div className="flex-grow">
-                                        <div className={`prose prose-lg text-gray-600 leading-relaxed whitespace-pre-line max-w-none ${dir === 'rtl' ? 'font-arabic text-right' : 'font-lato'}`}>
-                                            {video.description}
-                                        </div>
-                                    </div>
-                                    <div className="flex-shrink-0 sticky top-24" dir="ltr">
-                                        <button 
-                                            onClick={handleShare} 
-                                            className="flex items-center gap-3 px-6 py-3 rounded-xl bg-white border border-gray-200 text-sm font-bold text-brand-brown-dark hover:bg-brand-brown-dark hover:text-white hover:border-brand-brown-dark transition-all shadow-sm hover:shadow-lg"
-                                        >
-                                            <Share2 className="w-4 h-4" /> Share Video
-                                        </button>
-                                    </div>
+                                {/* Description */}
+                                <div className={`prose prose-gray max-w-none text-sm md:text-base leading-relaxed text-gray-600 border-t border-gray-50 pt-6 ${dir === 'rtl' ? 'font-arabic text-right' : 'font-lato'}`}>
+                                    {video.description}
+                                </div>
+
+                                {/* Share Action */}
+                                <div className="mt-8 pt-6 border-t border-gray-50 flex justify-end" dir="ltr">
+                                    <button 
+                                        onClick={handleShare} 
+                                        className="text-xs font-bold text-gray-400 hover:text-brand-gold flex items-center gap-2 transition-colors"
+                                    >
+                                        <Share2 className="w-4 h-4" /> Share This Video
+                                    </button>
                                 </div>
                             </div>
                         </div>
 
-                        {/* RIGHT: RELATED LIST (Span 4) */}
-                        <div className="lg:col-span-4 xl:col-span-3 space-y-10">
+                        {/* RIGHT: SIDEBAR (Up Next & Related) */}
+                        <div className="lg:col-span-4 space-y-8">
                             
-                            {/* Mobile Up Next (Visible only on small screens) */}
-                            <div className="lg:hidden">
-                                {nextVideo && (
-                                    <div className="bg-brand-brown-dark text-white p-5 rounded-2xl relative overflow-hidden shadow-lg">
-                                        <p className="text-xs font-bold text-brand-gold uppercase tracking-widest mb-3 flex items-center gap-2">
-                                            <Play className="w-3 h-3 fill-current" /> Up Next
-                                        </p>
-                                        <Link href={`/media/videos/${nextVideo.id}`} className="flex gap-4 items-center group">
-                                            <div className="relative w-32 aspect-video rounded-lg overflow-hidden bg-black/50 flex-shrink-0 border border-white/10">
-                                                <Image src={nextVideo.thumbnail || "/fallback.webp"} alt={nextVideo.title} fill className="object-cover opacity-90 group-hover:opacity-100" />
-                                            </div>
-                                            <div className="min-w-0">
-                                                <h4 className="font-agency text-xl leading-none line-clamp-2 mb-1 group-hover:text-brand-gold transition-colors">{nextVideo.title}</h4>
-                                                <span className="text-[10px] text-white/50">Tap to watch</span>
-                                            </div>
-                                        </Link>
+                            {/* Up Next Card */}
+                            {nextVideo && (
+                                <div className="bg-brand-brown-dark text-white p-6 rounded-3xl relative overflow-hidden shadow-xl">
+                                    <div className="absolute top-0 right-0 p-6 opacity-5">
+                                        <Play className="w-20 h-20" />
                                     </div>
-                                )}
-                            </div>
-
-                            {/* Related List - Clean Section */}
-                            <div>
-                                <div className="flex items-center justify-between mb-6 pb-2 border-b border-gray-100">
-                                    <h3 className="font-agency text-2xl text-brand-brown-dark">
-                                        {video.playlist ? "More from Series" : "Related Videos"}
-                                    </h3>
+                                    <p className="text-[10px] font-bold text-brand-gold uppercase tracking-widest mb-4">Up Next</p>
+                                    
+                                    <Link href={`/media/videos/${nextVideo.id}`} className="group block relative z-10">
+                                        <div className="flex gap-4 items-start">
+                                            <div className="relative w-24 aspect-video rounded-lg overflow-hidden bg-black/30 flex-shrink-0 border border-white/10">
+                                                <Image src={nextVideo.thumbnail || "/fallback.webp"} alt={nextVideo.title} fill className="object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-agency text-lg leading-tight line-clamp-2 group-hover:text-brand-gold transition-colors">{nextVideo.title}</h4>
+                                                <div className="flex items-center gap-2 mt-2 text-[10px] font-bold text-white/50 group-hover:text-white transition-colors">
+                                                    Play Now <ArrowRight className="w-3 h-3" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Link>
                                 </div>
+                            )}
 
-                                <div className="flex flex-col gap-4">
+                            {/* Related Videos List */}
+                            <div>
+                                <h3 className="font-agency text-xl text-brand-brown-dark mb-5 px-1">
+                                    {video.playlist ? "Series Content" : "Related"}
+                                </h3>
+
+                                <div className="flex flex-col gap-3">
                                     {relatedVideos.length > 0 ? (
                                         relatedVideos.map((rel) => {
                                             const isExpanded = expandedIds.has(rel.id);
@@ -314,10 +273,10 @@ export default function WatchVideoPage() {
                                                 <Link 
                                                     key={rel.id} 
                                                     href={`/media/videos/${rel.id}`}
-                                                    className="group relative flex items-start gap-4 p-3 rounded-2xl border border-gray-100 bg-white hover:border-brand-gold/30 hover:shadow-md transition-all duration-300"
+                                                    className="group relative flex items-start gap-3 p-2 rounded-2xl border border-transparent hover:border-gray-100 hover:bg-white hover:shadow-sm transition-all duration-300"
                                                 >
-                                                    {/* Thumbnail (Rectangular, Zoomed) */}
-                                                    <div className="relative w-32 aspect-video rounded-xl overflow-hidden bg-black flex-shrink-0 border border-gray-50 shadow-sm">
+                                                    {/* Consistent Thumbnail Style */}
+                                                    <div className="relative w-28 aspect-video rounded-lg overflow-hidden bg-black flex-shrink-0 border border-gray-100">
                                                         <Image 
                                                             src={rel.thumbnail || "/fallback.webp"} 
                                                             alt={rel.title} 
@@ -325,33 +284,32 @@ export default function WatchVideoPage() {
                                                             className="object-cover opacity-90 group-hover:opacity-100 scale-110 group-hover:scale-125 transition-transform duration-700"
                                                         />
                                                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <div className="w-8 h-8 bg-black/50 backdrop-blur rounded-full flex items-center justify-center text-white border border-white/20">
-                                                                <Play className="w-3 h-3 fill-current ml-0.5" />
+                                                            <div className="w-6 h-6 bg-black/50 backdrop-blur rounded-full flex items-center justify-center text-white border border-white/20">
+                                                                <Play className="w-2.5 h-2.5 fill-current ml-0.5" />
                                                             </div>
                                                         </div>
                                                     </div>
                                                     
                                                     <div className="flex-grow min-w-0 py-0.5" dir={getDir(rel.title)}>
-                                                        <p className="text-[10px] text-gray-400 mb-1 font-bold uppercase tracking-wider" dir="ltr">{formatDate(rel.date)}</p>
-                                                        
                                                         <div className="relative pr-6">
-                                                            <h4 className={`text-sm md:text-base font-bold text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors ${isExpanded ? '' : 'line-clamp-2'} ${getDir(rel.title) === 'rtl' ? 'font-tajawal' : 'font-lato'}`}>
+                                                            <h4 className={`text-sm font-bold text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors ${isExpanded ? '' : 'line-clamp-2'} ${getDir(rel.title) === 'rtl' ? 'font-tajawal' : 'font-lato'}`}>
                                                                 {rel.title}
                                                             </h4>
                                                             <button 
                                                                 onClick={(e) => toggleExpand(e, rel.id)}
-                                                                className="absolute right-0 top-0 p-1 text-gray-300 hover:text-brand-gold transition-colors"
+                                                                className="absolute right-0 top-0 p-0.5 text-gray-300 hover:text-brand-gold transition-colors"
                                                             >
                                                                 {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                                                             </button>
                                                         </div>
+                                                        <p className="text-[9px] text-gray-400 mt-1.5 font-bold uppercase tracking-wider" dir="ltr">{formatDate(rel.date)}</p>
                                                     </div>
                                                 </Link>
                                             );
                                         })
                                     ) : (
-                                        <div className="p-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                                            <p className="text-sm text-gray-400">No related videos found.</p>
+                                        <div className="p-6 text-center border border-dashed border-gray-200 rounded-2xl">
+                                            <p className="text-xs text-gray-400">No related videos found.</p>
                                         </div>
                                     )}
                                 </div>
