@@ -156,138 +156,130 @@ export default function WatchVideoPage() {
 
             <main className="flex-grow pb-24">
                 
-                {/* 1. CINEMATIC HERO WRAPPER */}
-                <div className="relative w-full bg-brand-brown-dark pb-24 pt-8 lg:pb-32 lg:pt-12 overflow-hidden">
-                    {/* Ambient Background (Blurred Thumbnail) */}
-                    <div className="absolute inset-0 pointer-events-none opacity-30 mix-blend-soft-light">
+                {/* 1. BACKGROUND HERO LAYER */}
+                <div className="relative w-full h-[450px] lg:h-[550px] bg-brand-brown-dark overflow-hidden">
+                    {/* Blurred Ambient Backdrop */}
+                    <div className="absolute inset-0 pointer-events-none opacity-40 mix-blend-soft-light">
                         <Image 
                             src={video.thumbnail || "/fallback.webp"} 
                             alt="" 
                             fill 
-                            className="object-cover blur-[80px] scale-110"
+                            className="object-cover blur-[100px] scale-110"
                         />
                     </div>
-                    {/* Subtle Gold Ambient Glow */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-brand-gold/5 blur-[120px] rounded-full pointer-events-none"></div>
-
-                    <div className="max-w-6xl mx-auto px-4 md:px-6 relative z-10 flex flex-col items-center">
-                        
-                        {/* "NOW WATCHING" Badge */}
-                        <div className="mb-6 flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-black/20 backdrop-blur-md">
+                    
+                    {/* Header Content */}
+                    <div className="relative z-10 pt-10 md:pt-16 text-center">
+                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-black/20 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-[0.2em] mb-4">
                             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                            <span className="text-[10px] font-bold text-white tracking-[0.2em] uppercase">Now Watching</span>
-                        </div>
-
-                        {/* PLAYER SHELL (Cinema Card) */}
-                        <div className="w-full bg-black rounded-3xl overflow-hidden shadow-2xl aspect-video relative ring-1 ring-white/10 group">
-                            <iframe 
-                                src={`https://www.youtube.com/embed/${video.videoId}?autoplay=1&rel=0`} 
-                                title={video.title}
-                                className="absolute inset-0 w-full h-full"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                allowFullScreen
-                            ></iframe>
+                            Now Watching
                         </div>
                     </div>
                 </div>
 
-                {/* 2. OVERLAP CONTENT GRID */}
-                <div className="max-w-6xl mx-auto px-4 md:px-6 relative z-20 -mt-16 md:-mt-20">
+                {/* 2. OVERLAPPING CONTENT LAYER */}
+                <div className="max-w-[1600px] mx-auto px-4 md:px-8 lg:px-12 relative z-20 -mt-[320px] lg:-mt-[400px]">
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
                         
-                        {/* LEFT: FLOATING INFO CARD (Overlaps Player) */}
-                        <div className="lg:col-span-8">
-                            <div className="bg-white rounded-3xl p-6 md:p-10 shadow-xl border border-gray-100 relative" dir={dir}>
-                                
-                                {/* Badge Row */}
-                                <div className="flex flex-wrap items-center gap-3 mb-5" dir="ltr">
-                                    <span className="px-3 py-1 bg-brand-gold text-white text-[10px] font-bold uppercase rounded-md tracking-wider">
+                        {/* LEFT COLUMN: PLAYER & INFO (Span 8) */}
+                        <div className="lg:col-span-8 space-y-8">
+                            
+                            {/* THE PLAYER (Hero Overlap) */}
+                            <div className="w-full bg-black rounded-3xl overflow-hidden shadow-2xl shadow-brand-brown-dark/50 aspect-video relative ring-1 ring-white/10 group">
+                                <iframe 
+                                    src={`https://www.youtube.com/embed/${video.videoId}?autoplay=1&rel=0`} 
+                                    title={video.title}
+                                    className="absolute inset-0 w-full h-full"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                    allowFullScreen
+                                ></iframe>
+                            </div>
+
+                            {/* VIDEO INFO CARD (Subtle & Clean) */}
+                            <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100" dir={dir}>
+                                {/* Meta Row */}
+                                <div className="flex flex-wrap items-center gap-4 mb-6 text-xs font-bold uppercase tracking-wider" dir="ltr">
+                                    <span className="text-brand-gold bg-brand-gold/10 px-3 py-1 rounded-full">
                                         {video.category}
                                     </span>
                                     {video.playlist && (
-                                        <div className="flex items-center gap-1.5 text-brand-brown-dark/60 bg-brand-sand/30 px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">
-                                            <ListVideo className="w-3 h-3" /> 
-                                            <span className="truncate max-w-[200px]" title={video.playlist}>
-                                                {video.playlist}
+                                        <>
+                                            <span className="text-gray-300">•</span>
+                                            <span className="text-gray-500 flex items-center gap-1.5">
+                                                <ListVideo className="w-3 h-3" /> {video.playlist}
                                             </span>
-                                        </div>
+                                        </>
                                     )}
+                                    <span className="text-gray-300 ml-auto flex items-center gap-2 normal-case font-medium">
+                                        <Clock className="w-3.5 h-3.5" /> {formatDate(video.date)}
+                                    </span>
                                 </div>
 
-                                {/* Title */}
-                                <h1 className={`text-3xl md:text-4xl lg:text-5xl font-bold text-brand-brown-dark mb-6 leading-[1.1] ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
+                                {/* Minimalist Title */}
+                                <h1 className={`text-2xl md:text-3xl font-bold text-brand-brown-dark mb-4 leading-tight ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
                                     {video.title}
                                 </h1>
 
-                                {/* Meta Row: Date & Share */}
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-5 border-y border-gray-100 mb-6" dir="ltr">
-                                    <div className="flex items-center gap-2 text-sm text-gray-500 font-bold">
-                                        <Calendar className="w-4 h-4 text-brand-gold" /> {formatDate(video.date)}
-                                    </div>
-                                    <button 
-                                        onClick={handleShare} 
-                                        className="flex items-center gap-2 text-xs font-bold text-brand-brown-dark hover:text-brand-gold transition-colors self-start sm:self-auto"
-                                    >
-                                        <Share2 className="w-4 h-4" /> Share Video
-                                    </button>
+                                {/* Description */}
+                                <div className={`prose prose-gray max-w-none text-sm md:text-base leading-relaxed text-gray-600 border-t border-gray-50 pt-6 mt-6 ${dir === 'rtl' ? 'font-arabic text-right' : 'font-lato'}`}>
+                                    {video.description}
                                 </div>
 
-                                {/* Description */}
-                                <div className={`prose prose-sm md:prose-base text-gray-600 leading-relaxed whitespace-pre-line max-w-none ${dir === 'rtl' ? 'font-arabic text-right' : 'font-lato'}`}>
-                                    {video.description}
+                                {/* Share Action */}
+                                <div className="mt-8 pt-4 flex justify-end" dir="ltr">
+                                    <button 
+                                        onClick={handleShare} 
+                                        className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-gray-200 bg-gray-50 text-xs font-bold text-gray-600 hover:text-white hover:bg-brand-brown-dark hover:border-brand-brown-dark transition-all"
+                                    >
+                                        <Share2 className="w-3.5 h-3.5" /> Share
+                                    </button>
                                 </div>
                             </div>
                         </div>
 
-                        {/* RIGHT: SIDEBAR (Up Next & Related) */}
-                        <div className="lg:col-span-4 space-y-8 lg:pt-10">
+                        {/* RIGHT COLUMN: SIDEBAR (Span 4) */}
+                        <div className="lg:col-span-4 space-y-8">
                             
-                            {/* Up Next Card - Premium Style */}
-                            {nextVideo && (
-                                <div className="bg-brand-brown-dark text-white p-6 rounded-3xl relative overflow-hidden shadow-2xl ring-1 ring-white/10 group">
-                                    {/* Subtle Deco */}
-                                    <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
-                                        <Play className="w-24 h-24" />
-                                    </div>
-                                    
+                            {/* Up Next Card (Floating Glass Effect) */}
+                            {nextVideo ? (
+                                <div className="bg-brand-brown-dark/95 backdrop-blur-md text-white p-6 rounded-3xl relative overflow-hidden shadow-2xl border border-white/10">
                                     <div className="relative z-10">
                                         <p className="text-[10px] font-bold text-brand-gold uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                                            <Film className="w-3 h-3" /> Up Next
+                                            <Play className="w-3 h-3 fill-current" /> Up Next
                                         </p>
                                         
-                                        <Link href={`/media/videos/${nextVideo.id}`} className="block group/link">
-                                            <div className="relative w-full aspect-video rounded-2xl overflow-hidden mb-4 bg-black/40 border border-white/5">
+                                        <Link href={`/media/videos/${nextVideo.id}`} className="block group">
+                                            <div className="relative w-full aspect-video rounded-xl overflow-hidden mb-4 bg-black/40 border border-white/5">
                                                 <Image 
                                                     src={nextVideo.thumbnail || "/fallback.webp"} 
                                                     alt={nextVideo.title} 
                                                     fill 
-                                                    className="object-cover opacity-80 group-hover/link:opacity-100 transition-opacity duration-500"
+                                                    className="object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-500"
                                                 />
                                                 <div className="absolute inset-0 flex items-center justify-center">
-                                                    <div className="w-12 h-12 bg-brand-gold/90 backdrop-blur-md rounded-full flex items-center justify-center text-brand-brown-dark shadow-lg scale-90 group-hover/link:scale-110 transition-transform">
-                                                        <Play className="w-5 h-5 fill-current ml-0.5" />
+                                                    <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 group-hover:scale-110 transition-transform">
+                                                        <Play className="w-4 h-4 fill-current ml-0.5" />
                                                     </div>
                                                 </div>
-                                                {/* Optional Duration only if exists */}
-                                                {nextVideo.duration && (
-                                                    <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded border border-white/10">
-                                                        {nextVideo.duration}
-                                                    </div>
-                                                )}
                                             </div>
                                             
-                                            <h3 className="text-white font-agency text-xl leading-snug line-clamp-2 mb-2 group-hover/link:text-brand-gold transition-colors">
+                                            <h3 className="text-white font-agency text-xl leading-snug line-clamp-2 mb-2 group-hover:text-brand-gold transition-colors">
                                                 {nextVideo.title}
                                             </h3>
                                             <p className="text-xs text-white/40 line-clamp-1">From Series: {nextVideo.playlist || video.category}</p>
                                         </Link>
                                     </div>
                                 </div>
+                            ) : (
+                                <div className="bg-brand-brown-dark/90 backdrop-blur border border-white/10 p-8 rounded-3xl text-center flex flex-col items-center justify-center min-h-[200px]">
+                                    <Film className="w-8 h-8 text-white/20 mb-3" />
+                                    <p className="text-white/60 text-xs">You are watching the latest upload.</p>
+                                </div>
                             )}
 
                             {/* Related Videos List - Unchanged Card Markup */}
                             <div>
-                                <h3 className="font-agency text-xl text-brand-brown-dark mb-6 px-1 border-l-4 border-brand-gold pl-3">
+                                <h3 className="font-agency text-xl text-brand-brown-dark mb-5 px-1 border-l-4 border-brand-gold pl-3">
                                     {video.playlist ? "Series Content" : "Related Videos"}
                                 </h3>
 
