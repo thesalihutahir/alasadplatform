@@ -10,7 +10,7 @@ import Loader from '@/components/Loader';
 // Firebase
 import { db } from '@/lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
-import { Play, Calendar, Share2, ListVideo, ArrowRight, ChevronDown, ChevronUp, Film, Clock } from 'lucide-react';
+import { Play, Calendar, Share2, ListVideo, ArrowRight, ChevronDown, ChevronUp, Film } from 'lucide-react';
 
 export default function WatchVideoPage() {
     const { id } = useParams();
@@ -156,130 +156,137 @@ export default function WatchVideoPage() {
 
             <main className="flex-grow pb-24">
                 
-                {/* 1. BACKGROUND HERO LAYER */}
-                <div className="relative w-full h-[450px] lg:h-[550px] bg-brand-brown-dark overflow-hidden">
-                    {/* Blurred Ambient Backdrop */}
-                    <div className="absolute inset-0 pointer-events-none opacity-40 mix-blend-soft-light">
+                {/* 1. HERO BACKGROUND SECTION (Top Half) */}
+                <div className="relative w-full bg-brand-brown-dark pt-12 pb-32 lg:pb-48 px-4 overflow-hidden">
+                    {/* Ambient Blurred Thumbnail */}
+                    <div className="absolute inset-0 pointer-events-none opacity-30 mix-blend-soft-light">
                         <Image 
                             src={video.thumbnail || "/fallback.webp"} 
                             alt="" 
                             fill 
-                            className="object-cover blur-[100px] scale-110"
+                            className="object-cover blur-[80px] scale-110"
                         />
                     </div>
-                    
-                    {/* Header Content */}
-                    <div className="relative z-10 pt-10 md:pt-16 text-center">
-                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-black/20 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-[0.2em] mb-4">
+                    {/* Ambient Glow */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-brand-gold/5 blur-[120px] rounded-full pointer-events-none"></div>
+
+                    {/* Content Layer */}
+                    <div className="relative z-10 flex flex-col items-center justify-center text-center">
+                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-black/20 backdrop-blur-md mb-6">
                             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                            Now Watching
+                            <span className="text-[10px] font-bold text-white tracking-[0.2em] uppercase">Now Watching</span>
                         </div>
                     </div>
                 </div>
 
-                {/* 2. OVERLAPPING CONTENT LAYER */}
-                <div className="max-w-[1600px] mx-auto px-4 md:px-8 lg:px-12 relative z-20 -mt-[320px] lg:-mt-[400px]">
+                {/* 2. OVERLAPPING PLAYER & CONTENT (Bottom Half) */}
+                <div className="max-w-[1600px] mx-auto px-4 md:px-8 lg:px-12 relative z-20 -mt-24 lg:-mt-40">
+                    
+                    {/* A) THE PLAYER (Overlaps Boundary) */}
+                    <div className="w-full bg-black rounded-3xl overflow-hidden shadow-2xl aspect-video relative ring-1 ring-white/10 border border-white/5 mb-12">
+                        <iframe 
+                            src={`https://www.youtube.com/embed/${video.videoId}?autoplay=1&rel=0`} 
+                            title={video.title}
+                            className="absolute inset-0 w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowFullScreen
+                        ></iframe>
+                    </div>
+
+                    {/* B) INFO & SIDEBAR GRID */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
                         
-                        {/* LEFT COLUMN: PLAYER & INFO (Span 8) */}
-                        <div className="lg:col-span-8 space-y-8">
-                            
-                            {/* THE PLAYER (Hero Overlap) */}
-                            <div className="w-full bg-black rounded-3xl overflow-hidden shadow-2xl shadow-brand-brown-dark/50 aspect-video relative ring-1 ring-white/10 group">
-                                <iframe 
-                                    src={`https://www.youtube.com/embed/${video.videoId}?autoplay=1&rel=0`} 
-                                    title={video.title}
-                                    className="absolute inset-0 w-full h-full"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                    allowFullScreen
-                                ></iframe>
-                            </div>
-
-                            {/* VIDEO INFO CARD (Subtle & Clean) */}
-                            <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100" dir={dir}>
-                                {/* Meta Row */}
-                                <div className="flex flex-wrap items-center gap-4 mb-6 text-xs font-bold uppercase tracking-wider" dir="ltr">
-                                    <span className="text-brand-gold bg-brand-gold/10 px-3 py-1 rounded-full">
-                                        {video.category}
-                                    </span>
-                                    {video.playlist && (
-                                        <>
-                                            <span className="text-gray-300">•</span>
-                                            <span className="text-gray-500 flex items-center gap-1.5">
-                                                <ListVideo className="w-3 h-3" /> {video.playlist}
-                                            </span>
-                                        </>
-                                    )}
-                                    <span className="text-gray-300 ml-auto flex items-center gap-2 normal-case font-medium">
-                                        <Clock className="w-3.5 h-3.5" /> {formatDate(video.date)}
-                                    </span>
+                        {/* LEFT: VIDEO INFO (Subtle Card) */}
+                        <div className="lg:col-span-8">
+                            <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm" dir={dir}>
+                                {/* Control Strip */}
+                                <div className="flex flex-wrap items-center justify-between gap-4 mb-6 border-b border-gray-50 pb-6" dir="ltr">
+                                    <div className="flex items-center gap-3">
+                                        <span className="px-3 py-1 bg-brand-brown-dark text-white text-[10px] font-bold uppercase rounded-full tracking-wider">
+                                            {video.category}
+                                        </span>
+                                        {video.playlist && (
+                                            <div className="hidden sm:flex items-center gap-2 text-brand-brown-dark/60 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-gray-50">
+                                                <ListVideo className="w-3 h-3" /> 
+                                                <span className="truncate max-w-[200px]" title={video.playlist}>
+                                                    {video.playlist}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-2 text-gray-400 text-xs font-bold">
+                                            <Calendar className="w-3.5 h-3.5" /> {formatDate(video.date)}
+                                        </div>
+                                        <div className="h-4 w-px bg-gray-200"></div>
+                                        <button 
+                                            onClick={handleShare} 
+                                            className="flex items-center gap-2 text-brand-gold hover:text-brand-brown-dark transition-colors text-xs font-bold uppercase tracking-wider"
+                                        >
+                                            <Share2 className="w-3.5 h-3.5" /> Share
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* Minimalist Title */}
-                                <h1 className={`text-2xl md:text-3xl font-bold text-brand-brown-dark mb-4 leading-tight ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
+                                <h1 className={`text-3xl lg:text-4xl font-bold text-brand-brown-dark mb-6 leading-tight ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
                                     {video.title}
                                 </h1>
 
                                 {/* Description */}
-                                <div className={`prose prose-gray max-w-none text-sm md:text-base leading-relaxed text-gray-600 border-t border-gray-50 pt-6 mt-6 ${dir === 'rtl' ? 'font-arabic text-right' : 'font-lato'}`}>
+                                <div className={`prose prose-sm md:prose-base max-w-none text-gray-600 leading-relaxed whitespace-pre-line ${dir === 'rtl' ? 'font-arabic text-right' : 'font-lato'}`}>
                                     {video.description}
-                                </div>
-
-                                {/* Share Action */}
-                                <div className="mt-8 pt-4 flex justify-end" dir="ltr">
-                                    <button 
-                                        onClick={handleShare} 
-                                        className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-gray-200 bg-gray-50 text-xs font-bold text-gray-600 hover:text-white hover:bg-brand-brown-dark hover:border-brand-brown-dark transition-all"
-                                    >
-                                        <Share2 className="w-3.5 h-3.5" /> Share
-                                    </button>
                                 </div>
                             </div>
                         </div>
 
-                        {/* RIGHT COLUMN: SIDEBAR (Span 4) */}
+                        {/* RIGHT: SIDEBAR */}
                         <div className="lg:col-span-4 space-y-8">
                             
-                            {/* Up Next Card (Floating Glass Effect) */}
-                            {nextVideo ? (
-                                <div className="bg-brand-brown-dark/95 backdrop-blur-md text-white p-6 rounded-3xl relative overflow-hidden shadow-2xl border border-white/10">
+                            {/* Up Next - Dark Glass Card */}
+                            {nextVideo && (
+                                <div className="bg-brand-brown-dark text-white p-6 rounded-3xl relative overflow-hidden shadow-xl ring-1 ring-white/10 group">
+                                    <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+                                        <Play className="w-24 h-24" />
+                                    </div>
+                                    
                                     <div className="relative z-10">
                                         <p className="text-[10px] font-bold text-brand-gold uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                                            <Play className="w-3 h-3 fill-current" /> Up Next
+                                            <Film className="w-3 h-3" /> Up Next
                                         </p>
                                         
-                                        <Link href={`/media/videos/${nextVideo.id}`} className="block group">
-                                            <div className="relative w-full aspect-video rounded-xl overflow-hidden mb-4 bg-black/40 border border-white/5">
+                                        <Link href={`/media/videos/${nextVideo.id}`} className="block group/link">
+                                            <div className="relative w-full aspect-video rounded-2xl overflow-hidden mb-4 bg-black/40 border border-white/5 shadow-inner">
                                                 <Image 
                                                     src={nextVideo.thumbnail || "/fallback.webp"} 
                                                     alt={nextVideo.title} 
                                                     fill 
-                                                    className="object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-500"
+                                                    className="object-cover opacity-80 group-hover/link:opacity-100 transition-opacity duration-500"
                                                 />
                                                 <div className="absolute inset-0 flex items-center justify-center">
-                                                    <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 group-hover:scale-110 transition-transform">
-                                                        <Play className="w-4 h-4 fill-current ml-0.5" />
+                                                    <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 group-hover/link:bg-brand-gold group-hover/link:border-brand-gold group-hover/link:scale-110 transition-all duration-300 shadow-xl">
+                                                        <Play className="w-5 h-5 fill-current ml-0.5" />
                                                     </div>
                                                 </div>
+                                                {nextVideo.duration && (
+                                                    <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded border border-white/10">
+                                                        {nextVideo.duration}
+                                                    </div>
+                                                )}
                                             </div>
                                             
-                                            <h3 className="text-white font-agency text-xl leading-snug line-clamp-2 mb-2 group-hover:text-brand-gold transition-colors">
+                                            <h3 className="text-white font-agency text-xl leading-snug line-clamp-2 mb-2 group-hover/link:text-brand-gold transition-colors">
                                                 {nextVideo.title}
                                             </h3>
                                             <p className="text-xs text-white/40 line-clamp-1">From Series: {nextVideo.playlist || video.category}</p>
                                         </Link>
                                     </div>
                                 </div>
-                            ) : (
-                                <div className="bg-brand-brown-dark/90 backdrop-blur border border-white/10 p-8 rounded-3xl text-center flex flex-col items-center justify-center min-h-[200px]">
-                                    <Film className="w-8 h-8 text-white/20 mb-3" />
-                                    <p className="text-white/60 text-xs">You are watching the latest upload.</p>
-                                </div>
                             )}
 
-                            {/* Related Videos List - Unchanged Card Markup */}
-                            <div>
-                                <h3 className="font-agency text-xl text-brand-brown-dark mb-5 px-1 border-l-4 border-brand-gold pl-3">
+                            {/* Related Videos List - Unchanged Logic, Subtle Style */}
+                            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm">
+                                <h3 className="font-agency text-xl text-brand-brown-dark mb-6 px-1 flex items-center gap-2">
                                     {video.playlist ? "Series Content" : "Related Videos"}
                                 </h3>
 
@@ -291,10 +298,10 @@ export default function WatchVideoPage() {
                                                 <Link 
                                                     key={rel.id} 
                                                     href={`/media/videos/${rel.id}`}
-                                                    className="group relative flex items-start gap-4 p-3 rounded-2xl bg-white border border-gray-100 hover:border-brand-gold/30 hover:bg-brand-sand/10 transition-all duration-300"
+                                                    className="group relative flex items-start gap-3 p-2 rounded-2xl hover:bg-gray-50 transition-all duration-300"
                                                 >
                                                     {/* Thumbnail (Rectangular, Zoomed) */}
-                                                    <div className="relative w-32 aspect-video rounded-xl overflow-hidden bg-black flex-shrink-0 border border-gray-50 shadow-sm">
+                                                    <div className="relative w-28 aspect-video rounded-xl overflow-hidden bg-black flex-shrink-0 border border-gray-100 shadow-sm">
                                                         <Image 
                                                             src={rel.thumbnail || "/fallback.webp"} 
                                                             alt={rel.title} 
@@ -302,33 +309,32 @@ export default function WatchVideoPage() {
                                                             className="object-cover opacity-90 group-hover:opacity-100 scale-110 group-hover:scale-125 transition-transform duration-700"
                                                         />
                                                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <div className="w-8 h-8 bg-black/50 backdrop-blur rounded-full flex items-center justify-center text-white border border-white/20">
-                                                                <Play className="w-3 h-3 fill-current ml-0.5" />
+                                                            <div className="w-6 h-6 bg-black/50 backdrop-blur rounded-full flex items-center justify-center text-white border border-white/20">
+                                                                <Play className="w-2.5 h-2.5 fill-current ml-0.5" />
                                                             </div>
                                                         </div>
                                                     </div>
                                                     
                                                     <div className="flex-grow min-w-0 py-0.5" dir={getDir(rel.title)}>
-                                                        <p className="text-[10px] text-gray-400 mb-1 font-bold uppercase tracking-wider" dir="ltr">{formatDate(rel.date)}</p>
-                                                        
                                                         <div className="relative pr-6">
-                                                            <h4 className={`text-sm md:text-base font-bold text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors ${isExpanded ? '' : 'line-clamp-2'} ${getDir(rel.title) === 'rtl' ? 'font-tajawal' : 'font-lato'}`}>
+                                                            <h4 className={`text-sm font-bold text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors ${isExpanded ? '' : 'line-clamp-2'} ${getDir(rel.title) === 'rtl' ? 'font-tajawal' : 'font-lato'}`}>
                                                                 {rel.title}
                                                             </h4>
                                                             <button 
                                                                 onClick={(e) => toggleExpand(e, rel.id)}
-                                                                className="absolute right-0 top-0 p-1 text-gray-300 hover:text-brand-gold transition-colors"
+                                                                className="absolute right-0 top-0 p-0.5 text-gray-300 hover:text-brand-gold transition-colors"
                                                             >
                                                                 {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                                                             </button>
                                                         </div>
+                                                        <p className="text-[9px] text-gray-400 mt-1.5 font-bold uppercase tracking-wider" dir="ltr">{formatDate(rel.date)}</p>
                                                     </div>
                                                 </Link>
                                             );
                                         })
                                     ) : (
-                                        <div className="p-8 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                                            <p className="text-sm text-gray-400">No related videos found.</p>
+                                        <div className="text-center text-gray-400 text-xs py-4">
+                                            No related videos found.
                                         </div>
                                     )}
                                 </div>
