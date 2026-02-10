@@ -32,8 +32,8 @@ const loadYouTubeAPI = () => {
       resolve(window.YT);
     };
 
-    const already = document.querySelector('script[src="https://www.youtube.com/iframe_api"]');
-    if (!already) {
+    const existingScript = document.querySelector('script[src="https://www.youtube.com/iframe_api"]');
+    if (!existingScript) {
       const tag = document.createElement("script");
       tag.src = "https://www.youtube.com/iframe_api";
       const firstScriptTag = document.getElementsByTagName("script")[0];
@@ -50,12 +50,10 @@ export default function CustomVideoPlayer({ videoId, thumbnail, title }) {
   const playerRef = useRef(null);
   const rafRef = useRef(null);
   const controlsTimeoutRef = useRef(null);
-
-  // Tap / gesture refs
-  const lastTapAtRef = useRef(0);
   
-  // Toast timer
-  const toastTimerRef = useRef(null);
+  // Interaction Refs
+  const lastTapTimeRef = useRef(0);
+  const tapTimeoutRef = useRef(null);
 
   // --- State ---
   const [playerReady, setPlayerReady] = useState(false);
@@ -71,12 +69,6 @@ export default function CustomVideoPlayer({ videoId, thumbnail, title }) {
   // --- Helpers ---
   const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
-  const safePlayer = () => {
-    const p = playerRef.current;
-    if (!p || !playerReady) return null;
-    return p;
-  };
-
   const formatTime = (time) => {
     if (!time || Number.isNaN(time)) return "0:00";
     const t = Math.max(0, time);
@@ -87,51 +79,45 @@ export default function CustomVideoPlayer({ videoId, thumbnail, title }) {
 
   const showToast = useCallback((text, icon, side) => {
     setToast({ show: true, text, icon, side });
-    clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = setTimeout(() => {
+    setTimeout(() => {
       setToast((prev) => ({ ...prev, show: false }));
-    }, 700);
+    }, 800);
   }, []);
 
-  // --- Controls timeout ---
-  const resetControlsTimeout = useCallback(
-    (forceShow = true) => {
-      clearTimeout(controlsTimeoutRef.current);
-      if (forceShow) setShowControls(true);
-
-      if (isPlaying) {
-        controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 2500);
-      }
-    },
-    [isPlaying]
-  );
-
-  const hideControls = useCallback(() => {
+  // --- Controls Visibility Logic ---
+  const resetControlsTimeout = useCallback(() => {
     clearTimeout(controlsTimeoutRef.current);
-    setShowControls(false);
-  }, []);
+    setShowControls(true);
+    if (isPlaying) {
+      controlsTimeoutRef.current = setTimeout(() => {
+        setShowControls(false);
+      }, 3000);
+    }
+  }, [isPlaying]);
 
-  // --- Player init & cleanup ---
+  const toggleControls = useCallback(() => {
+    if (showControls) {
+      setShowControls(false);
+      clearTimeout(controlsTimeoutRef.current);
+    } else {
+      resetControlsTimeout();
+    }
+  }, [showControls, resetControlsTimeout]);
+
+  // --- Player Initialization ---
   useEffect(() => {
     let isMounted = true;
-
     setPlayerReady(false);
-    setIsPlaying(false);
-    setProgress(0);
-    setDuration(0);
 
     loadYouTubeAPI().then((YT) => {
       if (!isMounted) return;
 
-      if (playerRef.current && typeof playerRef.current.destroy === "function") {
-        try { playerRef.current.destroy(); } catch {}
+      // Cleanup existing player if any
+      if (playerRef.current) {
+        try { playerRef.current.destroy(); } catch (e) {}
       }
 
-      const mountId = `yt-player-${videoId}`;
-      const mountEl = document.getElementById(mountId);
-      if (!mountEl) return;
-
-      playerRef.current = new YT.Player(mountId, {
+      playerRef.current = new YT.Player(`yt-player-${videoId}`, {
         videoId,
         height: "100%",
         width: "100%",
@@ -152,29 +138,22 @@ export default function CustomVideoPlayer({ videoId, thumbnail, title }) {
             setPlayerReady(true);
             
             // Poll for duration
-            let tries = 0;
-            const durTimer = setInterval(() => {
-              tries += 1;
-              try {
-                const d = event.target.getDuration?.() || 0;
-                if (d > 0) {
-                  setDuration(d);
-                  clearInterval(durTimer);
-                }
-                if (tries >= 12) clearInterval(durTimer);
-              } catch {
-                if (tries >= 12) clearInterval(durTimer);
+            const durationInterval = setInterval(() => {
+              const d = event.target.getDuration();
+              if (d > 0) {
+                setDuration(d);
+                clearInterval(durationInterval);
               }
-            }, 250);
+            }, 500);
           },
           onStateChange: (event) => {
             if (!isMounted) return;
             const playing = event.data === YT.PlayerState.PLAYING;
             setIsPlaying(playing);
-            if (playing) resetControlsTimeout(true);
+            if (playing) resetControlsTimeout();
             else setShowControls(true);
-          },
-        },
+          }
+        }
       });
     });
 
@@ -183,365 +162,258 @@ export default function CustomVideoPlayer({ videoId, thumbnail, title }) {
 
     return () => {
       isMounted = false;
-      clearTimeout(controlsTimeoutRef.current);
-      clearTimeout(toastTimerRef.current);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      clearTimeout(controlsTimeoutRef.current);
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
-      if (playerRef.current && typeof playerRef.current.destroy === "function") {
-        try { playerRef.current.destroy(); } catch {}
+      if (playerRef.current) {
+        try { playerRef.current.destroy(); } catch (e) {}
       }
-      playerRef.current = null;
     };
   }, [videoId, resetControlsTimeout]);
 
-  // --- Progress loop ---
+  // --- Progress Loop ---
   useEffect(() => {
-    if (!isPlaying) {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-      return;
-    }
+    if (!isPlaying || !playerReady) return;
 
-    const tick = () => {
-      const p = safePlayer();
-      if (p?.getCurrentTime) {
-        const currentTime = p.getCurrentTime() || 0;
-        const d = duration || p.getDuration?.() || 1;
-        const pct = clamp((currentTime / d) * 100, 0, 100);
-        setProgress(pct);
+    const update = () => {
+      if (playerRef.current && playerRef.current.getCurrentTime) {
+        const curr = playerRef.current.getCurrentTime();
+        const dur = duration || playerRef.current.getDuration() || 1;
+        setProgress((curr / dur) * 100);
       }
-      rafRef.current = requestAnimationFrame(tick);
+      rafRef.current = requestAnimationFrame(update);
     };
 
-    rafRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    };
+    rafRef.current = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(rafRef.current);
   }, [isPlaying, duration, playerReady]);
 
-  // --- Core actions ---
-  const togglePlay = useCallback(
-    (e) => {
-      e?.stopPropagation?.();
-      const p = safePlayer();
-      if (!p) return;
-      try {
-        if (isPlaying) p.pauseVideo();
-        else p.playVideo();
-      } catch {}
-    },
-    [isPlaying, playerReady]
-  );
-
-  const seekToPercent = useCallback(
-    (pct) => {
-      const p = safePlayer();
-      if (!p) return;
-      const d = duration || p.getDuration?.() || 0;
-      if (!d) return;
-      const newTime = (clamp(pct, 0, 100) / 100) * d;
-      try {
-        p.seekTo(newTime, true);
-        setProgress(clamp(pct, 0, 100));
-      } catch {}
-    },
-    [duration, playerReady]
-  );
-
-  const seekRelative = useCallback(
-    (seconds) => {
-      const p = safePlayer();
-      if (!p) return;
-      const d = duration || p.getDuration?.() || 0;
-      if (!d) return;
-      try {
-        const current = p.getCurrentTime?.() || 0;
-        const next = clamp(current + seconds, 0, d - 0.1);
-        p.seekTo(next, true);
-      } catch {}
-    },
-    [duration, playerReady]
-  );
-
-  const toggleMute = useCallback(
-    (e) => {
-      e?.stopPropagation?.();
-      const p = safePlayer();
-      if (!p) return;
-      try {
-        if (isMuted) {
-          p.unMute();
-          if (volume === 0) { p.setVolume(50); setVolume(50); }
-          setIsMuted(false);
-        } else {
-          p.mute();
-          setIsMuted(true);
-        }
-      } catch {}
-    },
-    [isMuted, volume, playerReady]
-  );
-
-  const handleVolumeChange = useCallback(
-    (e) => {
-      e.stopPropagation();
-      const p = safePlayer();
-      if (!p) return;
-      const newVol = clamp(parseInt(e.target.value, 10) || 0, 0, 100);
-      setVolume(newVol);
-      try {
-        p.setVolume(newVol);
-        if (newVol === 0) { p.mute(); setIsMuted(true); }
-        else { p.unMute(); setIsMuted(false); }
-      } catch {}
-    },
-    [playerReady]
-  );
-
-  const toggleFullscreen = useCallback((e) => {
-    e?.stopPropagation?.();
-    const el = containerRef.current;
-    if (!el) return;
-    if (!document.fullscreenElement) {
-      el.requestFullscreen?.().catch(() => {});
-    } else {
-      document.exitFullscreen?.().catch(() => {});
-    }
-  }, []);
+  // --- Actions ---
+  const togglePlay = useCallback((e) => {
+    e?.stopPropagation();
+    if (!playerRef.current) return;
+    if (isPlaying) playerRef.current.pauseVideo();
+    else playerRef.current.playVideo();
+  }, [isPlaying]);
 
   const handleSeek = (e) => {
+    e.stopPropagation();
     const val = parseFloat(e.target.value);
-    seekToPercent(val);
-    resetControlsTimeout(true);
+    const time = (val / 100) * duration;
+    if (playerRef.current) {
+      playerRef.current.seekTo(time, true);
+      setProgress(val);
+    }
+    resetControlsTimeout();
   };
 
-  // --- Unified Gesture Handling (Pointer Events) ---
-  const handleGestureClick = (e) => {
-    // If player not ready, just show controls
-    if (!playerReady) {
-      setShowControls(true);
-      return;
-    }
+  const seekRelative = useCallback((seconds) => {
+    if (!playerRef.current) return;
+    const curr = playerRef.current.getCurrentTime();
+    playerRef.current.seekTo(curr + seconds, true);
+  }, []);
 
-    // Get Click Coordinates relative to container
-    const rect = containerRef.current?.getBoundingClientRect?.();
-    if (!rect) return;
-    
-    // Support Touch or Mouse events
-    const clientX = e.clientX || (e.touches && e.touches[0]?.clientX); 
-    const x = clientX - rect.left;
-    const width = rect.width || 1;
+  const toggleMute = (e) => {
+    e.stopPropagation();
+    if (!playerRef.current) return;
+    if (isMuted) {
+      playerRef.current.unMute();
+      if (volume === 0) {
+        playerRef.current.setVolume(50);
+        setVolume(50);
+      }
+      setIsMuted(false);
+    } else {
+      playerRef.current.mute();
+      setIsMuted(true);
+    }
+  };
+
+  const toggleFullscreen = (e) => {
+    e.stopPropagation();
+    if (!document.fullscreenElement) {
+      containerRef.current?.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
+
+  // --- Unified Gesture Handler (Click-based) ---
+  const handleContainerClick = (e) => {
+    if (!playerReady) return;
 
     const now = Date.now();
-    const DOUBLE_MS = 300;
-    const isDoubleTap = now - lastTapAtRef.current < DOUBLE_MS;
+    const DOUBLE_TAP_DELAY = 300;
+    const rect = containerRef.current.getBoundingClientRect();
+    
+    // Calculate click position relative to video width
+    // Support touch events fallback just in case
+    const clientX = e.clientX || (e.touches && e.touches[0]?.clientX);
+    const x = clientX - rect.left;
+    const width = rect.width;
+    const clickZone = x / width; // 0.0 to 1.0
 
-    if (isDoubleTap) {
-        // Double Tap Logic
-        lastTapAtRef.current = 0; // Reset
-        
-        // Define zones: Left 35%, Right 35%, Center 30%
-        if (x < width * 0.35) {
-            seekRelative(-10);
-            showToast("-10s", <RotateCcw className="w-6 h-6" />, "left");
-        } else if (x > width * 0.65) {
-            seekRelative(10);
-            showToast("+10s", <RotateCw className="w-6 h-6" />, "right");
-        } else {
-            togglePlay(); // Double tap center acts as play/pause force
-            showToast(isPlaying ? "Pause" : "Play", isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />, "center");
-        }
-        resetControlsTimeout(true);
+    if (now - lastTapTimeRef.current < DOUBLE_TAP_DELAY) {
+      // --- DOUBLE TAP DETECTED ---
+      clearTimeout(tapTimeoutRef.current);
+      lastTapTimeRef.current = 0; // Reset
+
+      if (clickZone < 0.35) {
+        seekRelative(-10);
+        showToast("-10s", <RotateCcw className="w-6 h-6" />, "left");
+      } else if (clickZone > 0.65) {
+        seekRelative(10);
+        showToast("+10s", <RotateCw className="w-6 h-6" />, "right");
+      } else {
+        // Center double tap = Play/Pause
+        togglePlay();
+        showToast(isPlaying ? "Pause" : "Play", isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />, "center");
+      }
     } else {
-        // Single Tap Logic
-        lastTapAtRef.current = now;
-        
-        // Toggle controls immediately for responsiveness
-        // If controls are hidden, show them. If showing, hide them (unless tapping specific controls which stopPropagation)
-        setShowControls(prev => {
-            const next = !prev;
-            if (next) resetControlsTimeout(false);
-            else hideControls();
-            return next;
-        });
+      // --- SINGLE TAP (Wait for potential double tap) ---
+      lastTapTimeRef.current = now;
+      tapTimeoutRef.current = setTimeout(() => {
+        // If single tap confirmed:
+        // Center zone -> Toggle Play
+        // Side zones -> Toggle Controls
+        if (clickZone > 0.3 && clickZone < 0.7) {
+           togglePlay();
+           // Also briefly show controls to give feedback
+           resetControlsTimeout();
+        } else {
+           toggleControls();
+        }
+      }, DOUBLE_TAP_DELAY);
     }
   };
 
   return (
     <div
       ref={containerRef}
-      className="relative w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10 select-none group touch-none" // Added touch-none to prevent scrolling gestures on player
-      onKeyDown={(e) => {
-        if (e.key === " " || e.key === "Enter") {
-          e.preventDefault();
-          togglePlay();
-        }
-      }}
+      className="relative w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10 select-none group touch-none"
+      onClick={handleContainerClick}
+      onMouseMove={() => { if(playerReady) resetControlsTimeout(); }}
       tabIndex={0}
-      aria-label="Custom video player"
-      onMouseMove={() => resetControlsTimeout(true)} // Desktop mouse movement wakes controls
-      onClick={handleGestureClick} // Unified Click Handler for Mobile/Desktop
     >
-      {/* Iframe mount (non-interactive, clicks go to container) */}
+      {/* YouTube Iframe (Non-interactive layer) */}
       <div className="absolute inset-0 pointer-events-none">
         <div id={`yt-player-${videoId}`} className="w-full h-full" />
       </div>
 
-      {/* Toast */}
-      {toast.show && (
-        <div
-          className={[
-            "absolute top-1/2 -translate-y-1/2 z-30 flex flex-col items-center justify-center pointer-events-none",
-            "animate-in fade-in zoom-in duration-200",
-            toast.side === "left"
-              ? "left-1/4"
-              : toast.side === "right"
-              ? "right-1/4"
-              : "left-1/2 -translate-x-1/2",
-          ].join(" ")}
-        >
-          <div className="w-12 h-12 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white mb-2 ring-1 ring-white/10">
-            {toast.icon}
-          </div>
-          <span className="text-white font-bold text-sm drop-shadow-md">{toast.text}</span>
+      {/* Loading State */}
+      {!playerReady && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
         </div>
       )}
 
-      {/* Controls overlay */}
-      <div
-        className={[
-          "absolute inset-0 flex flex-col justify-between z-20 transition-opacity duration-250",
-          showControls ? "opacity-100" : "opacity-0",
-          "pointer-events-none", // Allow clicks to pass through empty areas to container
-        ].join(" ")}
-      >
-        {/* Top: minimal branding */}
+      {/* Toast Feedback */}
+      {toast.show && (
+        <div className={`absolute top-1/2 -translate-y-1/2 z-30 flex flex-col items-center justify-center pointer-events-none animate-in fade-in zoom-in duration-200
+          ${toast.side === 'left' ? 'left-1/4' : toast.side === 'right' ? 'right-1/4' : 'left-1/2 -translate-x-1/2'}`}>
+          <div className="w-14 h-14 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white mb-2">
+            {toast.icon}
+          </div>
+          <span className="text-white font-bold text-sm shadow-lg">{toast.text}</span>
+        </div>
+      )}
+
+      {/* Controls Overlay */}
+      <div className={`absolute inset-0 flex flex-col justify-between z-20 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'} pointer-events-none`}>
+        
+        {/* Top Bar */}
         <div className="p-4 flex justify-end">
-          <div className="bg-black/30 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-2 pointer-events-auto">
+          <div className="bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-2 pointer-events-auto">
             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-            <Image
-              src="/images/logo-symbol.webp"
-              alt="Logo"
-              width={16}
-              height={16}
-              className="w-4 h-4 opacity-90"
-            />
+            <Image src="/images/logo-symbol.webp" alt="Logo" width={16} height={16} className="w-4 h-4 opacity-90" />
           </div>
         </div>
 
-        {/* Center play button (visual only) */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        {/* Center Play Button Visual */}
+        <div className="absolute inset-0 flex items-center justify-center">
           {!isPlaying && (
-            <div className="w-16 h-16 bg-brand-gold/90 backdrop-blur-md rounded-full flex items-center justify-center text-white shadow-xl ring-1 ring-white/10">
+            <div className="w-16 h-16 bg-brand-gold/90 backdrop-blur-md rounded-full flex items-center justify-center text-white shadow-xl scale-100 hover:scale-110 transition-transform">
               <Play className="w-6 h-6 fill-current ml-1" />
             </div>
           )}
         </div>
 
-        {/* Bottom bar */}
+        {/* Bottom Control Bar */}
         <div 
-            className="bg-gradient-to-t from-black/90 via-black/55 to-transparent px-4 pb-4 pt-12 pointer-events-auto"
-            onClick={(e) => e.stopPropagation()} // Prevent closing controls when clicking on them
+          className="bg-gradient-to-t from-black/90 via-black/60 to-transparent px-4 pb-4 pt-12 pointer-events-auto"
+          onClick={(e) => e.stopPropagation()} // Prevent closing on control clicks
         >
-          {/* Progress bar */}
-          <div className="relative h-4 flex items-center group/progress cursor-pointer">
-             {/* Hit Area for ease of touch */}
-            <input
+          {/* Progress Bar */}
+          <div className="relative h-6 flex items-center group/progress cursor-pointer">
+            <div className="absolute inset-0 flex items-center">
+               <div className="relative w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
+                 <div 
+                   className="absolute left-0 top-0 bottom-0 bg-brand-gold transition-all duration-100 ease-linear"
+                   style={{ width: `${clamp(progress, 0, 100)}%` }}
+                 />
+               </div>
+            </div>
+            {/* Hit Area */}
+            <input 
               type="range"
               min="0"
               max="100"
               step="0.1"
               value={clamp(progress, 0, 100)}
               onChange={handleSeek}
-              className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer"
-              aria-label="Seek video"
+              className="absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer"
             />
-            {/* Visual Track */}
-            <div className="relative w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
-                <div
-                className="absolute left-0 top-0 bottom-0 bg-brand-gold"
-                style={{ width: `${clamp(progress, 0, 100)}%` }}
-                />
-            </div>
-            {/* Knob */}
-            <div
-              className="absolute h-3 w-3 bg-white rounded-full shadow ring-1 ring-black/20 pointer-events-none z-10"
+            {/* Knob Visual */}
+            <div 
+              className="absolute h-4 w-4 bg-white rounded-full shadow-lg pointer-events-none transition-all duration-100 ease-linear group-hover/progress:scale-110"
               style={{ left: `${clamp(progress, 0, 100)}%`, transform: 'translateX(-50%)' }}
             />
           </div>
 
-          <div className="flex items-center justify-between mt-2">
+          {/* Buttons Row */}
+          <div className="flex items-center justify-between mt-1">
             <div className="flex items-center gap-4">
-              <button
-                onClick={togglePlay}
-                className="text-white hover:text-brand-gold transition-colors focus:outline-none p-2 -ml-2 rounded-full hover:bg-white/10"
-                aria-label={isPlaying ? "Pause" : "Play"}
-              >
-                {isPlaying ? (
-                  <Pause className="w-6 h-6 fill-current" />
-                ) : (
-                  <Play className="w-6 h-6 fill-current" />
-                )}
+              <button onClick={togglePlay} className="text-white hover:text-brand-gold transition-colors p-2 -ml-2 rounded-full hover:bg-white/10">
+                {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current" />}
               </button>
 
-              {/* Volume */}
               <div className="flex items-center gap-2 group/vol">
-                <button
-                  onClick={toggleMute}
-                  className="text-white hover:text-brand-gold focus:outline-none p-2 rounded-full hover:bg-white/10"
-                  aria-label={isMuted ? "Unmute" : "Mute"}
-                >
-                  {isMuted || volume === 0 ? (
-                    <VolumeX className="w-5 h-5" />
-                  ) : (
-                    <Volume2 className="w-5 h-5" />
-                  )}
+                <button onClick={toggleMute} className="text-white hover:text-brand-gold p-2 rounded-full hover:bg-white/10">
+                  {isMuted || volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
                 </button>
-
-                {/* Desktop-only slider */}
-                <div className="hidden md:block w-20">
-                  <input
+                <div className="w-0 overflow-hidden md:group-hover/vol:w-20 transition-all duration-300">
+                  <input 
                     type="range"
                     min="0"
                     max="100"
                     value={isMuted ? 0 : volume}
-                    onChange={handleVolumeChange}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value);
+                      setVolume(v);
+                      playerRef.current?.setVolume(v);
+                      setIsMuted(v === 0);
+                    }}
                     className="h-1 w-20 bg-white/30 rounded-lg appearance-none cursor-pointer"
-                    aria-label="Volume"
                   />
                 </div>
               </div>
 
-              <span className="text-xs font-mono font-bold text-white/80 select-none">
-                {formatTime((clamp(progress, 0, 100) / 100) * (duration || 0))} / {formatTime(duration)}
+              <span className="text-xs font-mono font-bold text-white/80">
+                {formatTime((progress / 100) * duration)} / {formatTime(duration)}
               </span>
             </div>
 
             <div className="flex items-center gap-1">
-              <button className="text-white/70 hover:text-white p-2 rounded-full hover:bg-white/10" aria-label="Settings" onClick={(e) => e.stopPropagation()}>
+              <button className="text-white/70 hover:text-white p-2 rounded-full hover:bg-white/10">
                 <Settings className="w-5 h-5" />
               </button>
-              <button
-                onClick={toggleFullscreen}
-                className="text-white hover:text-brand-gold p-2 rounded-full hover:bg-white/10"
-                aria-label="Toggle Fullscreen"
-              >
+              <button onClick={toggleFullscreen} className="text-white hover:text-brand-gold p-2 rounded-full hover:bg-white/10">
                 {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
               </button>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Loading Hint */}
-      {!playerReady && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/30 backdrop-blur-[2px]">
-          <div className="px-4 py-2 rounded-full bg-black/50 border border-white/10 text-white/80 text-xs font-bold tracking-wider">
-            Loading player...
-          </div>
-        </div>
-      )}
     </div>
   );
 }
