@@ -1,3 +1,4 @@
+// components/CustomVideoPlayer.js
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -14,12 +15,14 @@ import {
   RotateCw,
 } from "lucide-react";
 
-// --- 1. Singleton API Loader ---
+// --- Singleton API Loader ---
 let apiPromise = null;
 const loadYouTubeAPI = () => {
   if (apiPromise) return apiPromise;
 
   apiPromise = new Promise((resolve) => {
+    if (typeof window === "undefined") return;
+
     if (window.YT && window.YT.Player) {
       resolve(window.YT);
       return;
@@ -35,7 +38,9 @@ const loadYouTubeAPI = () => {
       const tag = document.createElement("script");
       tag.src = "https://www.youtube.com/iframe_api";
       const firstScriptTag = document.getElementsByTagName("script")[0];
-      firstScriptTag?.parentNode?.insertBefore(tag, firstScriptTag);
+      if (firstScriptTag && firstScriptTag.parentNode) {
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+      }
     }
   });
 
@@ -48,19 +53,21 @@ export default function CustomVideoPlayer({ videoId }) {
   const playerRef = useRef(null);
   const rafRef = useRef(null);
   const controlsTimeoutRef = useRef(null);
+  
+  // Interaction Refs
   const lastTapTimeRef = useRef(0);
   const tapTimeoutRef = useRef(null);
 
   // --- State ---
   const [playerReady, setPlayerReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [progress, setProgress] = useState(0); // 0-100
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(100);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showControls, setShowControls] = useState(true);
-  const [isScrubbing, setIsScrubbing] = useState(false); // Prevents progress jumping while dragging
+  const [showControls, setShowControls] = useState(false);
+  const [isScrubbing, setIsScrubbing] = useState(false);
   const [toast, setToast] = useState({ show: false, text: "", icon: null, side: "center" });
 
   // --- Helpers ---
@@ -73,29 +80,23 @@ export default function CustomVideoPlayer({ videoId }) {
     return `${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
-  const showToast = (text, icon, side) => {
+  const showToast = useCallback((text, icon, side) => {
     setToast({ show: true, text, icon, side });
-    // Clear existing toast timeout if necessary (simplified here)
-    setTimeout(() => setToast((prev) => ({ ...prev, show: false })), 800);
-  };
+    setTimeout(() => {
+      setToast((prev) => ({ ...prev, show: false }));
+    }, 800);
+  }, []);
 
-  // --- Control Visibility Logic ---
+  // --- Controls Logic ---
   const resetControlsTimeout = useCallback(() => {
     clearTimeout(controlsTimeoutRef.current);
     setShowControls(true);
-    
-    if (isPlaying) {
+    if (isPlaying && !isScrubbing) {
       controlsTimeoutRef.current = setTimeout(() => {
         setShowControls(false);
       }, 3000);
     }
-  }, [isPlaying]);
-
-  // Effect to handle control visibility when play state changes
-  useEffect(() => {
-    resetControlsTimeout();
-    return () => clearTimeout(controlsTimeoutRef.current);
-  }, [isPlaying, resetControlsTimeout]);
+  }, [isPlaying, isScrubbing]);
 
   const toggleControls = useCallback(() => {
     if (showControls) {
@@ -106,14 +107,18 @@ export default function CustomVideoPlayer({ videoId }) {
     }
   }, [showControls, resetControlsTimeout]);
 
-  // --- Player Initialization ---
+  // --- Player Setup ---
   useEffect(() => {
     let isMounted = true;
-    
+    setPlayerReady(false);
+
     loadYouTubeAPI().then((YT) => {
       if (!isMounted) return;
 
-      // Clean up previous instance
+      // Ensure container exists
+      if (!document.getElementById(`yt-player-${videoId}`)) return;
+
+      // Cleanup old player
       if (playerRef.current) {
         try { playerRef.current.destroy(); } catch (e) {}
       }
@@ -124,13 +129,13 @@ export default function CustomVideoPlayer({ videoId }) {
         height: "100%",
         playerVars: {
           autoplay: 0,
-          controls: 0,
+          controls: 0, // Hide native controls
           modestbranding: 1,
           rel: 0,
           showinfo: 0,
           iv_load_policy: 3,
           fs: 0,
-          playsinline: 1,
+          playsinline: 1, // Vital for iOS
           disablekb: 1,
         },
         events: {
@@ -139,19 +144,29 @@ export default function CustomVideoPlayer({ videoId }) {
             setPlayerReady(true);
             setVolume(event.target.getVolume());
             setIsMuted(event.target.isMuted());
-            setDuration(event.target.getDuration());
+            
+            // Poll for duration (YT API quirk)
+            const durationInterval = setInterval(() => {
+              const d = event.target.getDuration();
+              if (d > 0) {
+                setDuration(d);
+                clearInterval(durationInterval);
+              }
+            }, 500);
           },
           onStateChange: (event) => {
             if (!isMounted) return;
-            // Update state based on player events
-            // Note: We do NOT call resetControlsTimeout here directly to avoid loops
-            setIsPlaying(event.data === YT.PlayerState.PLAYING);
+            const playing = event.data === YT.PlayerState.PLAYING;
+            setIsPlaying(playing);
             
-            // Refetch duration if it was 0 initially
+            // Sync duration if needed
             const d = event.target.getDuration();
             if (d > 0) setDuration(d);
-          },
-        },
+
+            if (playing) resetControlsTimeout();
+            else setShowControls(true);
+          }
+        }
       });
     });
 
@@ -160,7 +175,7 @@ export default function CustomVideoPlayer({ videoId }) {
 
     return () => {
       isMounted = false;
-      cancelAnimationFrame(rafRef.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
       clearTimeout(controlsTimeoutRef.current);
       clearTimeout(tapTimeoutRef.current);
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
@@ -168,15 +183,15 @@ export default function CustomVideoPlayer({ videoId }) {
         try { playerRef.current.destroy(); } catch (e) {}
       }
     };
-  }, [videoId]); // ONLY depend on videoId
+  }, [videoId]); // Depend only on videoId
 
   // --- Progress Loop ---
   useEffect(() => {
-    if (!playerReady) return;
+    // Only update progress if playing and NOT scrubbing
+    if (!isPlaying || !playerReady || isScrubbing) return;
 
     const loop = () => {
-      // Only update progress from player if user isn't currently dragging the slider
-      if (!isScrubbing && playerRef.current && playerRef.current.getCurrentTime) {
+      if (playerRef.current && playerRef.current.getCurrentTime) {
         const curr = playerRef.current.getCurrentTime();
         const dur = duration || playerRef.current.getDuration() || 1;
         setProgress((curr / dur) * 100);
@@ -186,18 +201,18 @@ export default function CustomVideoPlayer({ videoId }) {
 
     rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [playerReady, duration, isScrubbing]);
+  }, [isPlaying, duration, playerReady, isScrubbing]);
 
   // --- Actions ---
-  const togglePlay = (e) => {
+  const togglePlay = useCallback((e) => {
     e?.stopPropagation();
     if (!playerRef.current) return;
     if (isPlaying) playerRef.current.pauseVideo();
     else playerRef.current.playVideo();
     resetControlsTimeout();
-  };
+  }, [isPlaying, resetControlsTimeout]);
 
-  // 1. User drags slider (update visual only)
+  // 1. Seek Change (Visual Update while dragging)
   const handleSeekChange = (e) => {
     e.stopPropagation();
     const val = parseFloat(e.target.value);
@@ -205,14 +220,14 @@ export default function CustomVideoPlayer({ videoId }) {
     resetControlsTimeout();
   };
 
-  // 2. User starts dragging (pause updates)
+  // 2. Seek Start (Pause updates)
   const handleSeekStart = () => {
     setIsScrubbing(true);
   };
 
-  // 3. User releases slider (commit seek)
+  // 3. Seek End (Commit change)
   const handleSeekCommit = (e) => {
-    const val = parseFloat(e.target.value);
+    const val = parseFloat(e.target.value); // Use event value, robust
     const time = (val / 100) * duration;
     if (playerRef.current) {
       playerRef.current.seekTo(time, true);
@@ -221,11 +236,12 @@ export default function CustomVideoPlayer({ videoId }) {
     resetControlsTimeout();
   };
 
-  const seekRelative = (seconds) => {
+  const seekRelative = useCallback((seconds) => {
     if (!playerRef.current) return;
     const curr = playerRef.current.getCurrentTime();
     playerRef.current.seekTo(curr + seconds, true);
-  };
+    resetControlsTimeout();
+  }, [resetControlsTimeout]);
 
   const toggleMute = (e) => {
     e.stopPropagation();
@@ -272,30 +288,36 @@ export default function CustomVideoPlayer({ videoId }) {
     resetControlsTimeout();
   };
 
-  // --- Mobile Gestures ---
+  // --- Gesture Handler (Robust Click Logic) ---
   const handleGestureClick = (e) => {
+    // Basic safety
     if (!playerReady) return;
 
+    // Get click X position relative to container width
     const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
+    const clientX = e.clientX; // Mouse/Touch click coordinate
+    const x = clientX - rect.left;
     const width = rect.width;
     const percentage = x / width;
+
     const now = Date.now();
     const DOUBLE_TAP_DELAY = 300;
-
+    
     if (now - lastTapTimeRef.current < DOUBLE_TAP_DELAY) {
       // === DOUBLE TAP ===
       clearTimeout(tapTimeoutRef.current);
-      lastTapTimeRef.current = 0; // Reset so triple tap doesn't trigger weirdly
+      lastTapTimeRef.current = 0; // Reset
 
       if (percentage < 0.35) {
+        // Left 35%: Rewind
         seekRelative(-10);
         showToast("-10s", <RotateCcw className="w-5 h-5" />, "left");
       } else if (percentage > 0.65) {
+        // Right 35%: Forward
         seekRelative(10);
         showToast("+10s", <RotateCw className="w-5 h-5" />, "right");
       } else {
-        // Double tap center - strictly toggle play or zoom (depending on preference, keeping play here)
+        // Center 30%: Toggle Play (Force)
         togglePlay();
         showToast(isPlaying ? "Pause" : "Play", isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />, "center");
       }
@@ -304,12 +326,12 @@ export default function CustomVideoPlayer({ videoId }) {
       lastTapTimeRef.current = now;
       
       tapTimeoutRef.current = setTimeout(() => {
-        // Determine action based on zone
+        // Determine action based on zone and current visibility
         if (percentage > 0.35 && percentage < 0.65) {
            // Center single tap: Toggle Play
            togglePlay();
         } else {
-           // Side single tap: Toggle UI
+           // Side single tap: Toggle Controls
            toggleControls();
         }
       }, DOUBLE_TAP_DELAY);
@@ -319,37 +341,31 @@ export default function CustomVideoPlayer({ videoId }) {
   return (
     <div
       ref={containerRef}
-      className="relative w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10 select-none group touch-none"
-      onKeyDown={(e) => {
-        if (e.key === " " || e.key === "Enter") {
-          e.preventDefault();
-          togglePlay();
-        }
-      }}
+      className="relative w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10 select-none group touch-none" // touch-none prevents browser handling touch
       tabIndex={0}
       aria-label="Video Player"
-      onMouseMove={() => playerReady && resetControlsTimeout()}
+      onMouseMove={() => playerReady && resetControlsTimeout()} // Desktop: wake on mouse move
       onMouseLeave={() => isPlaying && setShowControls(false)}
     >
-      {/* 1. YouTube Iframe */}
+      {/* 1. YouTube Iframe (Background, Non-interactive) */}
       <div className="absolute inset-0 pointer-events-none">
         <div id={`yt-player-${videoId}`} className="w-full h-full" />
       </div>
 
       {/* 2. Loading Spinner */}
       {!playerReady && (
-        <div className="absolute inset-0 z-0 flex items-center justify-center bg-black/20">
+        <div className="absolute inset-0 z-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin" />
         </div>
       )}
 
-      {/* 3. Gesture Layer */}
+      {/* 3. Gesture Layer (Captures ALL clicks) */}
       <div 
         className="absolute inset-0 z-10 cursor-pointer"
         onClick={handleGestureClick}
       />
 
-      {/* 4. Toasts */}
+      {/* 4. Toasts (Visual Feedback) */}
       {toast.show && (
         <div className={`absolute top-1/2 -translate-y-1/2 z-40 flex flex-col items-center justify-center pointer-events-none animate-in fade-in zoom-in duration-200
           ${toast.side === 'left' ? 'left-1/4' : toast.side === 'right' ? 'right-1/4' : 'left-1/2 -translate-x-1/2'}`}>
@@ -360,61 +376,62 @@ export default function CustomVideoPlayer({ videoId }) {
         </div>
       )}
 
-      {/* 5. Controls UI */}
+      {/* 5. Controls UI Layer */}
       <div className={`absolute inset-0 flex flex-col justify-between z-20 pointer-events-none transition-opacity duration-300 ${showControls || !isPlaying ? 'opacity-100' : 'opacity-0'}`}>
         
         {/* Top Bar */}
         <div className="p-4 flex justify-end">
           <div className="bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-2 pointer-events-auto">
             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-            <span className="text-white text-xs font-medium">LIVE</span>
+            <Image src="/images/logo-symbol.webp" alt="Logo" width={16} height={16} className="w-4 h-4 opacity-90" />
           </div>
         </div>
 
-        {/* Big Play Button (Center) */}
+        {/* Center Play Button Visual (Icon Only) */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           {!isPlaying && playerReady && (
-            <div className="w-16 h-16 bg-yellow-500/90 backdrop-blur-md rounded-full flex items-center justify-center text-white shadow-xl scale-100">
+            <div className="w-16 h-16 bg-yellow-500/90 backdrop-blur-md rounded-full flex items-center justify-center text-white shadow-xl scale-100 transition-transform">
               <Play className="w-6 h-6 fill-current ml-1" />
             </div>
           )}
         </div>
 
         {/* Bottom Bar */}
-        <div className="bg-gradient-to-t from-black/90 via-black/50 to-transparent px-4 pb-4 pt-12 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
-          
+        <div 
+          className="bg-gradient-to-t from-black/90 via-black/60 to-transparent px-4 pb-4 pt-12 pointer-events-auto"
+          onClick={(e) => e.stopPropagation()} // Stop click propagating to gesture layer
+        >
           {/* Progress Bar */}
           <div className="relative h-6 flex items-center group/progress cursor-pointer">
             <div className="absolute inset-0 flex items-center">
-               <div className="relative w-full h-1 bg-white/20 rounded-full overflow-hidden">
+               <div className="relative w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
                  <div 
-                   className="absolute left-0 top-0 bottom-0 bg-yellow-500 transition-all duration-100 ease-linear"
+                   className="absolute left-0 top-0 bottom-0 bg-yellow-500 transition-all duration-75 ease-linear"
                    style={{ width: `${clamp(progress, 0, 100)}%` }}
                  />
                </div>
             </div>
-            
+            {/* Input range for dragging */}
             <input 
               type="range"
               min="0"
               max="100"
               step="0.1"
               value={clamp(progress, 0, 100)}
-              onChange={handleSeekChange} // Visual update
-              onTouchStart={handleSeekStart} // Pause loop
-              onTouchEnd={handleSeekCommit} // Commit seek
-              onMouseDown={handleSeekStart} // Pause loop
-              onMouseUp={handleSeekCommit} // Commit seek
+              onChange={handleSeekChange}
+              onTouchStart={handleSeekStart}
+              onTouchEnd={handleSeekCommit}
+              onMouseDown={handleSeekStart}
+              onMouseUp={handleSeekCommit}
               className="absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer"
             />
-            
+            {/* Knob Visual */}
             <div 
-              className="absolute h-3 w-3 bg-white rounded-full shadow-lg pointer-events-none transition-all duration-100 ease-linear group-hover/progress:scale-125"
+              className="absolute h-4 w-4 bg-white rounded-full shadow-lg pointer-events-none transition-all duration-75 ease-linear group-hover/progress:scale-110"
               style={{ left: `${clamp(progress, 0, 100)}%`, transform: 'translateX(-50%)' }}
             />
           </div>
 
-          {/* Controls Row */}
           <div className="flex items-center justify-between mt-1">
             <div className="flex items-center gap-4">
               <button 
@@ -428,7 +445,7 @@ export default function CustomVideoPlayer({ videoId }) {
                 <button onClick={toggleMute} className="text-white hover:text-yellow-500 p-2 rounded-full hover:bg-white/10">
                   {isMuted || volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
                 </button>
-                <div className="w-0 overflow-hidden md:group-hover/vol:w-20 transition-all duration-300">
+                <div className="hidden md:block w-20">
                   <input 
                     type="range"
                     min="0"
