@@ -119,9 +119,9 @@ return (
                             src="/fallback.webp" // As requested
                             alt=""
                             fill
-                            className="object-cover opacity-50 mix-blend-overlay scale-120 saturate-0"
+                            className="object-cover opacity-45 mix-blend-overlay scale-110 saturate-0"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-dark via-brand-brown-dark/80 to-transparent"></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-dark via-brand-brown-dark/90 to-transparent"></div>
                     </div>
 
                     {/* Ambient Glow */}
