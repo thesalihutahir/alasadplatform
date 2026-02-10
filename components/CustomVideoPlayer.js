@@ -15,7 +15,8 @@ import {
   RotateCw,
 } from "lucide-react";
 
-// --- Singleton API Loader ---
+// --- 1. Singleton API Loader ---
+// Ensures the YouTube API script is loaded exactly once and handles race conditions.
 let apiPromise = null;
 const loadYouTubeAPI = () => {
   if (apiPromise) return apiPromise;
@@ -26,14 +27,15 @@ const loadYouTubeAPI = () => {
       return;
     }
 
-    const prev = window.onYouTubeIframeAPIReady;
+    // Capture existing callback if any
+    const existingCallback = window.onYouTubeIframeAPIReady;
     window.onYouTubeIframeAPIReady = () => {
-      if (typeof prev === "function") prev();
+      if (existingCallback) existingCallback();
       resolve(window.YT);
     };
 
-    const existingScript = document.querySelector('script[src="https://www.youtube.com/iframe_api"]');
-    if (!existingScript) {
+    // Inject script if missing
+    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
       const tag = document.createElement("script");
       tag.src = "https://www.youtube.com/iframe_api";
       const firstScriptTag = document.getElementsByTagName("script")[0];
@@ -49,9 +51,9 @@ export default function CustomVideoPlayer({ videoId, thumbnail, title }) {
   const containerRef = useRef(null);
   const playerRef = useRef(null);
   const rafRef = useRef(null);
-  const controlsTimeoutRef = useRef(null);
   
   // Interaction Refs
+  const controlsTimeoutRef = useRef(null);
   const lastTapTimeRef = useRef(0);
   const tapTimeoutRef = useRef(null);
 
@@ -67,24 +69,21 @@ export default function CustomVideoPlayer({ videoId, thumbnail, title }) {
   const [toast, setToast] = useState({ show: false, text: "", icon: null, side: "center" });
 
   // --- Helpers ---
-  const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+  const clamp = (val, min, max) => Math.min(Math.max(val, min), max);
 
-  const formatTime = (time) => {
-    if (!time || Number.isNaN(time)) return "0:00";
-    const t = Math.max(0, time);
-    const minutes = Math.floor(t / 60);
-    const seconds = Math.floor(t % 60);
-    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+  const formatTime = (seconds) => {
+    if (!seconds || isNaN(seconds)) return "0:00";
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s < 10 ? "0" : ""}${s}`;
   };
 
-  const showToast = useCallback((text, icon, side) => {
+  const showToast = (text, icon, side) => {
     setToast({ show: true, text, icon, side });
-    setTimeout(() => {
-      setToast((prev) => ({ ...prev, show: false }));
-    }, 800);
-  }, []);
+    setTimeout(() => setToast((prev) => ({ ...prev, show: false })), 800);
+  };
 
-  // --- Controls Visibility Logic ---
+  // --- Logic: Controls Visibility ---
   const resetControlsTimeout = useCallback(() => {
     clearTimeout(controlsTimeoutRef.current);
     setShowControls(true);
@@ -104,7 +103,7 @@ export default function CustomVideoPlayer({ videoId, thumbnail, title }) {
     }
   }, [showControls, resetControlsTimeout]);
 
-  // --- Player Initialization ---
+  // --- Logic: Player Lifecycle ---
   useEffect(() => {
     let isMounted = true;
     setPlayerReady(false);
@@ -112,24 +111,24 @@ export default function CustomVideoPlayer({ videoId, thumbnail, title }) {
     loadYouTubeAPI().then((YT) => {
       if (!isMounted) return;
 
-      // Cleanup existing player if any
+      // Clean up previous instance if needed
       if (playerRef.current) {
         try { playerRef.current.destroy(); } catch (e) {}
       }
 
       playerRef.current = new YT.Player(`yt-player-${videoId}`, {
         videoId,
-        height: "100%",
         width: "100%",
+        height: "100%",
         playerVars: {
           autoplay: 0,
-          controls: 0,
+          controls: 0, // Hide native controls
           modestbranding: 1,
           rel: 0,
           showinfo: 0,
           iv_load_policy: 3,
           fs: 0,
-          playsinline: 1,
+          playsinline: 1, // Crucial for mobile
           disablekb: 1,
         },
         events: {
@@ -137,12 +136,12 @@ export default function CustomVideoPlayer({ videoId, thumbnail, title }) {
             if (!isMounted) return;
             setPlayerReady(true);
             
-            // Poll for duration
-            const durationInterval = setInterval(() => {
+            // Poll for duration (YT often returns 0 initially)
+            const dInterval = setInterval(() => {
               const d = event.target.getDuration();
               if (d > 0) {
                 setDuration(d);
-                clearInterval(durationInterval);
+                clearInterval(dInterval);
               }
             }, 500);
           },
@@ -152,8 +151,8 @@ export default function CustomVideoPlayer({ videoId, thumbnail, title }) {
             setIsPlaying(playing);
             if (playing) resetControlsTimeout();
             else setShowControls(true);
-          }
-        }
+          },
+        },
       });
     });
 
@@ -164,6 +163,7 @@ export default function CustomVideoPlayer({ videoId, thumbnail, title }) {
       isMounted = false;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       clearTimeout(controlsTimeoutRef.current);
+      clearTimeout(tapTimeoutRef.current);
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       if (playerRef.current) {
         try { playerRef.current.destroy(); } catch (e) {}
@@ -171,33 +171,33 @@ export default function CustomVideoPlayer({ videoId, thumbnail, title }) {
     };
   }, [videoId, resetControlsTimeout]);
 
-  // --- Progress Loop ---
+  // --- Logic: Progress Loop ---
   useEffect(() => {
     if (!isPlaying || !playerReady) return;
 
-    const update = () => {
+    const loop = () => {
       if (playerRef.current && playerRef.current.getCurrentTime) {
         const curr = playerRef.current.getCurrentTime();
         const dur = duration || playerRef.current.getDuration() || 1;
         setProgress((curr / dur) * 100);
       }
-      rafRef.current = requestAnimationFrame(update);
+      rafRef.current = requestAnimationFrame(loop);
     };
 
-    rafRef.current = requestAnimationFrame(update);
+    rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
   }, [isPlaying, duration, playerReady]);
 
   // --- Actions ---
-  const togglePlay = useCallback((e) => {
+  const togglePlay = (e) => {
     e?.stopPropagation();
     if (!playerRef.current) return;
     if (isPlaying) playerRef.current.pauseVideo();
     else playerRef.current.playVideo();
-  }, [isPlaying]);
+  };
 
   const handleSeek = (e) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Stop bubbling to gesture layer
     const val = parseFloat(e.target.value);
     const time = (val / 100) * duration;
     if (playerRef.current) {
@@ -207,17 +207,18 @@ export default function CustomVideoPlayer({ videoId, thumbnail, title }) {
     resetControlsTimeout();
   };
 
-  const seekRelative = useCallback((seconds) => {
+  const seekRelative = (seconds) => {
     if (!playerRef.current) return;
     const curr = playerRef.current.getCurrentTime();
     playerRef.current.seekTo(curr + seconds, true);
-  }, []);
+  };
 
   const toggleMute = (e) => {
     e.stopPropagation();
     if (!playerRef.current) return;
     if (isMuted) {
       playerRef.current.unMute();
+      // Ensure volume is audible when unmuting
       if (volume === 0) {
         playerRef.current.setVolume(50);
         setVolume(50);
@@ -229,59 +230,78 @@ export default function CustomVideoPlayer({ videoId, thumbnail, title }) {
     }
   };
 
-  const toggleFullscreen = (e) => {
+  const handleVolumeChange = (e) => {
     e.stopPropagation();
-    if (!document.fullscreenElement) {
-      containerRef.current?.requestFullscreen().catch(() => {});
-    } else {
-      document.exitFullscreen().catch(() => {});
+    const val = parseInt(e.target.value);
+    setVolume(val);
+    if (playerRef.current) {
+      playerRef.current.setVolume(val);
+      if (val === 0) {
+        playerRef.current.mute();
+        setIsMuted(true);
+      } else if (isMuted) {
+        playerRef.current.unMute();
+        setIsMuted(false);
+      }
     }
   };
 
-  // --- Unified Gesture Handler (Click-based) ---
-  const handleContainerClick = (e) => {
+  const toggleFullscreen = (e) => {
+    e.stopPropagation();
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().catch((err) => console.log(err));
+    } else {
+      document.exitFullscreen().catch((err) => console.log(err));
+    }
+  };
+
+  // --- Gesture Handler (The Fix for Mobile) ---
+  const handleGestureClick = (e) => {
+    // If player isn't ready, just try to show controls/loading state
     if (!playerReady) return;
+
+    // Get click X position relative to container width
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const width = rect.width;
+    const percentage = x / width;
 
     const now = Date.now();
     const DOUBLE_TAP_DELAY = 300;
-    const rect = containerRef.current.getBoundingClientRect();
     
-    // Calculate click position relative to video width
-    // Support touch events fallback just in case
-    const clientX = e.clientX || (e.touches && e.touches[0]?.clientX);
-    const x = clientX - rect.left;
-    const width = rect.width;
-    const clickZone = x / width; // 0.0 to 1.0
-
     if (now - lastTapTimeRef.current < DOUBLE_TAP_DELAY) {
-      // --- DOUBLE TAP DETECTED ---
+      // === DOUBLE TAP ===
       clearTimeout(tapTimeoutRef.current);
       lastTapTimeRef.current = 0; // Reset
 
-      if (clickZone < 0.35) {
+      if (percentage < 0.35) {
+        // Left 35%: Rewind
         seekRelative(-10);
-        showToast("-10s", <RotateCcw className="w-6 h-6" />, "left");
-      } else if (clickZone > 0.65) {
+        showToast("-10s", <RotateCcw className="w-5 h-5" />, "left");
+      } else if (percentage > 0.65) {
+        // Right 35%: Forward
         seekRelative(10);
-        showToast("+10s", <RotateCw className="w-6 h-6" />, "right");
+        showToast("+10s", <RotateCw className="w-5 h-5" />, "right");
       } else {
-        // Center double tap = Play/Pause
+        // Center 30%: Toggle Play (Force)
         togglePlay();
-        showToast(isPlaying ? "Pause" : "Play", isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />, "center");
+        showToast(isPlaying ? "Pause" : "Play", isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />, "center");
       }
+      resetControlsTimeout();
     } else {
-      // --- SINGLE TAP (Wait for potential double tap) ---
+      // === SINGLE TAP ===
       lastTapTimeRef.current = now;
+      
+      // Wait to see if it becomes a double tap
       tapTimeoutRef.current = setTimeout(() => {
-        // If single tap confirmed:
-        // Center zone -> Toggle Play
-        // Side zones -> Toggle Controls
-        if (clickZone > 0.3 && clickZone < 0.7) {
-           togglePlay();
-           // Also briefly show controls to give feedback
-           resetControlsTimeout();
+        if (percentage > 0.35 && percentage < 0.65) {
+            // Center tap: Toggle Play
+            togglePlay();
+            resetControlsTimeout();
         } else {
-           toggleControls();
+            // Side tap: Toggle Controls Visibility
+            toggleControls();
         }
       }, DOUBLE_TAP_DELAY);
     }
@@ -290,38 +310,50 @@ export default function CustomVideoPlayer({ videoId, thumbnail, title }) {
   return (
     <div
       ref={containerRef}
-      className="relative w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10 select-none group touch-none"
-      onClick={handleContainerClick}
-      onMouseMove={() => { if(playerReady) resetControlsTimeout(); }}
+      className="relative w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10 select-none group touch-none" // touch-none prevents scrolling on mobile
+      onKeyDown={(e) => {
+        if (e.key === " " || e.key === "Enter") {
+          e.preventDefault();
+          togglePlay();
+        }
+      }}
       tabIndex={0}
+      aria-label="Video Player"
+      onMouseMove={() => playerReady && resetControlsTimeout()} // Desktop: wake on mouse move
     >
-      {/* YouTube Iframe (Non-interactive layer) */}
+      {/* 1. YouTube Iframe (Background) */}
       <div className="absolute inset-0 pointer-events-none">
         <div id={`yt-player-${videoId}`} className="w-full h-full" />
       </div>
 
-      {/* Loading State */}
+      {/* 2. Loading Spinner */}
       {!playerReady && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+        <div className="absolute inset-0 z-0 flex items-center justify-center bg-black/20">
+          <div className="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin" />
         </div>
       )}
 
-      {/* Toast Feedback */}
+      {/* 3. Gesture Layer (Captures Taps) */}
+      <div 
+        className="absolute inset-0 z-10 cursor-pointer"
+        onClick={handleGestureClick}
+      />
+
+      {/* 4. Visual Toast Feedback */}
       {toast.show && (
-        <div className={`absolute top-1/2 -translate-y-1/2 z-30 flex flex-col items-center justify-center pointer-events-none animate-in fade-in zoom-in duration-200
+        <div className={`absolute top-1/2 -translate-y-1/2 z-40 flex flex-col items-center justify-center pointer-events-none animate-in fade-in zoom-in duration-200
           ${toast.side === 'left' ? 'left-1/4' : toast.side === 'right' ? 'right-1/4' : 'left-1/2 -translate-x-1/2'}`}>
-          <div className="w-14 h-14 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white mb-2">
+          <div className="w-12 h-12 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white mb-2 ring-1 ring-white/20">
             {toast.icon}
           </div>
-          <span className="text-white font-bold text-sm shadow-lg">{toast.text}</span>
+          <span className="text-white font-bold text-xs shadow-black drop-shadow-md">{toast.text}</span>
         </div>
       )}
 
-      {/* Controls Overlay */}
-      <div className={`absolute inset-0 flex flex-col justify-between z-20 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'} pointer-events-none`}>
+      {/* 5. Controls UI Layer */}
+      <div className={`absolute inset-0 flex flex-col justify-between z-20 pointer-events-none transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
         
-        {/* Top Bar */}
+        {/* Top Bar (Branding) */}
         <div className="p-4 flex justify-end">
           <div className="bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-2 pointer-events-auto">
             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
@@ -329,31 +361,29 @@ export default function CustomVideoPlayer({ videoId, thumbnail, title }) {
           </div>
         </div>
 
-        {/* Center Play Button Visual */}
-        <div className="absolute inset-0 flex items-center justify-center">
+        {/* Center Play Button (Visual Only) */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           {!isPlaying && (
-            <div className="w-16 h-16 bg-brand-gold/90 backdrop-blur-md rounded-full flex items-center justify-center text-white shadow-xl scale-100 hover:scale-110 transition-transform">
+            <div className="w-16 h-16 bg-brand-gold/90 backdrop-blur-md rounded-full flex items-center justify-center text-white shadow-xl scale-100">
               <Play className="w-6 h-6 fill-current ml-1" />
             </div>
           )}
         </div>
 
-        {/* Bottom Control Bar */}
-        <div 
-          className="bg-gradient-to-t from-black/90 via-black/60 to-transparent px-4 pb-4 pt-12 pointer-events-auto"
-          onClick={(e) => e.stopPropagation()} // Prevent closing on control clicks
-        >
+        {/* Bottom Bar */}
+        <div className="bg-gradient-to-t from-black/90 via-black/50 to-transparent px-4 pb-4 pt-12 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+          
           {/* Progress Bar */}
           <div className="relative h-6 flex items-center group/progress cursor-pointer">
             <div className="absolute inset-0 flex items-center">
-               <div className="relative w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
+               <div className="relative w-full h-1 bg-white/20 rounded-full overflow-hidden">
                  <div 
                    className="absolute left-0 top-0 bottom-0 bg-brand-gold transition-all duration-100 ease-linear"
                    style={{ width: `${clamp(progress, 0, 100)}%` }}
                  />
                </div>
             </div>
-            {/* Hit Area */}
+            {/* Input range for dragging */}
             <input 
               type="range"
               min="0"
@@ -363,47 +393,45 @@ export default function CustomVideoPlayer({ videoId, thumbnail, title }) {
               onChange={handleSeek}
               className="absolute inset-0 w-full h-full opacity-0 z-10 cursor-pointer"
             />
-            {/* Knob Visual */}
+            {/* Knob (Visible) */}
             <div 
-              className="absolute h-4 w-4 bg-white rounded-full shadow-lg pointer-events-none transition-all duration-100 ease-linear group-hover/progress:scale-110"
+              className="absolute h-3 w-3 bg-white rounded-full shadow-lg pointer-events-none transition-all duration-100 ease-linear group-hover/progress:scale-125"
               style={{ left: `${clamp(progress, 0, 100)}%`, transform: 'translateX(-50%)' }}
             />
           </div>
 
-          {/* Buttons Row */}
           <div className="flex items-center justify-between mt-1">
             <div className="flex items-center gap-4">
-              <button onClick={togglePlay} className="text-white hover:text-brand-gold transition-colors p-2 -ml-2 rounded-full hover:bg-white/10">
-                {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current" />}
+              <button 
+                onClick={togglePlay} 
+                className="text-white hover:text-brand-gold transition-colors p-2 -ml-2 rounded-full hover:bg-white/10"
+              >
+                {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current" />}
               </button>
 
               <div className="flex items-center gap-2 group/vol">
                 <button onClick={toggleMute} className="text-white hover:text-brand-gold p-2 rounded-full hover:bg-white/10">
                   {isMuted || volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
                 </button>
+                {/* Volume Slider (Desktop Only) */}
                 <div className="w-0 overflow-hidden md:group-hover/vol:w-20 transition-all duration-300">
                   <input 
                     type="range"
                     min="0"
                     max="100"
                     value={isMuted ? 0 : volume}
-                    onChange={(e) => {
-                      const v = parseInt(e.target.value);
-                      setVolume(v);
-                      playerRef.current?.setVolume(v);
-                      setIsMuted(v === 0);
-                    }}
+                    onChange={handleVolumeChange}
                     className="h-1 w-20 bg-white/30 rounded-lg appearance-none cursor-pointer"
                   />
                 </div>
               </div>
 
-              <span className="text-xs font-mono font-bold text-white/80">
-                {formatTime((progress / 100) * duration)} / {formatTime(duration)}
+              <span className="text-xs font-mono font-bold text-white/80 select-none">
+                {formatTime((clamp(progress, 0, 100) / 100) * duration)} / {formatTime(duration)}
               </span>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               <button className="text-white/70 hover:text-white p-2 rounded-full hover:bg-white/10">
                 <Settings className="w-5 h-5" />
               </button>
