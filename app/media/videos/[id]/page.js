@@ -7,6 +7,8 @@ import { useParams } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Loader from '@/components/Loader';
+// Imported Custom Player
+import CustomVideoPlayer from '@/components/CustomVideoPlayer';
 // Firebase
 import { db } from '@/lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
@@ -19,17 +21,15 @@ export default function WatchVideoPage() {
     const [nextVideo, setNextVideo] = useState(null); 
     const [loading, setLoading] = useState(true);
     
-    // Expand state for detail page related cards
     const [expandedIds, setExpandedIds] = useState(new Set());
 
-    // --- FETCH DATA ---
+    // --- FETCH DATA (UNCHANGED) ---
     useEffect(() => {
         const fetchVideoData = async () => {
             if (!id) return;
             setLoading(true);
 
             try {
-                // 1. Fetch Main Video
                 const docRef = doc(db, "videos", id);
                 const docSnap = await getDoc(docRef);
 
@@ -37,47 +37,26 @@ export default function WatchVideoPage() {
                     const videoData = { id: docSnap.id, ...docSnap.data() };
                     setVideo(videoData);
 
-                    // 2. Determine "Next" or "Related" Logic
                     const videosRef = collection(db, "videos");
                     let q;
 
                     if (videoData.playlist) {
-                        q = query(
-                            videosRef, 
-                            where("playlist", "==", videoData.playlist)
-                        );
-
+                        q = query(videosRef, where("playlist", "==", videoData.playlist));
                         const snap = await getDocs(q);
                         let playlistVideos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-                        // Sort Chronologically
                         playlistVideos.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-                        // Find current index
                         const currentIndex = playlistVideos.findIndex(v => v.id === id);
 
-                        // Determine Next Video
                         if (currentIndex !== -1 && currentIndex < playlistVideos.length - 1) {
                             setNextVideo(playlistVideos[currentIndex + 1]); 
                         } else {
                             setNextVideo(null); 
                         }
-
                         setRelatedVideos(playlistVideos.filter(v => v.id !== id).slice(0, 4));
-
                     } else {
-                        q = query(
-                            videosRef, 
-                            where("category", "==", videoData.category), 
-                            orderBy("createdAt", "desc"), 
-                            limit(5)
-                        );
-
+                        q = query(videosRef, where("category", "==", videoData.category), orderBy("createdAt", "desc"), limit(5));
                         const snap = await getDocs(q);
-                        const related = snap.docs
-                            .map(d => ({ id: d.id, ...d.data() }))
-                            .filter(v => v.id !== id);
-
+                        const related = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(v => v.id !== id);
                         setRelatedVideos(related);
                     }
                 }
@@ -87,11 +66,9 @@ export default function WatchVideoPage() {
                 setLoading(false);
             }
         };
-
         fetchVideoData();
     }, [id]);
 
-    // --- HELPERS ---
     const formatDate = (dateString) => {
         if (!dateString) return '';
         const date = new Date(dateString);
@@ -106,10 +83,7 @@ export default function WatchVideoPage() {
 
     const handleShare = () => {
         if (navigator.share) {
-            navigator.share({
-                title: video?.title,
-                url: window.location.href
-            }).catch(console.error);
+            navigator.share({ title: video?.title, url: window.location.href }).catch(console.error);
         } else {
             alert("Share URL copied to clipboard!");
             navigator.clipboard.writeText(window.location.href);
@@ -127,26 +101,8 @@ export default function WatchVideoPage() {
         });
     };
 
-    if (loading) return (
-        <div className="min-h-screen flex flex-col bg-white">
-            <Header />
-            <div className="flex-grow flex items-center justify-center">
-                <Loader size="lg" />
-            </div>
-            <Footer />
-        </div>
-    );
-
-    if (!video) return (
-        <div className="min-h-screen flex flex-col bg-white">
-            <Header />
-            <div className="flex-grow flex flex-col items-center justify-center text-center p-6">
-                <h2 className="text-2xl font-bold text-gray-400">Video Not Found</h2>
-                <Link href="/media/videos" className="mt-4 text-brand-gold hover:underline">Return to Library</Link>
-            </div>
-            <Footer />
-        </div>
-    );
+    if (loading) return <div className="min-h-screen flex flex-col bg-white"><Header /><div className="flex-grow flex items-center justify-center"><Loader size="lg" /></div><Footer /></div>;
+    if (!video) return <div className="min-h-screen flex flex-col bg-white"><Header /><div className="flex-grow flex flex-col items-center justify-center text-center p-6"><h2 className="text-2xl font-bold text-gray-400">Video Not Found</h2><Link href="/media/videos" className="mt-4 text-brand-gold hover:underline">Return to Library</Link></div><Footer /></div>;
 
     const dir = getDir(video.title);
 return (
@@ -155,27 +111,17 @@ return (
 
             <main className="flex-grow pb-24">
                 
-                {/* 1. HERO BACKGROUND SECTION (Top Half) */}
+                {/* 1. HERO BACKGROUND SECTION */}
                 <div className="relative w-full bg-brand-brown-dark pt-12 pb-32 lg:pb-48 px-4 overflow-hidden">
-                    {/* Ambient Blurred Thumbnail */}
-                    <div className="absolute inset-0 pointer-events-none opacity-30 mix-blend-soft-light">
-                        <Image 
-                            src={video.thumbnail || "/fallback.webp"} 
-                            alt="" 
-                            fill 
-                            className="object-cover blur-[80px] scale-110"
-                        />
-                    </div>
-                    
-                    {/* NEW: Overlay Picture (Futuristic Effect) */}
+                    {/* UPDATED: Fallback Overlay Image with Low Opacity */}
                     <div className="absolute inset-0 z-0">
                         <Image
-                            src={video.thumbnail || "/fallback.webp"}
+                            src="/fallback.webp" // As requested
                             alt=""
                             fill
-                            className="object-cover opacity-10 mix-blend-overlay scale-105"
+                            className="object-cover opacity-5 mix-blend-overlay scale-105 saturate-0"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-dark via-brand-brown-dark/50 to-transparent"></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-dark via-brand-brown-dark/80 to-transparent"></div>
                     </div>
 
                     {/* Ambient Glow */}
@@ -190,25 +136,22 @@ return (
                     </div>
                 </div>
 
-                {/* 2. OVERLAPPING PLAYER & CONTENT (Bottom Half) */}
+                {/* 2. OVERLAPPING PLAYER & CONTENT */}
                 <div className="max-w-[1600px] mx-auto px-4 md:px-8 lg:px-12 relative z-20 -mt-24 lg:-mt-40">
                     
-                    {/* A) THE PLAYER (Overlaps Boundary) */}
-                    <div className="w-full bg-black rounded-3xl overflow-hidden shadow-2xl aspect-video relative ring-1 ring-white/10 border border-white/5 mb-12">
-                        {/* UPDATE: controls=0 added */}
-                        <iframe 
-                            src={`https://www.youtube.com/embed/${video.videoId}?autoplay=1&rel=0&controls=0&modestbranding=1`} 
-                            title={video.title}
-                            className="absolute inset-0 w-full h-full"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                            allowFullScreen
-                        ></iframe>
+                    {/* A) CUSTOM PLAYER WRAPPER */}
+                    <div className="w-full mb-12">
+                        <CustomVideoPlayer 
+                            videoId={video.videoId} 
+                            thumbnail={video.thumbnail} 
+                            title={video.title} 
+                        />
                     </div>
 
                     {/* B) INFO & SIDEBAR GRID */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
                         
-                        {/* LEFT: VIDEO INFO (Subtle Card) */}
+                        {/* LEFT: VIDEO INFO */}
                         <div className="lg:col-span-8">
                             <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm" dir={dir}>
                                 {/* Control Strip */}
@@ -240,16 +183,17 @@ return (
                                     </div>
                                 </div>
 
-                                {/* Minimalist Title (Reduced Size 50%) */}
-                                <h1 className={`text-xl md:text-2xl font-bold text-brand-brown-dark mb-6 leading-tight ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
+                                {/* UPDATED: Reduced Title Size (50% smaller from 5xl -> 2xl/3xl) */}
+                                <h1 className={`text-xl md:text-3xl font-bold text-brand-brown-dark mb-6 leading-tight ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
                                     {video.title}
                                 </h1>
 
                                 {/* Description with Playlist Info */}
                                 <div className={`prose prose-sm md:prose-base max-w-none text-gray-600 leading-relaxed whitespace-pre-line ${dir === 'rtl' ? 'font-arabic text-right' : 'font-lato'}`}>
+                                    {/* UPDATED: Added Playlist name to meta description area */}
                                     {video.playlist && (
-                                        <p className="text-xs font-bold text-brand-gold mb-2 uppercase tracking-wide">
-                                            From Series: {video.playlist}
+                                        <p className="text-xs font-bold text-brand-gold mb-3 uppercase tracking-wide border-l-2 border-brand-gold pl-3">
+                                            Series: {video.playlist}
                                         </p>
                                     )}
                                     {video.description}
@@ -259,8 +203,7 @@ return (
 
                         {/* RIGHT: SIDEBAR */}
                         <div className="lg:col-span-4 space-y-8">
-                            
-                            {/* Up Next - Dark Glass Card */}
+                            {/* Up Next */}
                             {nextVideo && (
                                 <div className="bg-brand-brown-dark text-white p-6 rounded-3xl relative overflow-hidden shadow-xl ring-1 ring-white/10 group">
                                     <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
@@ -271,7 +214,6 @@ return (
                                         <p className="text-[10px] font-bold text-brand-gold uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                                             <Film className="w-3 h-3" /> Up Next
                                         </p>
-                                        
                                         <Link href={`/media/videos/${nextVideo.id}`} className="block group/link">
                                             <div className="relative w-full aspect-video rounded-2xl overflow-hidden mb-4 bg-black/40 border border-white/5 shadow-inner">
                                                 <Image 
@@ -285,13 +227,7 @@ return (
                                                         <Play className="w-5 h-5 fill-current ml-0.5" />
                                                     </div>
                                                 </div>
-                                                {nextVideo.duration && (
-                                                    <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-sm text-white text-[9px] font-bold px-2 py-0.5 rounded border border-white/10">
-                                                        {nextVideo.duration}
-                                                    </div>
-                                                )}
                                             </div>
-                                            
                                             <h3 className="text-white font-agency text-xl leading-snug line-clamp-2 mb-2 group-hover/link:text-brand-gold transition-colors">
                                                 {nextVideo.title}
                                             </h3>
@@ -301,12 +237,11 @@ return (
                                 </div>
                             )}
 
-                            {/* Related Videos List - Unchanged Logic, Subtle Style */}
+                            {/* Related Videos */}
                             <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm">
                                 <h3 className="font-agency text-xl text-brand-brown-dark mb-6 px-1 flex items-center gap-2">
                                     {video.playlist ? "Series Content" : "Related Videos"}
                                 </h3>
-
                                 <div className="flex flex-col gap-4">
                                     {relatedVideos.length > 0 ? (
                                         relatedVideos.map((rel) => {
@@ -317,7 +252,6 @@ return (
                                                     href={`/media/videos/${rel.id}`}
                                                     className="group relative flex items-start gap-3 p-2 rounded-2xl hover:bg-gray-50 transition-all duration-300"
                                                 >
-                                                    {/* Thumbnail (Rectangular, Zoomed) */}
                                                     <div className="relative w-28 aspect-video rounded-xl overflow-hidden bg-black flex-shrink-0 border border-gray-100 shadow-sm">
                                                         <Image 
                                                             src={rel.thumbnail || "/fallback.webp"} 
@@ -331,7 +265,6 @@ return (
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    
                                                     <div className="flex-grow min-w-0 py-0.5" dir={getDir(rel.title)}>
                                                         <div className="relative pr-6">
                                                             <h4 className={`text-sm font-bold text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors ${isExpanded ? '' : 'line-clamp-2'} ${getDir(rel.title) === 'rtl' ? 'font-tajawal' : 'font-lato'}`}>
@@ -350,9 +283,7 @@ return (
                                             );
                                         })
                                     ) : (
-                                        <div className="text-center text-gray-400 text-xs py-4">
-                                            No related videos found.
-                                        </div>
+                                        <div className="text-center text-gray-400 text-xs py-4">No related videos found.</div>
                                     )}
                                 </div>
                             </div>
