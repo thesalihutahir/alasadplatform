@@ -160,8 +160,8 @@ export default function WatchVideoPage() {
                 <div className="max-w-[1800px] mx-auto px-4 md:px-6 lg:px-8 relative">
                     
                     {/* Background Glow */}
-                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-gold/10 rounded-full blur-[150px] pointer-events-none -z-10"></div>
-                    <div className="absolute top-20 left-0 w-[300px] h-[300px] bg-brand-brown-dark/20 rounded-full blur-[100px] pointer-events-none -z-10"></div>
+                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-gold/70 rounded-full blur-[150px] pointer-events-none -z-10"></div>
+                    <div className="absolute top-20 left-0 w-[300px] h-[300px] bg-brand-brown-dark/70 rounded-full blur-[100px] pointer-events-none -z-10"></div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                         
@@ -169,12 +169,12 @@ export default function WatchVideoPage() {
                         <div className="lg:col-span-8 space-y-8">
                             
                             {/* Player Container */}
-                            <div className="relative w-full aspect-video rounded-[2rem] overflow-hidden shadow-2xl ring-1 ring-white/10 group">
+                            <div className="relative w-full aspect-video rounded-[2rem] overflow-hidden shadow-2xl ring-1 ring-white/30 group">
                                 <iframe 
                                     src={`https://www.youtube.com/embed/${video.videoId}?autoplay=1&rel=0`} 
                                     title={video.title}
                                     className="absolute inset-0 w-full h-full"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                    allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" 
                                     allowFullScreen
                                 ></iframe>
                             </div>
@@ -269,7 +269,7 @@ export default function WatchVideoPage() {
                             <div className="bg-white/5 border border-white/10 rounded-3xl p-5 backdrop-blur-sm">
                                 <div className="flex items-center justify-between mb-5 px-1">
                                     <h3 className="font-agency text-lg text-white">
-                                        {video.playlist ? "Series Content" : "Related Videos"}
+                                        {video.playlist ? "More From This Series" : "Related Videos"}
                                     </h3>
                                     <div className="flex gap-1">
                                         <div className="w-1 h-1 rounded-full bg-white/20"></div>
