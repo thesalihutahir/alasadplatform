@@ -115,16 +115,16 @@ export default function PlaylistsPage() {
                             </div>
                         </div>
 
-                        {/* 3. PLAYLIST GRID (Slim & Premium) */}
+                        {/* 3. PLAYLIST GRID (Slimmer & Smaller Cards) */}
                         {filteredPlaylists.length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+                            <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
                                 {filteredPlaylists.map((playlist) => (
                                     <Link 
                                         key={playlist.id} 
                                         href={`/media/videos/playlists/${playlist.id}`}
-                                        className="group flex flex-col bg-white rounded-2xl overflow-hidden border border-gray-100 hover:border-brand-gold/30 hover:shadow-xl hover:shadow-brand-sand/20 transition-all duration-500 h-full"
+                                        className="group flex flex-col bg-white rounded-[1.25rem] overflow-hidden border border-gray-100 hover:border-brand-gold/30 hover:shadow-lg hover:shadow-brand-sand/10 transition-all duration-300 h-full"
                                     >
-                                        {/* Image Area */}
+                                        {/* Image Area - Kept 16:10 but container restricts overall size */}
                                         <div className="relative aspect-[16/10] bg-gray-100 overflow-hidden border-b border-gray-50">
                                             <Image 
                                                 src={playlist.cover || "/fallback.webp"} 
@@ -133,34 +133,34 @@ export default function PlaylistsPage() {
                                                 className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700"
                                             />
                                             {/* Minimal Overlay */}
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
 
                                             {/* Category Pill */}
-                                            <div className="absolute top-3 left-3">
-                                                <span className="px-2 py-1 bg-black/50 backdrop-blur-md border border-white/10 rounded text-[9px] font-bold uppercase tracking-wider text-brand-gold">
+                                            <div className="absolute top-2 left-2">
+                                                <span className="px-1.5 py-0.5 bg-black/50 backdrop-blur-md border border-white/10 rounded text-[8px] font-bold uppercase tracking-wider text-brand-gold">
                                                     {playlist.category}
                                                 </span>
                                             </div>
 
                                             {/* Count Badge */}
-                                            <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1.5 border border-white/10">
-                                                <ListVideo className="w-3 h-3 text-brand-gold" /> 
+                                            <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white text-[9px] font-bold px-1.5 py-1 rounded flex items-center gap-1 border border-white/10">
+                                                <ListVideo className="w-2.5 h-2.5 text-brand-gold" /> 
                                                 {playlist.count}
                                             </div>
                                         </div>
 
-                                        {/* Content Area */}
-                                        <div className="p-5 flex flex-col flex-grow" dir={getDir(playlist.title)}>
-                                            <h3 className={`text-lg md:text-xl font-bold text-brand-brown-dark leading-snug group-hover:text-brand-gold transition-colors mb-4 line-clamp-2 ${getDir(playlist.title) === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
+                                        {/* Content Area - Reduced Padding and Font Sizes */}
+                                        <div className="p-3 md:p-4 flex flex-col flex-grow" dir={getDir(playlist.title)}>
+                                            <h3 className={`text-base md:text-lg font-bold text-brand-brown-dark leading-snug group-hover:text-brand-gold transition-colors mb-2 line-clamp-2 ${getDir(playlist.title) === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
                                                 {playlist.title}
                                             </h3>
 
                                             {/* Minimalist CTA */}
-                                            <div className="mt-auto pt-3 flex items-center justify-between border-t border-gray-50">
-                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest group-hover:text-brand-brown-dark transition-colors">
-                                                    {getDir(playlist.title) === 'rtl' ? 'عرض السلسلة' : 'View Series'}
+                                            <div className="mt-auto pt-2 flex items-center justify-between border-t border-gray-50">
+                                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest group-hover:text-brand-brown-dark transition-colors">
+                                                    {getDir(playlist.title) === 'rtl' ? 'عرض السلسلة' : 'View'}
                                                 </span>
-                                                <ArrowRight className={`w-4 h-4 text-gray-300 group-hover:text-brand-gold transition-colors duration-300 ${getDir(playlist.title) === 'rtl' ? 'rotate-180' : ''}`} />
+                                                <ArrowRight className={`w-3 h-3 text-gray-300 group-hover:text-brand-gold transition-colors duration-300 ${getDir(playlist.title) === 'rtl' ? 'rotate-180' : ''}`} />
                                             </div>
                                         </div>
                                     </Link>
