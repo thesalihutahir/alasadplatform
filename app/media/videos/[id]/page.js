@@ -105,7 +105,8 @@ export default function WatchVideoPage() {
     if (!video) return <div className="min-h-screen flex flex-col bg-white"><Header /><div className="flex-grow flex flex-col items-center justify-center text-center p-6"><h2 className="text-2xl font-bold text-gray-400">Video Not Found</h2><Link href="/media/videos" className="mt-4 text-brand-gold hover:underline">Return to Library</Link></div><Footer /></div>;
 
     const dir = getDir(video.title);
-return (
+
+    return (
         <div className="min-h-screen flex flex-col bg-[#FAFAFA] font-lato">
             <Header />
 
@@ -139,14 +140,53 @@ return (
                 {/* 2. OVERLAPPING PLAYER & CONTENT */}
                 <div className="max-w-[1200px] mx-auto px-4 md:px-8 lg:px-12 relative z-20 -mt-24 lg:-mt-40">
 
-                    {/* A) CUSTOM PLAYER WRAPPER */}
-                    {/* UPDATED: Further reduced desktop max-width (lg:max-w-[800px] xl:max-w-[900px]) */}
-                    <div className="w-full lg:max-w-[720px] xl:max-w-[854px] mx-auto mb-12">
-                        <CustomVideoPlayer 
-                            videoId={video.videoId} 
-                            thumbnail={video.thumbnail} 
-                            title={video.title} 
-                        />
+                    {/* A) TOP ROW: PLAYER & DESKTOP UP NEXT */}
+                    <div className={`grid grid-cols-1 ${nextVideo ? 'lg:grid-cols-12' : ''} gap-8 lg:gap-12 items-start mb-12`}>
+                        
+                        {/* CUSTOM PLAYER WRAPPER */}
+                        <div className={`w-full ${nextVideo ? 'lg:col-span-8' : 'lg:max-w-[854px] mx-auto'}`}>
+                            <CustomVideoPlayer 
+                                videoId={video.videoId} 
+                                thumbnail={video.thumbnail} 
+                                title={video.title} 
+                            />
+                        </div>
+
+                        {/* UP NEXT (Desktop Only - Side by side with player) */}
+                        {nextVideo && (
+                            <div className="hidden lg:block lg:col-span-4">
+                                <div className="bg-brand-brown-dark text-white p-6 rounded-3xl relative overflow-hidden shadow-xl ring-1 ring-white/10 group">
+                                    <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+                                        <Play className="w-24 h-24" />
+                                    </div>
+
+                                    <div className="relative z-10">
+                                        <p className="text-[10px] font-bold text-brand-gold uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                            <Film className="w-3 h-3" /> Up Next
+                                        </p>
+                                        <Link href={`/media/videos/${nextVideo.id}`} className="block group/link">
+                                            <div className="relative w-full aspect-video rounded-2xl overflow-hidden mb-4 bg-black/40 border border-white/5 shadow-inner">
+                                                <Image 
+                                                    src={nextVideo.thumbnail || "/fallback.webp"} 
+                                                    alt={nextVideo.title} 
+                                                    fill 
+                                                    className="object-cover opacity-80 group-hover/link:opacity-100 transition-opacity duration-500"
+                                                />
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 group-hover/link:bg-brand-gold group-hover/link:border-brand-gold group-hover/link:scale-110 transition-all duration-300 shadow-xl">
+                                                        <Play className="w-5 h-5 fill-current ml-0.5" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <h3 className="text-white font-agency text-xl md:text-2xl leading-snug line-clamp-2 mb-2 group-hover/link:text-brand-gold transition-colors">
+                                                {nextVideo.title}
+                                            </h3>
+                                            <p className="text-xs text-white/40 line-clamp-1">From Series: {nextVideo.playlist || video.category}</p>
+                                        </Link>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* B) INFO & SIDEBAR GRID */}
@@ -202,36 +242,39 @@ return (
 
                         {/* RIGHT: SIDEBAR */}
                         <div className="lg:col-span-4 space-y-8">
-                            {/* Up Next */}
+                            
+                            {/* Up Next (Mobile Only - Original position) */}
                             {nextVideo && (
-                                <div className="bg-brand-brown-dark text-white p-6 rounded-3xl relative overflow-hidden shadow-xl ring-1 ring-white/10 group">
-                                    <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
-                                        <Play className="w-24 h-24" />
-                                    </div>
+                                <div className="block lg:hidden">
+                                    <div className="bg-brand-brown-dark text-white p-6 rounded-3xl relative overflow-hidden shadow-xl ring-1 ring-white/10 group">
+                                        <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+                                            <Play className="w-24 h-24" />
+                                        </div>
 
-                                    <div className="relative z-10">
-                                        <p className="text-[10px] font-bold text-brand-gold uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                                            <Film className="w-3 h-3" /> Up Next
-                                        </p>
-                                        <Link href={`/media/videos/${nextVideo.id}`} className="block group/link">
-                                            <div className="relative w-full aspect-video rounded-2xl overflow-hidden mb-4 bg-black/40 border border-white/5 shadow-inner">
-                                                <Image 
-                                                    src={nextVideo.thumbnail || "/fallback.webp"} 
-                                                    alt={nextVideo.title} 
-                                                    fill 
-                                                    className="object-cover opacity-80 group-hover/link:opacity-100 transition-opacity duration-500"
-                                                />
-                                                <div className="absolute inset-0 flex items-center justify-center">
-                                                    <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 group-hover/link:bg-brand-gold group-hover/link:border-brand-gold group-hover/link:scale-110 transition-all duration-300 shadow-xl">
-                                                        <Play className="w-5 h-5 fill-current ml-0.5" />
+                                        <div className="relative z-10">
+                                            <p className="text-[10px] font-bold text-brand-gold uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                                <Film className="w-3 h-3" /> Up Next
+                                            </p>
+                                            <Link href={`/media/videos/${nextVideo.id}`} className="block group/link">
+                                                <div className="relative w-full aspect-video rounded-2xl overflow-hidden mb-4 bg-black/40 border border-white/5 shadow-inner">
+                                                    <Image 
+                                                        src={nextVideo.thumbnail || "/fallback.webp"} 
+                                                        alt={nextVideo.title} 
+                                                        fill 
+                                                        className="object-cover opacity-80 group-hover/link:opacity-100 transition-opacity duration-500"
+                                                    />
+                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                        <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 group-hover/link:bg-brand-gold group-hover/link:border-brand-gold group-hover/link:scale-110 transition-all duration-300 shadow-xl">
+                                                            <Play className="w-5 h-5 fill-current ml-0.5" />
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <h3 className="text-white font-agency text-xl leading-snug line-clamp-2 mb-2 group-hover/link:text-brand-gold transition-colors">
-                                                {nextVideo.title}
-                                            </h3>
-                                            <p className="text-xs text-white/40 line-clamp-1">From Series: {nextVideo.playlist || video.category}</p>
-                                        </Link>
+                                                <h3 className="text-white font-agency text-xl leading-snug line-clamp-2 mb-2 group-hover/link:text-brand-gold transition-colors">
+                                                    {nextVideo.title}
+                                                </h3>
+                                                <p className="text-xs text-white/40 line-clamp-1">From Series: {nextVideo.playlist || video.category}</p>
+                                            </Link>
+                                        </div>
                                     </div>
                                 </div>
                             )}
