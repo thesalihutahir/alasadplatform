@@ -140,7 +140,7 @@ export default function PlaylistViewPage() {
                             src={playlist.cover || "/fallback.webp"} 
                             alt="" 
                             fill 
-                            className="object-cover blur-[80px] scale-110"
+                            className="object-cover blur-[80px] scale-120"
                         />
                     </div>
                     {/* Subtle Overlay Picture */}
@@ -149,7 +149,7 @@ export default function PlaylistViewPage() {
                             src={playlist.cover || "/fallback.webp"}
                             alt=""
                             fill
-                            className="object-cover opacity-10 mix-blend-overlay scale-105 saturate-0"
+                            className="object-cover opacity-20 mix-blend-overlay scale-115 saturate-0"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-dark via-brand-brown-dark/50 to-transparent"></div>
                     </div>
@@ -197,7 +197,7 @@ export default function PlaylistViewPage() {
                                 </h1>
 
                                 <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mb-6 text-[10px] font-bold uppercase tracking-wider" dir="ltr">
-                                    <span className="bg-brand-brown-dark text-brand-gold px-3 py-1 rounded-md">
+                                    <span className="bg-brand-brown-dark text-white px-3 py-1 rounded-md">
                                         {playlist.category}
                                     </span>
                                     <span className="text-gray-500 flex items-center gap-1.5 bg-gray-50 px-3 py-1 rounded-md border border-gray-100">
