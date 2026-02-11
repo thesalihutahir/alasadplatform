@@ -120,9 +120,9 @@ export default function WatchVideoPage() {
                             src="/fallback.webp"
                             alt=""
                             fill
-                            className="object-cover opacity-45 mix-blend-overlay scale-110 saturate-0"
+                            className="object-cover opacity-60 mix-blend-overlay scale-110 saturate-0"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-dark via-brand-brown-dark/90 to-transparent"></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-brand-gold via-brand-gold/90 to-transparent"></div>
                     </div>
 
                     {/* Ambient Glow */}
