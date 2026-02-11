@@ -31,6 +31,24 @@ const getDir = (text) => {
     return arabicPattern.test(text) ? 'rtl' : 'ltr';
 };
 
+// --- FIX: File size helpers (more reliable than HEAD on Firebase downloadURLs) ---
+const formatBytes = (bytes) => {
+    if (!bytes || isNaN(bytes)) return '';
+    const mb = bytes / (1024 * 1024);
+    if (mb >= 1) return `${mb.toFixed(1)} MB`;
+    const kb = bytes / 1024;
+    return `${kb.toFixed(0)} KB`;
+};
+
+const parseTotalBytesFromContentRange = (contentRange) => {
+    // Expected: "bytes 0-0/12345678"
+    if (!contentRange) return null;
+    const match = contentRange.match(/\/(\d+)$/);
+    if (!match) return null;
+    const total = parseInt(match[1], 10);
+    return Number.isFinite(total) ? total : null;
+};
+
 // --- COMPONENT: Social Share (Updated for Native Share) ---
 const SocialShare = ({ title }) => {
     const [copied, setCopied] = useState(false);
@@ -113,7 +131,8 @@ const CommentsSection = ({ postId, isArabic }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        const q = query(collection(db, "podcasts", postId, "comments"), orderBy("createdAt", "desc"));
+        // FIX: Order by createdAtClient so new comments show instantly and reliably
+        const q = query(collection(db, "podcasts", postId, "comments"), orderBy("createdAtClient", "desc"));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             setComments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         });
@@ -125,10 +144,12 @@ const CommentsSection = ({ postId, isArabic }) => {
         if (!newComment.trim() || !authorName.trim()) return;
         setIsSubmitting(true);
         try {
+            // FIX: Add createdAtClient for immediate ordering, keep serverTimestamp too
             await addDoc(collection(db, "podcasts", postId, "comments"), { 
                 text: newComment, 
                 author: authorName, 
-                createdAt: serverTimestamp() 
+                createdAt: serverTimestamp(),
+                createdAtClient: Date.now()
             });
             setNewComment('');
         } catch (error) { console.error("Error posting comment:", error); } 
@@ -207,7 +228,7 @@ export default function PodcastPlayPage() {
     const [playlistId, setPlaylistId] = useState(null); 
     const [loading, setLoading] = useState(true);
     const [fileSize, setFileSize] = useState(''); // Holds computed audio file size
-    
+
     const [expandedIds, setExpandedIds] = useState(new Set());
 
     useEffect(() => {
@@ -222,16 +243,32 @@ export default function PodcastPlayPage() {
                     const data = docSnap.data();
                     setEpisode({ id: docSnap.id, ...data });
 
-                    // Fetch Audio file size seamlessly
+                    // FIX: Fetch Audio file size more reliably than HEAD (Firebase URLs often block/strip headers)
                     if (data.audioUrl) {
-                        fetch(data.audioUrl, { method: 'HEAD' })
-                            .then(res => {
-                                const size = res.headers.get('content-length');
-                                if (size) {
-                                    setFileSize((size / (1024 * 1024)).toFixed(1) + ' MB');
-                                }
-                            })
-                            .catch(() => { /* silent fallback */ });
+                        try {
+                            const rangeRes = await fetch(data.audioUrl, { method: 'GET', headers: { Range: 'bytes=0-0' } });
+                            const cr = rangeRes.headers.get('content-range');
+                            const totalBytes = parseTotalBytesFromContentRange(cr);
+                            if (totalBytes) {
+                                setFileSize(formatBytes(totalBytes));
+                            } else {
+                                // Fallback to HEAD attempt
+                                fetch(data.audioUrl, { method: 'HEAD' })
+                                    .then(res => {
+                                        const size = res.headers.get('content-length');
+                                        if (size) setFileSize(formatBytes(parseInt(size, 10)));
+                                    })
+                                    .catch(() => { /* silent fallback */ });
+                            }
+                        } catch {
+                            // Final fallback to HEAD attempt
+                            fetch(data.audioUrl, { method: 'HEAD' })
+                                .then(res => {
+                                    const size = res.headers.get('content-length');
+                                    if (size) setFileSize(formatBytes(parseInt(size, 10)));
+                                })
+                                .catch(() => { /* silent fallback */ });
+                        }
                     }
 
                     // 2. Increment Plays
@@ -340,8 +377,7 @@ export default function PodcastPlayPage() {
 
                 {/* 2. OVERLAPPING PLAYER & CONTENT */}
                 <div className="max-w-[1200px] mx-auto px-4 md:px-8 lg:px-12 relative z-20 -mt-24 lg:-mt-40">
-
-                    {/* A) TOP ROW: PLAYER & DESKTOP UP NEXT */}
+{/* A) TOP ROW: PLAYER & DESKTOP UP NEXT */}
                     <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-stretch mb-12">
                         <div className={`w-full ${nextEpisode ? 'lg:w-[65%]' : 'lg:max-w-[854px] mx-auto'}`}>
                             <CustomVideoPlayer 
@@ -393,7 +429,7 @@ export default function PodcastPlayPage() {
                         {/* LEFT: EPISODE INFO */}
                         <div className="lg:col-span-8">
                             <div className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-sm h-full" dir={dir}>
-                                
+
                                 {/* Control Strip */}
                                 <div className="flex items-center justify-between gap-2 mb-6 border-b border-gray-50 pb-6 overflow-x-auto scrollbar-hide whitespace-nowrap" dir="ltr">
                                     <div className="flex items-center gap-3">
@@ -402,7 +438,8 @@ export default function PodcastPlayPage() {
                                         </span>
                                         {episode.show && (
                                             playlistId ? (
-                                                <Link href={`/media/podcasts/playlists/${playlistId}`} className="hidden sm:flex items-center gap-2 text-brand-brown-dark/60 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-gray-50 hover:bg-gray-100 hover:text-brand-brown-dark transition-colors">
+                                                // FIX: show/series pill routes to /shows (not /playlists)
+                                                <Link href={`/media/podcasts/shows/${playlistId}`} className="hidden sm:flex items-center gap-2 text-brand-brown-dark/60 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-gray-50 hover:bg-gray-100 hover:text-brand-brown-dark transition-colors">
                                                     <ListMusic className="w-3 h-3" /> 
                                                     <span className="truncate max-w-[200px]" title={episode.show}>
                                                         {episode.show}
@@ -459,7 +496,6 @@ export default function PodcastPlayPage() {
                                         </button>
                                     </div>
                                 )}
-
                                 {/* Description */}
                                 <div className={`prose prose-sm md:prose-base max-w-none text-gray-600 leading-relaxed whitespace-pre-line ${dir === 'rtl' ? 'font-arabic text-right' : 'font-lato'}`}>
                                     {episode.show && (
