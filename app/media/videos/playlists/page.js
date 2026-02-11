@@ -9,7 +9,7 @@ import Loader from '@/components/Loader';
 // Firebase
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
-import { ListVideo, PlayCircle, Loader2, Layers } from 'lucide-react';
+import { ListVideo, PlayCircle, Loader2, Layers, ArrowRight, Search } from 'lucide-react';
 
 export default function PlaylistsPage() {
     const [playlists, setPlaylists] = useState([]);
@@ -62,133 +62,134 @@ export default function PlaylistsPage() {
         : playlists.filter(p => p.category === activeFilter);
 
     return (
-        <div className="min-h-screen flex flex-col bg-gray-50 font-lato">
+        <div className="min-h-screen flex flex-col bg-[#FAFAFA] font-lato text-brand-brown-dark">
             <Header />
 
-            <main className="flex-grow pb-20">
-                
-                {/* 1. HERO SECTION */}
-                <section className="w-full relative h-[40vh] md:h-[50vh] min-h-[350px] bg-brand-brown-dark overflow-hidden mb-12">
-                    <div className="absolute inset-0 opacity-30">
-                        <Image 
-                            src="/images/heroes/media-videos-hero.webp" 
-                            alt="Background" 
-                            fill 
-                            className="object-cover"
-                            priority
-                        />
-                    </div>
-                    {/* Gradient Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-dark via-brand-brown-dark/80 to-transparent"></div>
+            <main className="flex-grow pb-24">
 
-                    <div className="relative z-10 container mx-auto px-6 h-full flex flex-col items-center justify-center text-center">
-                        <div className="inline-flex items-center gap-2 bg-brand-gold/20 text-brand-gold px-4 py-1.5 rounded-full mb-6 border border-brand-gold/30 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4 duration-700">
-                            <Layers className="w-4 h-4" />
-                            <span className="text-xs font-bold uppercase tracking-widest">Series Collections</span>
+                {/* 1. COMPACT HERO BAND */}
+                <section className="relative h-[220px] w-full overflow-hidden bg-brand-brown-dark mb-12">
+                    <Image
+                        src="/images/heroes/media-videos-hero.webp" 
+                        alt="Playlists Archive"
+                        fill
+                        className="object-cover object-center opacity-20"
+                        priority
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-dark via-transparent to-transparent"></div>
+                    
+                    <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-6 z-10">
+                        {/* Subtle Loop Label */}
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-brand-gold text-[10px] font-bold uppercase tracking-widest mb-3 shadow-lg">
+                            <Layers className="w-3 h-3" /> Playlists
                         </div>
-                        <h1 className="font-agency text-5xl md:text-7xl text-white mb-4 drop-shadow-lg animate-in zoom-in-95 duration-700">
-                            Video Playlists
+                        <h1 className="font-agency text-4xl md:text-5xl text-white mb-2 leading-none">
+                            Series Collections
                         </h1>
-                        <div className="w-20 h-1 bg-brand-gold rounded-full mb-6"></div>
-                        <p className="text-gray-300 max-w-2xl mx-auto text-lg font-lato leading-relaxed px-4">
-                            Explore comprehensive collections of lectures, Tafsir, and seminars organized by topic and language.
+                        <p className="font-lato text-white/60 text-sm md:text-base max-w-xl">
+                            Curated lectures and seminars organized by topic.
                         </p>
                     </div>
                 </section>
 
                 {loading ? (
-                    <div className="flex justify-center py-20">
+                    <div className="flex justify-center items-center py-20">
                         <Loader size="md" />
                     </div>
                 ) : (
-                    <div className="container mx-auto px-4 md:px-12">
-                        
-                        {/* 2. FILTER BAR (Scrollable on Mobile) */}
-                        <div className="flex items-center justify-center mb-10">
-                            <div className="flex overflow-x-auto snap-x gap-3 pb-4 scrollbar-hide px-2 w-full md:w-auto md:justify-center">
+                    <div className="max-w-[1600px] mx-auto px-4 md:px-8 lg:px-12">
+
+                        {/* 2. REFINED FILTER BAR */}
+                        <div className="flex justify-center mb-10">
+                            <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide snap-x px-2">
                                 {filters.map((filter) => (
                                     <button
                                         key={filter}
                                         onClick={() => setActiveFilter(filter)}
-                                        className={`snap-center px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all duration-300 border ${
+                                        className={`snap-center px-5 py-2 rounded-lg text-xs md:text-sm font-bold whitespace-nowrap transition-all duration-300 flex items-center gap-2 ${
                                             activeFilter === filter
-                                            ? 'bg-brand-gold text-white border-brand-gold shadow-lg shadow-brand-gold/30 scale-105'
-                                            : 'bg-white text-gray-500 border-gray-200 hover:border-brand-gold hover:text-brand-gold'
+                                            ? 'bg-brand-brown-dark text-white shadow-md'
+                                            : 'bg-white border border-gray-100 text-gray-600 hover:bg-gray-50 hover:text-brand-brown-dark'
                                         }`}
                                     >
                                         {filter}
+                                        {activeFilter === filter && <div className="w-1.5 h-1.5 rounded-full bg-brand-gold hidden md:block"></div>}
                                     </button>
                                 ))}
                             </div>
                         </div>
 
-                        {/* 3. PLAYLIST GRID */}
+                        {/* 3. PLAYLIST GRID (Slimmer & Quieter) */}
                         {filteredPlaylists.length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-                                {filteredPlaylists.map((playlist) => (
-                                    <Link 
-                                        key={playlist.id} 
-                                        href={`/media/videos/playlists/${playlist.id}`}
-                                        className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-brand-brown/10 transition-all duration-500 hover:-translate-y-2 border border-gray-100 flex flex-col h-full"
-                                    >
-                                        {/* Image Area */}
-                                        <div className="relative aspect-[16/10] bg-gray-200 overflow-hidden">
-                                            <Image 
-                                                src={playlist.cover || "/fallback.webp"} 
-                                                alt={playlist.title} 
-                                                fill 
-                                                className="object-cover transition-transform duration-700 group-hover:scale-110"
-                                            />
-                                            {/* Hover Overlay */}
-                                            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-500 flex items-center justify-center">
-                                                <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-75 group-hover:scale-100 transition-all duration-500 border border-white/50">
-                                                    <PlayCircle className="w-8 h-8 text-white fill-current" />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
+                                {filteredPlaylists.map((playlist) => {
+                                    const dir = getDir(playlist.title);
+                                    return (
+                                        <Link 
+                                            key={playlist.id} 
+                                            href={`/media/videos/playlists/${playlist.id}`}
+                                            className="group bg-white rounded-3xl overflow-hidden border border-gray-100 hover:border-brand-gold/30 hover:shadow-lg hover:-translate-y-1 transition-all duration-500 flex flex-col h-full"
+                                        >
+                                            {/* Minimal Image Area */}
+                                            <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden border-b border-gray-50">
+                                                <Image 
+                                                    src={playlist.cover || "/fallback.webp"} 
+                                                    alt={playlist.title} 
+                                                    fill 
+                                                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                                                />
+                                                
+                                                {/* Very Subtle Hover Gradient (No big play button) */}
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
+
+                                                {/* Top Badges (Brand Colors Only) */}
+                                                <div className="absolute top-3 left-3">
+                                                    <span className="px-2 py-1 bg-white/90 backdrop-blur-sm text-brand-brown-dark text-[9px] font-bold uppercase rounded-md shadow-sm border border-white/20 tracking-wider">
+                                                        {playlist.category}
+                                                    </span>
+                                                </div>
+
+                                                {/* Count Badge (Bottom Right) */}
+                                                <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1.5 border border-white/10 shadow-sm">
+                                                    <ListVideo className="w-3 h-3 text-brand-gold" /> 
+                                                    {playlist.count}
                                                 </div>
                                             </div>
-                                            
-                                            {/* Top Badges */}
-                                            <div className="absolute top-3 left-3 flex gap-2">
-                                                <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase shadow-sm backdrop-blur-md border border-white/20 ${
-                                                    playlist.category === 'English' ? 'bg-blue-600/90 text-white' :
-                                                    playlist.category === 'Hausa' ? 'bg-green-600/90 text-white' : 
-                                                    'bg-brand-gold/90 text-white'
-                                                }`}>
-                                                    {playlist.category}
-                                                </span>
-                                            </div>
 
-                                            {/* Count Badge */}
-                                            <div className="absolute bottom-3 right-3 bg-black/80 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg border border-white/10">
-                                                <ListVideo className="w-3 h-3 text-brand-gold" /> 
-                                                {playlist.count} Videos
-                                            </div>
-                                        </div>
+                                            {/* Content Area */}
+                                            <div className="p-5 flex flex-col flex-grow" dir={dir}>
+                                                <h3 className={`text-lg md:text-xl font-bold text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors mb-4 line-clamp-2 ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
+                                                    {playlist.title}
+                                                </h3>
 
-                                        {/* Content Area */}
-                                        <div className="p-6 flex flex-col flex-grow" dir={getDir(playlist.title)}>
-                                            <h3 className={`text-xl font-bold text-brand-brown-dark leading-snug group-hover:text-brand-gold transition-colors mb-2 line-clamp-2 ${getDir(playlist.title) === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
-                                                {playlist.title}
-                                            </h3>
-                                            
-                                            <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between">
-                                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider group-hover:text-brand-brown transition-colors">
-                                                    {getDir(playlist.title) === 'rtl' ? 'مشاهدة السلسلة' : 'View Series'}
-                                                </span>
-                                                <div className={`w-8 h-8 rounded-full bg-brand-sand flex items-center justify-center text-brand-brown group-hover:bg-brand-gold group-hover:text-white transition-colors duration-300 ${getDir(playlist.title) === 'rtl' ? 'rotate-180' : ''}`}>
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                                                {/* Minimal CTA */}
+                                                <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-50">
+                                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest group-hover:text-brand-brown-dark transition-colors">
+                                                        {dir === 'rtl' ? 'مشاهدة السلسلة' : 'View Series'}
+                                                    </span>
+                                                    <div className={`text-gray-300 group-hover:text-brand-gold transition-colors duration-300 ${dir === 'rtl' ? 'rotate-180' : ''}`}>
+                                                        <ArrowRight className="w-4 h-4" />
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </Link>
-                                ))}
+                                        </Link>
+                                    );
+                                })}
                             </div>
                         ) : (
-                            <div className="text-center py-24 bg-white rounded-3xl border-2 border-dashed border-gray-200">
-                                <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <ListVideo className="w-10 h-10 text-gray-300" />
+                            /* Premium Empty State */
+                            <div className="flex flex-col items-center justify-center py-24 bg-white rounded-3xl border border-gray-100 shadow-sm text-center max-w-2xl mx-auto">
+                                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100">
+                                    <Search className="w-6 h-6 text-gray-300" />
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-400 font-agency">No Playlists Found</h3>
-                                <p className="text-gray-400 text-sm mt-2">Try selecting a different category.</p>
+                                <h3 className="font-agency text-2xl text-gray-500 mb-2">No Series Found</h3>
+                                <p className="text-sm text-gray-400 max-w-xs mx-auto">We couldn't find any playlists in the "{activeFilter}" category. Try selecting another filter.</p>
+                                <button 
+                                    onClick={() => setActiveFilter('All')}
+                                    className="mt-6 text-xs font-bold text-brand-gold hover:text-brand-brown-dark transition-colors uppercase tracking-widest"
+                                >
+                                    View All Playlists
+                                </button>
                             </div>
                         )}
                     </div>
