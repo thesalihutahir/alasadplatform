@@ -167,14 +167,17 @@ export default function PlaylistViewPage() {
 
                 {/* Overlapping Playlist Info Card */}
                 <div className="max-w-[1400px] lg:max-w-[1000px] xl:max-w-[1100px] mx-auto px-4 relative z-20 -mt-24 lg:-mt-24 mb-12">
-                    <div className="bg-white rounded-[2rem] shadow-2xl border border-gray-100 p-6 md:p-10 lg:p-12 relative overflow-hidden" dir={dir}>
-                        {/* Card Background Decoration */}
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-brand-sand/30 rounded-full blur-[80px] -z-10 pointer-events-none"></div>
+                    <div className="bg-white rounded-[2rem] shadow-2xl border border-gray-100 p-6 md:p-10 lg:p-12 relative overflow-hidden lg:overflow-visible" dir={dir}>
+                        
+                        {/* Card Background Decoration (Contained within border radius) */}
+                        <div className="absolute inset-0 overflow-hidden rounded-[2rem] pointer-events-none z-0">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-brand-sand/30 rounded-full blur-[80px]"></div>
+                        </div>
 
-                        <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 items-center lg:items-start">
+                        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center lg:items-start relative z-10">
                             
-                            {/* Playlist Cover (Landscape, Overlapping upwards) */}
-                            <div className="w-full sm:w-[400px] lg:w-[360px] xl:w-[400px] flex-shrink-0 lg:-mt-20">
+                            {/* Playlist Cover (Landscape, Overlapping upwards on Desktop) */}
+                            <div className="w-full sm:w-[400px] lg:w-[45%] xl:w-[48%] flex-shrink-0 lg:-mt-24">
                                 <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white border border-gray-100 bg-gray-50">
                                     <Image 
                                         src={playlist.cover || "/fallback.webp"} 
@@ -186,8 +189,8 @@ export default function PlaylistViewPage() {
                                 </div>
                             </div>
 
-                            {/* Details Stack */}
-                            <div className="flex-grow flex flex-col items-center lg:items-start text-center lg:text-left pt-2 lg:pt-0 w-full">
+                            {/* Details Stack (Dynamically aligns left/right based on language) */}
+                            <div className={`flex-grow flex flex-col items-center pt-2 lg:pt-0 w-full ${dir === 'rtl' ? 'lg:items-end text-center lg:text-right' : 'lg:items-start text-center lg:text-left'}`}>
                                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-brand-gold/20 bg-brand-gold/5 text-brand-gold text-[10px] font-bold uppercase tracking-widest mb-4">
                                     <Film className="w-3 h-3" /> Playlist
                                 </div>
@@ -196,7 +199,7 @@ export default function PlaylistViewPage() {
                                     {playlist.title}
                                 </h1>
 
-                                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mb-6 text-[10px] font-bold uppercase tracking-wider" dir="ltr">
+                                <div className={`flex flex-wrap items-center justify-center gap-3 mb-6 text-[10px] font-bold uppercase tracking-wider ${dir === 'rtl' ? 'lg:justify-end' : 'lg:justify-start'}`} dir="ltr">
                                     <span className="bg-brand-brown-dark text-white px-3 py-1 rounded-md">
                                         {playlist.category}
                                     </span>
@@ -205,7 +208,7 @@ export default function PlaylistViewPage() {
                                     </span>
                                 </div>
 
-                                <p className={`text-gray-600 text-sm md:text-base lg:text-base lg:max-w-2xl leading-relaxed mb-8 w-full ${getDir(playlist.description || "") === 'rtl' ? 'font-arabic lg:text-right' : 'font-lato lg:text-left'}`} dir={getDir(playlist.description || "")}>
+                                <p className={`text-gray-600 text-sm md:text-base lg:text-lg max-w-2xl leading-relaxed mb-8 w-full ${dir === 'rtl' ? 'font-arabic' : 'font-lato'}`} dir={getDir(playlist.description || "")}>
                                     {playlist.description || "Browse all episodes in this series below. Episodes are listed from newest to oldest."}
                                 </p>
 
