@@ -116,7 +116,7 @@ return (
                     {/* Fallback Overlay Image with Low Opacity */}
                     <div className="absolute inset-0 z-0">
                         <Image
-                            src="/fallback.webp" 
+                            src="/fallback.webp" // As requested
                             alt=""
                             fill
                             className="object-cover opacity-45 mix-blend-overlay scale-110 saturate-0"
@@ -140,8 +140,8 @@ return (
                 <div className="max-w-[1200px] mx-auto px-4 md:px-8 lg:px-12 relative z-20 -mt-24 lg:-mt-40">
 
                     {/* A) CUSTOM PLAYER WRAPPER */}
-                    {/* UPDATED: Added lg:max-w-[900px] xl:max-w-[1000px] mx-auto to restrict desktop size while keeping mobile w-full untouched */}
-                    <div className="w-full lg:max-w-[900px] xl:max-w-[1000px] mx-auto mb-12">
+                    {/* UPDATED: Further reduced desktop max-width (lg:max-w-[800px] xl:max-w-[900px]) */}
+                    <div className="w-full lg:max-w-[800px] xl:max-w-[900px] mx-auto mb-12">
                         <CustomVideoPlayer 
                             videoId={video.videoId} 
                             thumbnail={video.thumbnail} 
