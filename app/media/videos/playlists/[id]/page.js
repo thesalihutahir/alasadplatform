@@ -177,7 +177,8 @@ export default function PlaylistViewPage() {
                         <div className="flex flex-col gap-8 lg:gap-10 items-center relative z-10">
                             
                             {/* Playlist Cover (Landscape, Overlapping upwards) */}
-                            <div className="w-full sm:w-[400px] lg:w-[600px] flex-shrink-0 lg:-mt-32">
+                            {/* UPDATED: Removed lg:-mt-24 to keep the mobile -mt-24 overlap */}
+                            <div className="w-full sm:w-[400px] lg:w-[600px] flex-shrink-0 -mt-20 lg:-mt-32">
                                 <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white border border-gray-100 bg-gray-50">
                                     <Image 
                                         src={playlist.cover || "/fallback.webp"} 
@@ -190,7 +191,7 @@ export default function PlaylistViewPage() {
                             </div>
 
                             {/* Details Stack */}
-                            <div className="flex-grow flex flex-col items-center text-center pt-2 lg:pt-0 w-full max-w-3xl">
+                            <div className="flex-grow flex flex-col items-center text-center pt-2 w-full max-w-3xl">
                                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-brand-gold/20 bg-brand-gold/5 text-brand-gold text-[10px] font-bold uppercase tracking-widest mb-4">
                                     <Film className="w-3 h-3" /> Playlist
                                 </div>
@@ -208,7 +209,8 @@ export default function PlaylistViewPage() {
                                     </span>
                                 </div>
 
-                                <p className={`text-gray-600 text-sm md:text-base lg:text-lg max-w-2xl leading-relaxed mb-8 w-full ${getDir(playlist.description || "") === 'rtl' ? 'font-arabic text-right' : 'font-lato text-left'}`} dir={getDir(playlist.description || "")}>
+                                {/* UPDATED: Adjusted mobile text alignment (lg:text-center forces desktop to center) */}
+                                <p className={`text-gray-600 text-sm md:text-base lg:text-lg max-w-2xl leading-relaxed mb-8 w-full lg:text-center ${getDir(playlist.description || "") === 'rtl' ? 'font-arabic text-right' : 'font-lato text-left'}`} dir={getDir(playlist.description || "")}>
                                     {playlist.description || "Browse all episodes in this series below. Episodes are listed from newest to oldest."}
                                 </p>
 
