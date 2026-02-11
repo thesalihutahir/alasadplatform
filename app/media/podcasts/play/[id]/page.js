@@ -13,6 +13,9 @@ import CustomVideoPlayer from '@/components/CustomVideoPlayer';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, increment, collection, query, where, orderBy, limit, getDocs, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 
+// FIX: Use Storage metadata for file size (reliable with Firebase downloadURL)
+import { getStorage, ref as storageRef, getMetadata } from 'firebase/storage';
+
 import { 
     Play, Calendar, Clock, Download, Share2, Heart, 
     MessageCircle, Send, Check, ArrowLeft, Mic, ListMusic, Headphones, ChevronUp, ChevronDown 
@@ -40,13 +43,21 @@ const formatBytes = (bytes) => {
     return `${kb.toFixed(0)} KB`;
 };
 
-const parseTotalBytesFromContentRange = (contentRange) => {
-    // Expected: "bytes 0-0/12345678"
-    if (!contentRange) return null;
-    const match = contentRange.match(/\/(\d+)$/);
-    if (!match) return null;
-    const total = parseInt(match[1], 10);
-    return Number.isFinite(total) ? total : null;
+const parseStoragePathFromFirebaseDownloadUrl = (url) => {
+    // Typical format:
+    // https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<ENCODED_PATH>?alt=media&token=...
+    if (!url) return null;
+    const marker = '/o/';
+    const i = url.indexOf(marker);
+    if (i === -1) return null;
+    const after = url.substring(i + marker.length);
+    const encodedPath = after.split('?')[0];
+    if (!encodedPath) return null;
+    try {
+        return decodeURIComponent(encodedPath);
+    } catch {
+        return null;
+    }
 };
 
 // --- COMPONENT: Social Share (Updated for Native Share) ---
@@ -88,7 +99,6 @@ const SocialShare = ({ title }) => {
         </button>
     );
 };
-
 // --- COMPONENT: Like Button ---
 const LikeButton = ({ postId, initialLikes }) => {
     const [likes, setLikes] = useState(initialLikes || 0);
@@ -243,31 +253,20 @@ export default function PodcastPlayPage() {
                     const data = docSnap.data();
                     setEpisode({ id: docSnap.id, ...data });
 
-                    // FIX: Fetch Audio file size more reliably than HEAD (Firebase URLs often block/strip headers)
+                    // FIX: Get audio file size via Firebase Storage metadata (reliable)
                     if (data.audioUrl) {
                         try {
-                            const rangeRes = await fetch(data.audioUrl, { method: 'GET', headers: { Range: 'bytes=0-0' } });
-                            const cr = rangeRes.headers.get('content-range');
-                            const totalBytes = parseTotalBytesFromContentRange(cr);
-                            if (totalBytes) {
-                                setFileSize(formatBytes(totalBytes));
-                            } else {
-                                // Fallback to HEAD attempt
-                                fetch(data.audioUrl, { method: 'HEAD' })
-                                    .then(res => {
-                                        const size = res.headers.get('content-length');
-                                        if (size) setFileSize(formatBytes(parseInt(size, 10)));
-                                    })
-                                    .catch(() => { /* silent fallback */ });
+                            const storagePath = parseStoragePathFromFirebaseDownloadUrl(data.audioUrl);
+                            if (storagePath) {
+                                const storage = getStorage();
+                                const fileRef = storageRef(storage, storagePath);
+                                const meta = await getMetadata(fileRef);
+                                if (meta && typeof meta.size === 'number') {
+                                    setFileSize(formatBytes(meta.size));
+                                }
                             }
                         } catch {
-                            // Final fallback to HEAD attempt
-                            fetch(data.audioUrl, { method: 'HEAD' })
-                                .then(res => {
-                                    const size = res.headers.get('content-length');
-                                    if (size) setFileSize(formatBytes(parseInt(size, 10)));
-                                })
-                                .catch(() => { /* silent fallback */ });
+                            // silent fallback
                         }
                     }
 
@@ -279,9 +278,9 @@ export default function PodcastPlayPage() {
                     let q;
 
                     if (data.show) {
-                        // NEW: Fetch the podcast playlist's document ID to make the link clickable
+                        // FIX: Query correct collection (podcast_shows), so playlistId is set and link renders
                         try {
-                            const plQ = query(collection(db, "podcast_playlists"), where("title", "==", data.show), limit(1));
+                            const plQ = query(collection(db, "podcast_shows"), where("title", "==", data.show), limit(1));
                             const plSnap = await getDocs(plQ);
                             if (!plSnap.empty) {
                                 setPlaylistId(plSnap.docs[0].id);
@@ -438,7 +437,7 @@ export default function PodcastPlayPage() {
                                         </span>
                                         {episode.show && (
                                             playlistId ? (
-                                                // FIX: show/series pill routes to /shows (not /playlists)
+                                                // FIX: show/series pill routes to /shows
                                                 <Link href={`/media/podcasts/shows/${playlistId}`} className="hidden sm:flex items-center gap-2 text-brand-brown-dark/60 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-gray-50 hover:bg-gray-100 hover:text-brand-brown-dark transition-colors">
                                                     <ListMusic className="w-3 h-3" /> 
                                                     <span className="truncate max-w-[200px]" title={episode.show}>
