@@ -19,11 +19,12 @@ export default function WatchVideoPage() {
     const [video, setVideo] = useState(null);
     const [relatedVideos, setRelatedVideos] = useState([]);
     const [nextVideo, setNextVideo] = useState(null); 
+    const [playlistId, setPlaylistId] = useState(null); // Added state to hold the playlist ID
     const [loading, setLoading] = useState(true);
 
     const [expandedIds, setExpandedIds] = useState(new Set());
 
-    // --- FETCH DATA (UNCHANGED) ---
+    // --- FETCH DATA ---
     useEffect(() => {
         const fetchVideoData = async () => {
             if (!id) return;
@@ -41,6 +42,19 @@ export default function WatchVideoPage() {
                     let q;
 
                     if (videoData.playlist) {
+                        // NEW: Fetch the playlist's document ID to make the link clickable
+                        try {
+                            const plQ = query(collection(db, "video_playlists"), where("title", "==", videoData.playlist), limit(1));
+                            const plSnap = await getDocs(plQ);
+                            if (!plSnap.empty) {
+                                setPlaylistId(plSnap.docs[0].id);
+                            } else if (videoData.playlistId) {
+                                setPlaylistId(videoData.playlistId); // Fallback if saved on video
+                            }
+                        } catch (e) {
+                            console.error("Error fetching playlist ID:", e);
+                        }
+
                         q = query(videosRef, where("playlist", "==", videoData.playlist));
                         const snap = await getDocs(q);
                         let playlistVideos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -105,7 +119,6 @@ export default function WatchVideoPage() {
     if (!video) return <div className="min-h-screen flex flex-col bg-white"><Header /><div className="flex-grow flex flex-col items-center justify-center text-center p-6"><h2 className="text-2xl font-bold text-gray-400">Video Not Found</h2><Link href="/media/videos" className="mt-4 text-brand-gold hover:underline">Return to Library</Link></div><Footer /></div>;
 
     const dir = getDir(video.title);
-
     return (
         <div className="min-h-screen flex flex-col bg-[#FAFAFA] font-lato">
             <Header />
@@ -141,9 +154,8 @@ export default function WatchVideoPage() {
                 <div className="max-w-[1200px] mx-auto px-4 md:px-8 lg:px-12 relative z-20 -mt-24 lg:-mt-40">
 
                     {/* A) TOP ROW: PLAYER & DESKTOP UP NEXT */}
-                    {/* UPDATED: Added lg:flex lg:items-stretch to make children equal height */}
                     <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-stretch mb-12">
-                        
+
                         {/* CUSTOM PLAYER WRAPPER */}
                         <div className={`w-full ${nextVideo ? 'lg:w-[65%]' : 'lg:max-w-[854px] mx-auto'}`}>
                             <CustomVideoPlayer 
@@ -156,7 +168,6 @@ export default function WatchVideoPage() {
                         {/* UP NEXT (Desktop Only - Side by side with player) */}
                         {nextVideo && (
                             <div className="hidden lg:block lg:w-[35%]">
-                                {/* UPDATED: h-full added to fill the stretched container height */}
                                 <div className="bg-brand-brown-dark text-white p-6 rounded-3xl relative overflow-hidden shadow-xl ring-1 ring-white/10 group h-full flex flex-col">
                                     <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
                                         <Play className="w-24 h-24" />
@@ -192,12 +203,10 @@ export default function WatchVideoPage() {
                     </div>
 
                     {/* B) INFO & SIDEBAR GRID */}
-                    {/* UPDATED: lg:items-stretch to force equal height columns */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 lg:items-stretch items-start">
 
                         {/* LEFT: VIDEO INFO */}
                         <div className="lg:col-span-8">
-                            {/* UPDATED: h-full added */}
                             <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm h-full" dir={dir}>
                                 {/* Control Strip */}
                                 <div className="flex flex-wrap items-center justify-between gap-4 mb-6 border-b border-gray-50 pb-6" dir="ltr">
@@ -234,10 +243,20 @@ export default function WatchVideoPage() {
 
                                 {/* Description with Playlist Info */}
                                 <div className={`prose prose-sm md:prose-base max-w-none text-gray-600 leading-relaxed whitespace-pre-line ${dir === 'rtl' ? 'font-arabic text-right' : 'font-lato'}`}>
+                                    {/* UPDATED: Clickable Link to the playlist */}
                                     {video.playlist && (
-                                        <p className="text-xs font-bold text-brand-gold mb-3 uppercase tracking-wide border-l-2 border-brand-gold pl-3">
-                                            Series: {video.playlist}
-                                        </p>
+                                        playlistId ? (
+                                            <Link 
+                                                href={`/media/videos/playlists/${playlistId}`} 
+                                                className="block w-fit text-xs font-bold text-brand-gold mb-3 uppercase tracking-wide border-l-2 border-brand-gold pl-3 hover:text-brand-brown-dark hover:underline transition-colors"
+                                            >
+                                                Series: {video.playlist}
+                                            </Link>
+                                        ) : (
+                                            <p className="text-xs font-bold text-brand-gold mb-3 uppercase tracking-wide border-l-2 border-brand-gold pl-3">
+                                                Series: {video.playlist}
+                                            </p>
+                                        )
                                     )}
                                     {video.description}
                                 </div>
@@ -245,9 +264,8 @@ export default function WatchVideoPage() {
                         </div>
 
                         {/* RIGHT: SIDEBAR */}
-                        {/* UPDATED: h-full and flex column added to fill height */}
                         <div className="lg:col-span-4 space-y-8 flex flex-col h-full">
-                            
+
                             {/* Up Next (Mobile Only - Original position) */}
                             {nextVideo && (
                                 <div className="block lg:hidden">
@@ -285,10 +303,9 @@ export default function WatchVideoPage() {
                             )}
 
                             {/* Related Videos */}
-                            {/* UPDATED: flex-grow added so it expands to match the left column height */}
                             <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm flex-grow">
                                 <h3 className="font-agency text-xl text-brand-brown-dark mb-6 px-1 flex items-center gap-2">
-                                    {video.playlist ? "More From This Series" : "Related Videos"}
+                                    {video.playlist ? "Series Content" : "Related Videos"}
                                 </h3>
                                 <div className="flex flex-col gap-4">
                                     {relatedVideos.length > 0 ? (
