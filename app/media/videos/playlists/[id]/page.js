@@ -132,28 +132,18 @@ export default function PlaylistViewPage() {
 
             <main className="flex-grow pb-24">
                 
-                {/* 1. GLASSMORPHIC HEADER */}
+                {/* 1. HEADER SECTION */}
                 <div className="relative w-full pt-10 pb-32 lg:pt-16 lg:pb-48 overflow-hidden bg-brand-brown-dark">
-                    {/* Ambient Blurred Background */}
-                    <div className="absolute inset-0 z-0 pointer-events-none mix-blend-soft-light opacity-50">
+                    {/* Subtle Overlay Background */}
+                    <div className="absolute inset-0 z-0 pointer-events-none">
                         <Image 
                             src={playlist.cover || "/fallback.webp"} 
                             alt="" 
                             fill 
-                            className="object-cover blur-[80px] scale-120"
+                            className="object-cover opacity-15"
                         />
+                        <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-dark via-brand-brown-dark/80 to-transparent"></div>
                     </div>
-                    {/* Subtle Overlay Picture */}
-                    <div className="absolute inset-0 z-0 pointer-events-none">
-                        <Image
-                            src={playlist.cover || "/fallback.webp"}
-                            alt=""
-                            fill
-                            className="object-cover opacity-20 mix-blend-overlay scale-115 saturate-0"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-dark via-brand-brown-dark/50 to-transparent"></div>
-                    </div>
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-brand-gold/5 blur-[120px] rounded-full z-0 pointer-events-none"></div>
 
                     <div className="max-w-[1400px] mx-auto px-4 relative z-10">
                         {/* Navigation Row */}
@@ -173,31 +163,31 @@ export default function PlaylistViewPage() {
 
                         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center lg:items-start">
                             
-                            {/* Playlist Cover (Landscape, Overlapping upwards) */}
-                            <div className="w-full sm:w-[400px] lg:w-[480px] flex-shrink-0 lg:-mt-20">
-                                <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white border border-gray-100">
+                            {/* Playlist Cover (Landscape, Overlapping upwards on Desktop) */}
+                            <div className="w-full sm:w-[400px] lg:w-[480px] flex-shrink-0 lg:-mt-24">
+                                <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white border border-gray-100 bg-gray-50">
                                     <Image 
                                         src={playlist.cover || "/fallback.webp"} 
                                         alt={playlist.title} 
                                         fill 
-                                        className="object-cover object-center"
+                                        className="object-cover lg:object-contain"
                                         priority
                                     />
                                 </div>
                             </div>
 
                             {/* Details Stack */}
-                            <div className="flex-grow flex flex-col items-center lg:items-start text-center lg:text-left pt-2 lg:pt-0">
+                            <div className="flex-grow flex flex-col items-center lg:items-start text-center pt-2 lg:pt-0 w-full">
                                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-brand-gold/20 bg-brand-gold/5 text-brand-gold text-[10px] font-bold uppercase tracking-widest mb-4">
                                     <Film className="w-3 h-3" /> Playlist
                                 </div>
 
-                                <h1 className={`text-3xl md:text-4xl lg:text-5xl font-bold text-brand-brown-dark mb-4 leading-tight ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
+                                <h1 className={`text-3xl md:text-4xl lg:text-5xl font-bold text-brand-brown-dark mb-4 leading-tight lg:text-left ${dir === 'rtl' ? 'font-tajawal lg:text-right' : 'font-agency'}`}>
                                     {playlist.title}
                                 </h1>
 
                                 <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mb-6 text-[10px] font-bold uppercase tracking-wider" dir="ltr">
-                                    <span className="bg-brand-brown-dark text-white px-3 py-1 rounded-md">
+                                    <span className="bg-brand-brown-dark text-brand-gold px-3 py-1 rounded-md">
                                         {playlist.category}
                                     </span>
                                     <span className="text-gray-500 flex items-center gap-1.5 bg-gray-50 px-3 py-1 rounded-md border border-gray-100">
@@ -205,7 +195,7 @@ export default function PlaylistViewPage() {
                                     </span>
                                 </div>
 
-                                <p className={`text-gray-600 text-sm md:text-base max-w-3xl leading-relaxed mb-8 ${getDir(playlist.description || "") === 'rtl' ? 'font-arabic text-right' : 'font-lato text-left'} w-full`} dir={getDir(playlist.description || "")}>
+                                <p className={`text-gray-600 text-sm md:text-base max-w-3xl leading-relaxed mb-8 w-full ${getDir(playlist.description || "") === 'rtl' ? 'font-arabic lg:text-right' : 'font-lato lg:text-left'}`} dir={getDir(playlist.description || "")}>
                                     {playlist.description || "Browse all episodes in this series below. Episodes are listed from newest to oldest."}
                                 </p>
 
@@ -234,11 +224,7 @@ export default function PlaylistViewPage() {
                         </h2>
                         <button 
                             onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
-                            className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-lg border shadow-sm transition-all ${
-                                sortOrder === 'desc' 
-                                ? 'bg-brand-brown-dark text-white border-brand-brown-dark' 
-                                : 'bg-white text-gray-500 border-gray-200 hover:border-brand-brown-dark hover:text-brand-brown-dark'
-                            }`}
+                            className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-md border shadow-sm transition-all bg-brand-brown-dark text-white border-brand-brown-dark hover:bg-brand-brown transition-colors"
                         >
                             <ArrowUpDown className="w-3.5 h-3.5" />
                             {sortOrder === 'desc' ? 'Newest First' : 'Oldest First'}
@@ -318,7 +304,7 @@ export default function PlaylistViewPage() {
                     {sortedVideos.length > 0 && (
                         <div className="py-10 text-center space-y-4">
                             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                                Showing {visibleVideos.length} of {sortedVideos.length} Episodes
+                                Showing {visibleVideos.length} of {sortedVideos.length} Videos
                             </p>
                             {visibleCount < sortedVideos.length && (
                                 <button 
