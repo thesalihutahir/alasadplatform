@@ -40,17 +40,29 @@ const SocialShare = ({ title }) => {
         if (typeof window !== 'undefined') setUrl(window.location.href);
     }, []);
 
-    const handleCopy = () => {
-        navigator.clipboard.writeText(url);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+    const handleShare = async () => {
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: title,
+                    url: url
+                });
+            } catch (err) {
+                console.error("Error sharing natively:", err);
+            }
+        } else {
+            // Fallback for browsers that don't support native sharing
+            navigator.clipboard.writeText(url);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }
     };
 
     if (!url) return null;
 
     return (
         <button 
-            onClick={handleCopy} 
+            onClick={handleShare} 
             className="flex items-center gap-2 text-brand-gold hover:text-brand-brown-dark transition-colors text-xs font-bold uppercase tracking-wider flex-shrink-0"
         >
             {copied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
@@ -59,6 +71,40 @@ const SocialShare = ({ title }) => {
     );
 };
 
+// --- COMPONENT: Like Button (Restored) ---
+const LikeButton = ({ postId, initialLikes }) => {
+    const [likes, setLikes] = useState(initialLikes || 0);
+    const [liked, setLiked] = useState(false);
+
+    useEffect(() => {
+        const hasLiked = localStorage.getItem(`liked_podcast_${postId}`);
+        if (hasLiked) setLiked(true);
+    }, [postId]);
+
+    const handleLike = async () => {
+        if (liked) return;
+        setLikes(prev => prev + 1);
+        setLiked(true);
+        localStorage.setItem(`liked_podcast_${postId}`, 'true');
+        try {
+            const postRef = doc(db, "podcasts", postId);
+            await updateDoc(postRef, { likes: increment(1) });
+        } catch (error) { console.error("Error liking:", error); }
+    };
+
+    return (
+        <button 
+            onClick={handleLike} 
+            disabled={liked} 
+            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all text-xs font-bold uppercase tracking-wider ${
+                liked ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-500'
+            }`}
+        >
+            <Heart className={`w-4 h-4 ${liked ? 'fill-current' : ''}`} />
+            <span>{likes} Likes</span>
+        </button>
+    );
+};
 // --- COMPONENT: Comments Section ---
 const CommentsSection = ({ postId, isArabic }) => {
     const [comments, setComments] = useState([]);
@@ -97,27 +143,23 @@ const CommentsSection = ({ postId, isArabic }) => {
 
             {/* Comment Form */}
             <form onSubmit={handlePostComment} className="mb-8 bg-gray-50 p-6 rounded-3xl border border-gray-100">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div className="md:col-span-1">
-                        <input 
-                            type="text" 
-                            value={authorName} 
-                            onChange={(e) => setAuthorName(e.target.value)} 
-                            placeholder={isArabic ? "الاسم" : "Your Name"} 
-                            className={`w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-gold/50 transition-colors ${isArabic ? 'font-arabic' : ''}`} 
-                            required 
-                        />
-                    </div>
-                    <div className="md:col-span-2">
-                        <input 
-                            type="text"
-                            value={newComment} 
-                            onChange={(e) => setNewComment(e.target.value)} 
-                            placeholder={isArabic ? "شارك برأيك..." : "Join the conversation..."} 
-                            className={`w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-gold/50 transition-colors ${isArabic ? 'font-arabic' : ''}`} 
-                            required
-                        />
-                    </div>
+                <div className="flex flex-col gap-4 mb-4">
+                    <input 
+                        type="text" 
+                        value={authorName} 
+                        onChange={(e) => setAuthorName(e.target.value)} 
+                        placeholder={isArabic ? "الاسم" : "Your Name"} 
+                        className={`w-full md:w-1/3 bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-gold/50 transition-colors ${isArabic ? 'font-arabic' : ''}`} 
+                        required 
+                    />
+                    <textarea 
+                        value={newComment} 
+                        onChange={(e) => setNewComment(e.target.value)} 
+                        placeholder={isArabic ? "شارك برأيك..." : "Join the conversation..."} 
+                        rows="4"
+                        className={`w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-gold/50 transition-colors resize-y min-h-[100px] ${isArabic ? 'font-arabic' : ''}`} 
+                        required
+                    ></textarea>
                 </div>
                 <div className={`flex ${isArabic ? 'justify-start' : 'justify-end'}`}>
                     <button type="submit" disabled={isSubmitting} className="bg-brand-brown-dark text-white px-8 py-2.5 rounded-full font-bold text-xs uppercase tracking-wider hover:bg-brand-gold transition-colors flex items-center gap-2 disabled:opacity-50">
@@ -164,6 +206,7 @@ export default function PodcastPlayPage() {
     const [nextEpisode, setNextEpisode] = useState(null);
     const [playlistId, setPlaylistId] = useState(null); 
     const [loading, setLoading] = useState(true);
+    const [fileSize, setFileSize] = useState(''); // Holds computed audio file size
     
     const [expandedIds, setExpandedIds] = useState(new Set());
 
@@ -178,6 +221,18 @@ export default function PodcastPlayPage() {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     setEpisode({ id: docSnap.id, ...data });
+
+                    // Fetch Audio file size seamlessly
+                    if (data.audioUrl) {
+                        fetch(data.audioUrl, { method: 'HEAD' })
+                            .then(res => {
+                                const size = res.headers.get('content-length');
+                                if (size) {
+                                    setFileSize((size / (1024 * 1024)).toFixed(1) + ' MB');
+                                }
+                            })
+                            .catch(() => { /* silent fallback */ });
+                    }
 
                     // 2. Increment Plays
                     updateDoc(docRef, { plays: increment(1) });
@@ -230,7 +285,7 @@ export default function PodcastPlayPage() {
         fetchEpisodeData();
     }, [id, router]);
 
-    // UPDATED: Using Proxy API Endpoint
+    // Native silent download using proxy stream
     const handleDownload = (e, audioUrl, title) => {
         e.preventDefault();
         if (!audioUrl) return;
@@ -254,7 +309,7 @@ export default function PodcastPlayPage() {
 
     const isArabic = episode.category === 'Arabic';
     const dir = getDir(episode.title);
-    return (
+return (
         <div className="min-h-screen flex flex-col bg-[#FAFAFA] font-lato">
             <Header />
 
@@ -285,10 +340,7 @@ export default function PodcastPlayPage() {
                 {/* 2. OVERLAPPING PLAYER & CONTENT */}
                 <div className="max-w-[1200px] mx-auto px-4 md:px-8 lg:px-12 relative z-20 -mt-24 lg:-mt-40">
 
-                    {/* A) TOP ROW: PLAYER & DESKTOP UP NEXT */}
                     <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-stretch mb-12">
-
-                        {/* CUSTOM PLAYER WRAPPER */}
                         <div className={`w-full ${nextEpisode ? 'lg:w-[65%]' : 'lg:max-w-[854px] mx-auto'}`}>
                             <CustomVideoPlayer 
                                 videoId={episode.videoId} 
@@ -297,7 +349,6 @@ export default function PodcastPlayPage() {
                             />
                         </div>
 
-                        {/* UP NEXT (Desktop Only - Side by side with player) */}
                         {nextEpisode && (
                             <div className="hidden lg:block lg:w-[35%]">
                                 <div className="bg-brand-brown-dark text-white p-6 rounded-3xl relative overflow-hidden shadow-xl ring-1 ring-white/10 group h-full flex flex-col">
@@ -349,14 +400,14 @@ export default function PodcastPlayPage() {
                                         </span>
                                         {episode.show && (
                                             playlistId ? (
-                                                <Link href={`/media/podcasts/playlists/${playlistId}`} className="hidden sm:flex items-center gap-2 text-brand-brown-dark/60 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-gray-50 hover:bg-gray-100 hover:text-brand-brown-dark transition-colors">
+                                                <Link href={`/media/podcasts/playlists/${playlistId}`} className="flex items-center gap-2 text-brand-brown-dark/60 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-gray-50 hover:bg-brand-gold/10 hover:border-brand-gold/30 border border-transparent transition-all">
                                                     <ListMusic className="w-3 h-3" /> 
                                                     <span className="truncate max-w-[200px]" title={episode.show}>
                                                         {episode.show}
                                                     </span>
                                                 </Link>
                                             ) : (
-                                                <div className="hidden sm:flex items-center gap-2 text-brand-brown-dark/60 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-gray-50">
+                                                <div className="flex items-center gap-2 text-brand-brown-dark/60 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-gray-50 border border-transparent">
                                                     <ListMusic className="w-3 h-3" /> 
                                                     <span className="truncate max-w-[200px]" title={episode.show}>
                                                         {episode.show}
@@ -387,7 +438,15 @@ export default function PodcastPlayPage() {
                                             </div>
                                             <div>
                                                 <p className="text-sm font-bold text-brand-brown-dark">Audio Version</p>
-                                                <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mt-0.5">Listen on the go</p>
+                                                <div className="flex items-center gap-2 mt-0.5">
+                                                    <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Listen on the go</p>
+                                                    {fileSize && (
+                                                        <>
+                                                            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                                            <span className="text-[10px] text-brand-gold font-bold tracking-wider">{fileSize}</span>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                         <button 
@@ -401,20 +460,6 @@ export default function PodcastPlayPage() {
 
                                 {/* Description */}
                                 <div className={`prose prose-sm md:prose-base max-w-none text-gray-600 leading-relaxed whitespace-pre-line ${dir === 'rtl' ? 'font-arabic text-right' : 'font-lato'}`}>
-                                    {episode.show && (
-                                        playlistId ? (
-                                            <Link 
-                                                href={`/media/podcasts/playlists/${playlistId}`} 
-                                                className="block w-fit text-xs font-bold text-brand-gold mb-4 uppercase tracking-wide border-l-2 border-brand-gold pl-3 hover:text-brand-brown-dark hover:underline transition-colors"
-                                            >
-                                                Podcast Series: {episode.show}
-                                            </Link>
-                                        ) : (
-                                            <p className="text-xs font-bold text-brand-gold mb-4 uppercase tracking-wide border-l-2 border-brand-gold pl-3">
-                                                Podcast Series: {episode.show}
-                                            </p>
-                                        )
-                                    )}
                                     {episode.description}
                                 </div>
 
