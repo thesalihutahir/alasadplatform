@@ -465,7 +465,7 @@ export default function PodcastPlayPage() {
                                     {episode.show && (
                                         playlistId ? (
                                             <Link 
-                                                href={`/media/podcasts/playlists/${playlistId}`} 
+                                                href={`/media/podcasts/shows/${playlistId}`} 
                                                 className="block w-fit text-xs font-bold text-brand-gold mb-4 uppercase tracking-wide border-l-2 border-brand-gold pl-3 hover:text-brand-brown-dark hover:underline transition-colors"
                                             >
                                                 Podcast Series: {episode.show}
@@ -535,7 +535,7 @@ export default function PodcastPlayPage() {
                                             return (
                                                 <Link 
                                                     key={rel.id} 
-                                                    href={`/media/podcasts/${rel.id}`}
+                                                    href={`/media/podcasts/play/${rel.id}`}
                                                     className="group relative flex items-start gap-3 p-2 rounded-2xl hover:bg-gray-50 transition-all duration-300"
                                                 >
                                                     <div className="relative w-28 aspect-video rounded-xl overflow-hidden bg-black flex-shrink-0 border border-gray-100 shadow-sm">
