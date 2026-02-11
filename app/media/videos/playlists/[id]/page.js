@@ -10,7 +10,7 @@ import Loader from '@/components/Loader';
 // Firebase
 import { db } from '@/lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { Play, Clock, Calendar, ChevronRight, ListVideo, ArrowLeft, ArrowUpRight } from 'lucide-react';
+import { Play, Calendar, ChevronRight, ListVideo, ArrowLeft, Film } from 'lucide-react';
 
 export default function PlaylistViewPage() {
     const { id } = useParams();
@@ -101,28 +101,37 @@ export default function PlaylistViewPage() {
     const oldestVideoId = videos.length > 0 ? videos[videos.length - 1].id : null;
 
     return (
-        <div className="min-h-screen flex flex-col bg-brand-sand/10 font-lato">
+        <div className="min-h-screen flex flex-col bg-[#FAFAFA] font-lato">
             <Header />
 
-            <main className="flex-grow">
-                {/* 1. PLAYLIST HEADER */}
-                <div className="bg-white border-b border-gray-200 relative overflow-hidden">
-                    {/* Background decoration */}
-                    <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-brand-sand/50 to-transparent pointer-events-none"></div>
+            <main className="flex-grow pb-24">
+                {/* 1. CINEMATIC PLAYLIST HERO */}
+                <div className="relative w-full bg-brand-brown-dark pt-12 pb-32 lg:pb-48 px-4 overflow-hidden">
+                    {/* Ambient Blurred Cover */}
+                    <div className="absolute inset-0 pointer-events-none opacity-20 mix-blend-soft-light">
+                        <Image 
+                            src={playlist.cover || "/fallback.webp"} 
+                            alt="" 
+                            fill 
+                            className="object-cover blur-[80px] scale-110"
+                        />
+                    </div>
+                    {/* Ambient Glow */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-brand-gold/5 blur-[120px] rounded-full pointer-events-none"></div>
 
-                    <div className="container mx-auto px-6 py-8 md:py-16 relative z-10">
-
-                        {/* Breadcrumb / Back */}
+                    <div className="max-w-[1200px] mx-auto relative z-10">
+                        {/* Navigation Row */}
                         <div className="mb-8">
-                            <Link href="/media/videos/playlists" className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-brand-gold transition-colors">
-                                <ArrowLeft className="w-4 h-4" /> Back to Series
+                            <Link href="/media/videos/playlists" className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-white/70 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-md">
+                                <ArrowLeft className="w-3.5 h-3.5" /> Back to Series
                             </Link>
                         </div>
 
-                        <div className="flex flex-col md:flex-row gap-8 md:gap-12 items-start">
-                            {/* Cover Image */}
-                            <div className="w-full md:w-1/3 lg:w-1/4 flex-shrink-0">
-                                <div className="relative aspect-[16/10] rounded-2xl overflow-hidden shadow-2xl border-4 border-white">
+                        {/* Hero Content (Cover + Info) */}
+                        <div className="flex flex-col md:flex-row gap-8 lg:gap-12 items-center md:items-start" dir={dir}>
+                            {/* Playlist Cover */}
+                            <div className="w-48 md:w-64 lg:w-72 flex-shrink-0">
+                                <div className="relative aspect-[4/3] md:aspect-[16/10] rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
                                     <Image 
                                         src={playlist.cover || "/fallback.webp"} 
                                         alt={playlist.title} 
@@ -130,39 +139,42 @@ export default function PlaylistViewPage() {
                                         className="object-cover"
                                         priority
                                     />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
                                 </div>
                             </div>
 
-                            {/* Details */}
-                            <div className="flex-grow" dir={dir}>
-                                <div className="flex flex-wrap items-center gap-3 mb-4" dir="ltr">
-                                    <span className="bg-brand-gold/10 text-brand-gold text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider border border-brand-gold/20">
-                                        {playlist.category}
-                                    </span>
-                                    <span className="text-gray-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
-                                        <ListVideo className="w-3 h-3" /> {videos.length} Episodes
-                                    </span>
+                            {/* Details Stack */}
+                            <div className="flex-grow text-center md:text-left flex flex-col items-center md:items-start">
+                                {/* "PLAYLISTS" Loop Label */}
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-brand-gold text-[10px] font-bold uppercase tracking-widest mb-4">
+                                    <Film className="w-3 h-3" /> Playlists
                                 </div>
 
-                                <h1 className={`text-3xl md:text-5xl lg:text-6xl font-bold text-brand-brown-dark mb-4 leading-tight drop-shadow-sm ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
+                                <h1 className={`text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4 leading-tight drop-shadow-md ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
                                     {playlist.title}
                                 </h1>
 
-                                {/* UPDATED: Uses dynamic description or falls back to default text */}
-                                <p className={`text-gray-500 text-base md:text-lg max-w-2xl mb-8 leading-relaxed ${getDir(playlist.description || "") === 'rtl' ? 'font-arabic' : 'font-lato'}`} dir={getDir(playlist.description || "")}>
+                                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-6 text-[10px] font-bold uppercase tracking-wider" dir="ltr">
+                                    <span className="bg-brand-gold text-brand-brown-dark px-3 py-1 rounded-full">
+                                        {playlist.category}
+                                    </span>
+                                    <span className="text-white/60 flex items-center gap-1.5">
+                                        <ListVideo className="w-3.5 h-3.5" /> {videos.length} Episodes
+                                    </span>
+                                </div>
+
+                                <p className={`text-white/70 text-sm md:text-base max-w-2xl leading-relaxed mb-8 ${getDir(playlist.description || "") === 'rtl' ? 'font-arabic' : 'font-lato'}`} dir={getDir(playlist.description || "")}>
                                     {playlist.description || "Browse all episodes in this series below. Episodes are listed from newest to oldest."}
                                 </p>
 
-                                {/* Quick Action - Links to OLDEST Video */}
+                                {/* Action */}
                                 {oldestVideoId && (
                                     <Link 
                                         href={`/media/videos/${oldestVideoId}`} 
-                                        className="inline-flex items-center gap-3 bg-brand-gold text-white px-8 py-3.5 rounded-xl font-bold hover:bg-brand-brown-dark transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 group"
+                                        className="inline-flex items-center gap-3 bg-brand-gold text-brand-brown-dark px-8 py-3.5 rounded-full font-bold hover:bg-white transition-all shadow-lg hover:shadow-brand-gold/20" 
                                         dir="ltr"
                                     >
-                                        <Play className="w-5 h-5 fill-current" />
-                                        Start Watching Series
-                                        <ArrowUpRight className="w-4 h-4 opacity-50 group-hover:opacity-100 transition-opacity" />
+                                        <Play className="w-4 h-4 fill-current" /> Start Watching
                                     </Link>
                                 )}
                             </div>
@@ -170,93 +182,84 @@ export default function PlaylistViewPage() {
                     </div>
                 </div>
 
-                {/* 2. EPISODE LIST */}
-                <div className="container mx-auto px-6 py-12 max-w-5xl">
-                    <div className="flex items-center justify-between mb-8">
-                        <h2 className="font-agency text-3xl text-brand-brown-dark flex items-center gap-3">
-                            <ListVideo className="w-6 h-6 text-brand-gold" />
-                            Episode List
-                        </h2>
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest hidden md:block">
-                            Newest First
-                        </span>
-                    </div>
+                {/* 2. OVERLAPPING EPISODE LIST */}
+                <div className="max-w-[1200px] mx-auto px-4 md:px-8 relative z-20 -mt-20 lg:-mt-32">
+                    <div className="bg-white rounded-3xl p-6 md:p-10 shadow-xl border border-gray-100 min-h-[400px]">
+                        
+                        {/* List Header */}
+                        <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-100">
+                            <h2 className="font-agency text-2xl md:text-3xl text-brand-brown-dark flex items-center gap-3">
+                                <ListVideo className="w-5 h-5 text-brand-gold" /> Episodes
+                            </h2>
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-1 rounded-full">
+                                Newest First
+                            </span>
+                        </div>
 
-                    {videos.length > 0 ? (
-                        <div className="space-y-4">
-                            {videos.map((video, index) => {
-                                // Calculate "Episode Number" assuming chronological order is bottom-up
-                                const episodeNumber = videos.length - index; 
-                                
-                                return (
-                                    <Link 
-                                        key={video.id} 
-                                        href={`/media/videos/${video.id}`}
-                                        className="group flex flex-col md:flex-row gap-4 md:gap-6 bg-white p-4 rounded-2xl border border-gray-100 hover:border-brand-gold/50 hover:shadow-lg transition-all items-center relative overflow-hidden"
-                                    >
-                                        {/* Mobile: Episode Badge */}
-                                        <div className="md:hidden absolute top-4 left-4 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-md z-10">
-                                            Ep {episodeNumber}
-                                        </div>
+                        {/* List Rows */}
+                        {videos.length > 0 ? (
+                            <div className="flex flex-col gap-4">
+                                {videos.map((video, index) => {
+                                    const episodeNumber = videos.length - index; 
+                                    return (
+                                        <Link 
+                                            key={video.id} 
+                                            href={`/media/videos/${video.id}`}
+                                            className="group flex flex-row gap-4 bg-white p-3 rounded-2xl border border-gray-100 hover:border-brand-gold/30 hover:shadow-md hover:bg-brand-sand/10 transition-all items-center"
+                                        >
+                                            {/* Numbering (Desktop) */}
+                                            <div className="hidden md:flex flex-col items-center justify-center w-12 h-12 text-gray-300 font-agency text-xl font-bold group-hover:text-brand-gold transition-colors flex-shrink-0">
+                                                {episodeNumber}
+                                            </div>
 
-                                        {/* Desktop: Numbering */}
-                                        <div className="hidden md:flex flex-col items-center justify-center w-12 h-12 bg-gray-50 text-gray-400 font-agency text-2xl font-bold rounded-xl group-hover:bg-brand-gold group-hover:text-white transition-colors flex-shrink-0">
-                                            {episodeNumber}
-                                        </div>
-
-                                        {/* Thumbnail */}
-                                        <div className="relative w-full md:w-48 aspect-video rounded-xl overflow-hidden bg-black flex-shrink-0 shadow-sm">
-                                            <Image 
-                                                src={video.thumbnail || "/fallback.webp"} 
-                                                alt={video.title} 
-                                                fill 
-                                                className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
-                                            />
-                                            <div className="absolute inset-0 flex items-center justify-center md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                                                <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center">
-                                                    <Play className="w-4 h-4 text-white fill-current ml-0.5" />
+                                            {/* Thumbnail (Slim Library Row Style) */}
+                                            <div className="relative w-32 md:w-40 aspect-video rounded-xl overflow-hidden bg-black flex-shrink-0 border border-gray-50 shadow-sm">
+                                                <Image 
+                                                    src={video.thumbnail || "/fallback.webp"} 
+                                                    alt={video.title} 
+                                                    fill 
+                                                    className="object-cover opacity-90 group-hover:opacity-100 scale-105 group-hover:scale-110 transition-transform duration-700"
+                                                />
+                                                {/* Mobile Episode Badge inside thumb */}
+                                                <div className="md:hidden absolute top-1.5 left-1.5 bg-black/60 backdrop-blur-sm text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">
+                                                    Ep {episodeNumber}
                                                 </div>
                                             </div>
-                                            {/* Latest Tag for the very first item */}
-                                            {index === 0 && (
-                                                <div className="absolute bottom-2 right-2 bg-brand-gold text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wide">
-                                                    Latest
-                                                </div>
-                                            )}
-                                        </div>
 
-                                        {/* Info */}
-                                        <div className="flex-grow min-w-0 w-full" dir={getDir(video.title)}>
-                                            <div className="flex justify-between items-start">
-                                                <h3 className={`text-lg md:text-xl font-bold text-brand-brown-dark leading-tight mb-2 group-hover:text-brand-gold transition-colors line-clamp-2 ${getDir(video.title) === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
+                                            {/* Content */}
+                                            <div className="flex-grow min-w-0 py-1" dir={getDir(video.title)}>
+                                                <h3 className={`text-sm md:text-base font-bold text-brand-brown-dark leading-tight mb-1.5 group-hover:text-brand-gold transition-colors line-clamp-2 ${getDir(video.title) === 'rtl' ? 'font-tajawal' : 'font-lato'}`}>
                                                     {video.title}
                                                 </h3>
-                                                {/* Desktop Arrow */}
-                                                <div className="hidden md:block text-gray-300 group-hover:text-brand-gold group-hover:translate-x-1 transition-all pl-4">
-                                                    <ChevronRight className="w-6 h-6" />
+                                                <div className="flex items-center gap-3 text-[10px] text-gray-400 font-bold uppercase tracking-wider" dir="ltr">
+                                                    <span className="flex items-center gap-1">
+                                                        <Calendar className="w-3 h-3" /> {formatDate(video.date)}
+                                                    </span>
                                                 </div>
                                             </div>
-                                            
-                                            <div className="flex items-center gap-4 text-xs text-gray-400 font-bold mt-1" dir="ltr">
-                                                <span className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-md">
-                                                    <Calendar className="w-3 h-3" /> {formatDate(video.date)}
-                                                </span>
-                                                <span className="flex items-center gap-1 text-brand-gold opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Clock className="w-3 h-3" /> Watch Now
-                                                </span>
+
+                                            {/* Action Icon (Desktop) */}
+                                            <div className="hidden sm:flex flex-shrink-0 self-center pr-2">
+                                                <div className="w-8 h-8 rounded-full border border-gray-100 flex items-center justify-center text-gray-300 group-hover:border-brand-gold group-hover:bg-brand-gold group-hover:text-white transition-all">
+                                                    <ChevronRight className={`w-4 h-4 ${getDir(video.title) === 'rtl' ? 'rotate-180' : ''}`} />
+                                                </div>
                                             </div>
-                                        </div>
-                                    </Link>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-gray-100">
-                            <ListVideo className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-                            <p className="text-gray-400 font-bold">No videos uploaded to this playlist yet.</p>
-                        </div>
-                    )}
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="text-center py-20 bg-gray-50/50 rounded-2xl border border-gray-100 flex flex-col items-center">
+                                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm text-gray-300 border border-gray-100">
+                                    <ListVideo className="w-6 h-6" />
+                                </div>
+                                <h3 className="font-agency text-xl text-gray-500 mb-1">No Episodes Yet</h3>
+                                <p className="text-xs text-gray-400">Videos uploaded to this playlist will appear here.</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
+
             </main>
 
             <Footer />
