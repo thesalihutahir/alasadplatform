@@ -59,7 +59,7 @@ const SocialShare = ({ title }) => {
     );
 };
 
-// --- COMPONENT: Comments Section ---
+// --- COMPONENT: Comments Section (Unchanged logic, slightly refined styling) ---
 const CommentsSection = ({ postId, isArabic }) => {
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
@@ -156,14 +156,14 @@ const CommentsSection = ({ postId, isArabic }) => {
 // MAIN PAGE COMPONENT
 // ==========================================
 export default function PodcastPlayPage() {
-const params = useParams();
+    const params = useParams();
     const router = useRouter();
     const id = params?.id;
 
     const [episode, setEpisode] = useState(null);
     const [relatedEpisodes, setRelatedEpisodes] = useState([]);
     const [nextEpisode, setNextEpisode] = useState(null);
-    const [playlistId, setPlaylistId] = useState(null); // Holds the podcast playlist ID
+    const [playlistId, setPlaylistId] = useState(null); // Added state to hold the podcast playlist ID
     const [loading, setLoading] = useState(true);
     
     const [expandedIds, setExpandedIds] = useState(new Set());
@@ -188,7 +188,7 @@ const params = useParams();
                     let q;
 
                     if (data.show) {
-                        // Fetch the podcast playlist's document ID to make the link clickable
+                        // NEW: Fetch the podcast playlist's document ID to make the link clickable
                         try {
                             const plQ = query(collection(db, "podcast_playlists"), where("title", "==", data.show), limit(1));
                             const plSnap = await getDocs(plQ);
@@ -232,7 +232,7 @@ const params = useParams();
         fetchEpisodeData();
     }, [id, router]);
 
-    // UPDATED: Direct Download Logic without opening a new tab
+    // UPDATED: Direct Download Logic
     const handleDownload = async (e, audioUrl, fileName) => {
         e.preventDefault();
         if (!audioUrl) return;
@@ -254,7 +254,7 @@ const params = useParams();
             link.parentNode.removeChild(link);
             window.URL.revokeObjectURL(blobUrl);
         } catch (error) {
-            console.error("Download failed due to CORS or fetching error, opening fallback window:", error);
+            console.error("Download failed:", error);
             // Fallback if CORS prevents blob fetch
             window.open(audioUrl, '_blank'); 
         }
@@ -276,15 +276,15 @@ const params = useParams();
 
     const isArabic = episode.category === 'Arabic';
     const dir = getDir(episode.title);
-
     return (
         <div className="min-h-screen flex flex-col bg-[#FAFAFA] font-lato">
             <Header />
 
             <main className="flex-grow pb-24">
 
-                {/* 1. HERO BACKGROUND SECTION */}
+                {/* 1. HERO BACKGROUND SECTION (Matches Video Watch Page) */}
                 <div className="relative w-full bg-brand-brown-dark pt-12 pb-32 lg:pb-48 px-4 overflow-hidden">
+                    {/* Fallback Overlay Image with Low Opacity */}
                     <div className="absolute inset-0 z-0">
                         <Image
                             src="/fallback.webp"
@@ -294,8 +294,11 @@ const params = useParams();
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-dark via-brand-brown-dark/90 to-transparent"></div>
                     </div>
+
+                    {/* Ambient Glow */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-brand-gold/5 blur-[120px] rounded-full pointer-events-none"></div>
 
+                    {/* Content Layer */}
                     <div className="relative z-10 flex flex-col items-center justify-center text-center">
                         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-black/20 backdrop-blur-md mb-6">
                             <Headphones className="w-3.5 h-3.5 text-brand-gold animate-pulse" />
@@ -303,13 +306,16 @@ const params = useParams();
                         </div>
                     </div>
                 </div>
-{/* 2. OVERLAPPING PLAYER & CONTENT */}
+
+                {/* 2. OVERLAPPING PLAYER & CONTENT */}
                 <div className="max-w-[1200px] mx-auto px-4 md:px-8 lg:px-12 relative z-20 -mt-24 lg:-mt-40">
 
                     {/* A) TOP ROW: PLAYER & DESKTOP UP NEXT */}
                     <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-stretch mb-12">
 
+                        {/* CUSTOM PLAYER WRAPPER */}
                         <div className={`w-full ${nextEpisode ? 'lg:w-[65%]' : 'lg:max-w-[854px] mx-auto'}`}>
+                            {/* We use the same video player component, passing the YouTube video ID if available */}
                             <CustomVideoPlayer 
                                 videoId={episode.videoId} 
                                 thumbnail={episode.thumbnail} 
@@ -317,6 +323,7 @@ const params = useParams();
                             />
                         </div>
 
+                        {/* UP NEXT (Desktop Only - Side by side with player) */}
                         {nextEpisode && (
                             <div className="hidden lg:block lg:w-[35%]">
                                 <div className="bg-brand-brown-dark text-white p-6 rounded-3xl relative overflow-hidden shadow-xl ring-1 ring-white/10 group h-full flex flex-col">
@@ -358,59 +365,60 @@ const params = useParams();
 
                         {/* LEFT: EPISODE INFO */}
                         <div className="lg:col-span-8">
-                            <div className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-sm h-full flex flex-col" dir={dir}>
+                            <div className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-sm h-full" dir={dir}>
                                 
-                                {/* UPDATED: Control Strip - Single horizontal row without breaking lines */}
-                                <div className="flex flex-nowrap items-center justify-between gap-4 mb-6 border-b border-gray-50 pb-6 overflow-x-auto scrollbar-hide" dir="ltr">
-                                    <div className="flex flex-nowrap items-center gap-3 flex-shrink-0">
-                                        <span className="px-3 py-1 bg-brand-brown-dark text-white text-[10px] font-bold uppercase rounded-full tracking-wider whitespace-nowrap">
+                                {/* UPDATED: Control Strip - Single row no breaking */}
+                                <div className="flex items-center justify-between gap-2 mb-6 border-b border-gray-50 pb-6 overflow-x-auto scrollbar-hide whitespace-nowrap" dir="ltr">
+                                    <div className="flex items-center gap-3">
+                                        <span className="px-3 py-1 bg-brand-brown-dark text-white text-[10px] font-bold uppercase rounded-full tracking-wider">
                                             {episode.category}
                                         </span>
                                         {episode.show && (
-                                            <div className="hidden sm:flex items-center gap-2 text-brand-brown-dark/60 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-gray-50 whitespace-nowrap">
-                                                <ListMusic className="w-3 h-3 flex-shrink-0" /> 
+                                            <div className="hidden sm:flex items-center gap-2 text-brand-brown-dark/60 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-gray-50">
+                                                <ListMusic className="w-3 h-3" /> 
                                                 <span className="truncate max-w-[200px]" title={episode.show}>
                                                     {episode.show}
                                                 </span>
                                             </div>
                                         )}
                                     </div>
-                                    <div className="flex flex-nowrap items-center gap-3 lg:gap-4 flex-shrink-0">
-                                        <div className="flex items-center gap-2 text-gray-400 text-xs font-bold whitespace-nowrap">
-                                            <Calendar className="w-3.5 h-3.5 flex-shrink-0" /> {formatDate(episode.date)}
+                                    <div className="flex items-center gap-3 lg:gap-4 flex-shrink-0">
+                                        <div className="flex items-center gap-2 text-gray-400 text-xs font-bold">
+                                            <Calendar className="w-3.5 h-3.5" /> {formatDate(episode.date)}
                                         </div>
-                                        <div className="h-4 w-px bg-gray-200 flex-shrink-0"></div>
+                                        <div className="h-4 w-px bg-gray-200"></div>
                                         <SocialShare title={episode.title} />
                                     </div>
                                 </div>
 
-                                <h1 className={`text-xl md:text-3xl font-bold text-brand-brown-dark mb-6 leading-tight ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
+                                <h1 className={`text-xl md:text-3xl font-bold text-brand-brown-dark mb-6 leading-tight whitespace-normal ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
                                     {episode.title}
                                 </h1>
 
-                                {/* UPDATED: Download Card - Balanced perfectly for Mobile and Desktop */}
+                                {/* UPDATED: Audio Download Action Strip */}
                                 {episode.audioUrl && (
-                                    <div className="mb-8 flex items-center justify-between p-3 sm:p-5 bg-brand-sand/10 border border-brand-gold/20 rounded-2xl" dir="ltr">
-                                        <div className="flex items-center gap-3 min-w-0 pr-2">
-                                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-brand-gold rounded-full flex flex-shrink-0 items-center justify-center text-white shadow-md">
-                                                <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
+                                    <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-brand-sand/10 border border-brand-gold/20 rounded-2xl" dir="ltr">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-brand-gold rounded-full flex flex-shrink-0 items-center justify-center text-white shadow-md">
+                                                <Mic className="w-6 h-6" />
                                             </div>
-                                            <div className="min-w-0">
-                                                <p className="text-xs sm:text-sm font-bold text-brand-brown-dark truncate">Audio Version</p>
-                                                <p className="text-[9px] sm:text-[10px] text-gray-500 uppercase tracking-wider font-bold mt-0.5 truncate">Listen on the go</p>
+                                            <div>
+                                                <p className="text-sm font-bold text-brand-brown-dark">Audio Version</p>
+                                                <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mt-0.5">Listen on the go</p>
                                             </div>
                                         </div>
                                         <button 
                                             onClick={(e) => handleDownload(e, episode.audioUrl, `${episode.title}.mp3`)}
-                                            className="flex items-center justify-center gap-1.5 sm:gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-brand-brown-dark text-white rounded-full hover:bg-brand-gold transition-all shadow-md text-[10px] sm:text-xs font-bold uppercase tracking-wider flex-shrink-0"
+                                            className="flex justify-center items-center gap-2 px-6 py-3 w-full sm:w-auto bg-brand-brown-dark text-white rounded-xl sm:rounded-full hover:bg-brand-gold transition-all shadow-md text-xs font-bold uppercase tracking-wider flex-shrink-0"
                                         >
-                                            <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Download</span><span className="sm:hidden">MP3</span>
+                                            <Download className="w-4 h-4" /> Download MP3
                                         </button>
                                     </div>
                                 )}
 
                                 {/* Description */}
-                                <div className={`prose prose-sm md:prose-base max-w-none text-gray-600 flex-grow leading-relaxed whitespace-pre-line ${dir === 'rtl' ? 'font-arabic text-right' : 'font-lato'}`}>
+                                <div className={`prose prose-sm md:prose-base max-w-none text-gray-600 leading-relaxed whitespace-pre-line ${dir === 'rtl' ? 'font-arabic text-right' : 'font-lato'}`}>
+                                    {/* UPDATED: Clickable Link to the podcast playlist */}
                                     {episode.show && (
                                         playlistId ? (
                                             <Link 
@@ -428,7 +436,7 @@ const params = useParams();
                                     {episode.description}
                                 </div>
 
-                                {/* Comments */}
+                                {/* Comments injected at bottom of info card area */}
                                 <CommentsSection postId={episode.id} isArabic={isArabic} />
                             </div>
                         </div>
@@ -436,7 +444,7 @@ const params = useParams();
                         {/* RIGHT: SIDEBAR */}
                         <div className="lg:col-span-4 space-y-8 flex flex-col h-full">
 
-                            {/* Up Next (Mobile Only) */}
+                            {/* Up Next (Mobile Only - Original position) */}
                             {nextEpisode && (
                                 <div className="block lg:hidden">
                                     <div className="bg-brand-brown-dark text-white p-6 rounded-3xl relative overflow-hidden shadow-xl ring-1 ring-white/10 group">
