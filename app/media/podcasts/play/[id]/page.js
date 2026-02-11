@@ -533,7 +533,7 @@ export default function PodcastPlayPage() {
                                             return (
                                                 <Link 
                                                     key={rel.id} 
-                                                    href={`/media/podcasts/${rel.id}`}
+                                                    href={`/media/podcasts/play/${rel.id}`}
                                                     className="group relative flex items-start gap-3 p-2 rounded-2xl hover:bg-gray-50 transition-all duration-300"
                                                 >
                                                     <div className="relative w-28 aspect-video rounded-xl overflow-hidden bg-black flex-shrink-0 border border-gray-100 shadow-sm">
