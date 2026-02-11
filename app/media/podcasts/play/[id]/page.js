@@ -397,7 +397,7 @@ export default function PodcastPlayPage() {
                                         <p className="text-[10px] font-bold text-brand-gold uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                                             <ListMusic className="w-3 h-3" /> Up Next
                                         </p>
-                                        <Link href={`/media/podcasts/${nextEpisode.id}`} className="block group/link">
+                                        <Link href={`/media/podcasts/play/${nextEpisode.id}`} className="block group/link">
                                             <div className="relative w-full aspect-video rounded-2xl overflow-hidden mb-4 bg-black/40 border border-white/5 shadow-inner">
                                                 <Image 
                                                     src={nextEpisode.thumbnail || "/fallback.webp"} 
@@ -534,7 +534,7 @@ export default function PodcastPlayPage() {
                                             <p className="text-[10px] font-bold text-brand-gold uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                                                 <ListMusic className="w-3 h-3" /> Up Next
                                             </p>
-                                            <Link href={`/media/podcasts/${nextEpisode.id}`} className="block group/link">
+                                            <Link href={`/media/podcasts/play/${nextEpisode.id}`} className="block group/link">
                                                 <div className="relative w-full aspect-video rounded-2xl overflow-hidden mb-4 bg-black/40 border border-white/5 shadow-inner">
                                                     <Image 
                                                         src={nextEpisode.thumbnail || "/fallback.webp"} 
