@@ -31,7 +31,7 @@ const getDir = (text) => {
     return arabicPattern.test(text) ? 'rtl' : 'ltr';
 };
 
-// --- COMPONENT: Social Share ---
+// --- COMPONENT: Social Share (Updated for Native Share) ---
 const SocialShare = ({ title }) => {
     const [copied, setCopied] = useState(false);
     const [url, setUrl] = useState('');
@@ -105,7 +105,7 @@ const LikeButton = ({ postId, initialLikes }) => {
         </button>
     );
 };
-// --- COMPONENT: Comments Section ---
+// --- COMPONENT: Comments Section (Enhanced) ---
 const CommentsSection = ({ postId, isArabic }) => {
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
@@ -193,7 +193,6 @@ const CommentsSection = ({ postId, isArabic }) => {
         </div>
     );
 };
-
 // ==========================================
 // MAIN PAGE COMPONENT
 // ==========================================
@@ -207,7 +206,7 @@ export default function PodcastPlayPage() {
     const [nextEpisode, setNextEpisode] = useState(null);
     const [playlistId, setPlaylistId] = useState(null); 
     const [loading, setLoading] = useState(true);
-    const [fileSize, setFileSize] = useState(''); 
+    const [fileSize, setFileSize] = useState(''); // Holds computed audio file size
     
     const [expandedIds, setExpandedIds] = useState(new Set());
 
@@ -243,6 +242,7 @@ export default function PodcastPlayPage() {
                     let q;
 
                     if (data.show) {
+                        // NEW: Fetch the podcast playlist's document ID to make the link clickable
                         try {
                             const plQ = query(collection(db, "podcast_playlists"), where("title", "==", data.show), limit(1));
                             const plSnap = await getDocs(plQ);
@@ -285,7 +285,8 @@ export default function PodcastPlayPage() {
 
         fetchEpisodeData();
     }, [id, router]);
-    // UPDATED: Use server-side proxy route to force native download behavior
+
+    // UPDATED: Direct Download Logic via Proxy
     const handleDownload = (e, audioUrl, title) => {
         e.preventDefault();
         if (!audioUrl) return;
@@ -309,7 +310,6 @@ export default function PodcastPlayPage() {
 
     const isArabic = episode.category === 'Arabic';
     const dir = getDir(episode.title);
-
     return (
         <div className="min-h-screen flex flex-col bg-[#FAFAFA] font-lato">
             <Header />
@@ -341,6 +341,7 @@ export default function PodcastPlayPage() {
                 {/* 2. OVERLAPPING PLAYER & CONTENT */}
                 <div className="max-w-[1200px] mx-auto px-4 md:px-8 lg:px-12 relative z-20 -mt-24 lg:-mt-40">
 
+                    {/* A) TOP ROW: PLAYER & DESKTOP UP NEXT */}
                     <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-stretch mb-12">
                         <div className={`w-full ${nextEpisode ? 'lg:w-[65%]' : 'lg:max-w-[854px] mx-auto'}`}>
                             <CustomVideoPlayer 
@@ -385,7 +386,8 @@ export default function PodcastPlayPage() {
                             </div>
                         )}
                     </div>
-{/* B) INFO & SIDEBAR GRID */}
+
+                    {/* B) INFO & SIDEBAR GRID */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 lg:items-stretch items-start">
 
                         {/* LEFT: EPISODE INFO */}
@@ -450,7 +452,7 @@ export default function PodcastPlayPage() {
                                             </div>
                                         </div>
                                         <button 
-                                            onClick={(e) => handleDownload(e, episode.audioUrl, episode.title)}
+                                            onClick={(e) => handleDownload(e, episode.audioUrl, `${episode.title}.mp3`)}
                                             className="flex justify-center items-center gap-2 px-6 py-3 w-full sm:w-auto bg-brand-brown-dark text-white rounded-xl sm:rounded-full hover:bg-brand-gold transition-all shadow-md text-xs font-bold uppercase tracking-wider flex-shrink-0"
                                         >
                                             <Download className="w-4 h-4" /> Download MP3
@@ -533,7 +535,7 @@ export default function PodcastPlayPage() {
                                             return (
                                                 <Link 
                                                     key={rel.id} 
-                                                    href={`/media/podcasts/play/${rel.id}`}
+                                                    href={`/media/podcasts/${rel.id}`}
                                                     className="group relative flex items-start gap-3 p-2 rounded-2xl hover:bg-gray-50 transition-all duration-300"
                                                 >
                                                     <div className="relative w-28 aspect-video rounded-xl overflow-hidden bg-black flex-shrink-0 border border-gray-100 shadow-sm">
