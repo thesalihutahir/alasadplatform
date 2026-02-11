@@ -20,7 +20,7 @@ export default function WatchVideoPage() {
     const [relatedVideos, setRelatedVideos] = useState([]);
     const [nextVideo, setNextVideo] = useState(null); 
     const [loading, setLoading] = useState(true);
-    
+
     const [expandedIds, setExpandedIds] = useState(new Set());
 
     // --- FETCH DATA (UNCHANGED) ---
@@ -110,7 +110,7 @@ return (
             <Header />
 
             <main className="flex-grow pb-24">
-                
+
                 {/* 1. HERO BACKGROUND SECTION */}
                 <div className="relative w-full bg-brand-brown-dark pt-12 pb-32 lg:pb-48 px-4 overflow-hidden">
                     {/* UPDATED: Fallback Overlay Image with Low Opacity */}
@@ -137,8 +137,9 @@ return (
                 </div>
 
                 {/* 2. OVERLAPPING PLAYER & CONTENT */}
-                <div className="max-w-[1600px] mx-auto px-4 md:px-8 lg:px-12 relative z-20 -mt-24 lg:-mt-40">
-                    
+                {/* UPDATED: max-w-[1200px] on desktop to control player width */}
+                <div className="max-w-[1200px] mx-auto px-4 md:px-8 lg:px-12 relative z-20 -mt-24 lg:-mt-40">
+
                     {/* A) CUSTOM PLAYER WRAPPER */}
                     <div className="w-full mb-12">
                         <CustomVideoPlayer 
@@ -150,7 +151,7 @@ return (
 
                     {/* B) INFO & SIDEBAR GRID */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-                        
+
                         {/* LEFT: VIDEO INFO */}
                         <div className="lg:col-span-8">
                             <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm" dir={dir}>
@@ -209,7 +210,7 @@ return (
                                     <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
                                         <Play className="w-24 h-24" />
                                     </div>
-                                    
+
                                     <div className="relative z-10">
                                         <p className="text-[10px] font-bold text-brand-gold uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                                             <Film className="w-3 h-3" /> Up Next
