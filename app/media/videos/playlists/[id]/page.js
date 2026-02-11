@@ -167,7 +167,8 @@ export default function PlaylistViewPage() {
 
                 {/* Overlapping Playlist Info Card */}
                 <div className="max-w-[1400px] lg:max-w-[1000px] xl:max-w-[1100px] mx-auto px-4 relative z-20 -mt-24 lg:-mt-36 mb-12">
-                    <div className="bg-white rounded-[2rem] shadow-2xl border border-gray-100 p-6 md:p-10 lg:p-12 relative overflow-hidden lg:overflow-visible" dir={dir}>
+                    {/* UPDATED: Removed overflow-hidden to allow the cover image to break out cleanly on mobile */}
+                    <div className="bg-white rounded-[2rem] shadow-2xl border border-gray-100 p-6 md:p-10 lg:p-12 relative" dir={dir}>
                         
                         {/* Card Background Decoration (Contained within border radius) */}
                         <div className="absolute inset-0 overflow-hidden rounded-[2rem] pointer-events-none z-0">
@@ -177,7 +178,6 @@ export default function PlaylistViewPage() {
                         <div className="flex flex-col gap-8 lg:gap-10 items-center relative z-10">
                             
                             {/* Playlist Cover (Landscape, Overlapping upwards) */}
-                            {/* UPDATED: Removed lg:-mt-24 to keep the mobile -mt-24 overlap */}
                             <div className="w-full sm:w-[400px] lg:w-[600px] flex-shrink-0 -mt-20 lg:-mt-32">
                                 <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white border border-gray-100 bg-gray-50">
                                     <Image 
@@ -209,7 +209,7 @@ export default function PlaylistViewPage() {
                                     </span>
                                 </div>
 
-                                {/* UPDATED: Adjusted mobile text alignment (lg:text-center forces desktop to center) */}
+                                {/* UPDATED: Description aligns left (or right for Arabic) on mobile, center on desktop */}
                                 <p className={`text-gray-600 text-sm md:text-base lg:text-lg max-w-2xl leading-relaxed mb-8 w-full lg:text-center ${getDir(playlist.description || "") === 'rtl' ? 'font-arabic text-right' : 'font-lato text-left'}`} dir={getDir(playlist.description || "")}>
                                     {playlist.description || "Browse all episodes in this series below. Episodes are listed from newest to oldest."}
                                 </p>
