@@ -117,7 +117,7 @@ export default function WatchVideoPage() {
                     {/* Fallback Overlay Image with Low Opacity */}
                     <div className="absolute inset-0 z-0">
                         <Image
-                            src="/fallback.webp" // As requested
+                            src="/fallback.webp"
                             alt=""
                             fill
                             className="object-cover opacity-45 mix-blend-overlay scale-110 saturate-0"
@@ -141,10 +141,11 @@ export default function WatchVideoPage() {
                 <div className="max-w-[1200px] mx-auto px-4 md:px-8 lg:px-12 relative z-20 -mt-24 lg:-mt-40">
 
                     {/* A) TOP ROW: PLAYER & DESKTOP UP NEXT */}
-                    <div className={`grid grid-cols-1 ${nextVideo ? 'lg:grid-cols-12' : ''} gap-8 lg:gap-12 items-start mb-12`}>
+                    {/* UPDATED: Added lg:flex lg:items-stretch to make children equal height */}
+                    <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-stretch mb-12">
                         
                         {/* CUSTOM PLAYER WRAPPER */}
-                        <div className={`w-full ${nextVideo ? 'lg:col-span-8' : 'lg:max-w-[854px] mx-auto'}`}>
+                        <div className={`w-full ${nextVideo ? 'lg:w-[65%]' : 'lg:max-w-[854px] mx-auto'}`}>
                             <CustomVideoPlayer 
                                 videoId={video.videoId} 
                                 thumbnail={video.thumbnail} 
@@ -154,13 +155,14 @@ export default function WatchVideoPage() {
 
                         {/* UP NEXT (Desktop Only - Side by side with player) */}
                         {nextVideo && (
-                            <div className="hidden lg:block lg:col-span-4">
-                                <div className="bg-brand-brown-dark text-white p-6 rounded-3xl relative overflow-hidden shadow-xl ring-1 ring-white/10 group">
+                            <div className="hidden lg:block lg:w-[35%]">
+                                {/* UPDATED: h-full added to fill the stretched container height */}
+                                <div className="bg-brand-brown-dark text-white p-6 rounded-3xl relative overflow-hidden shadow-xl ring-1 ring-white/10 group h-full flex flex-col">
                                     <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
                                         <Play className="w-24 h-24" />
                                     </div>
 
-                                    <div className="relative z-10">
+                                    <div className="relative z-10 flex-grow flex flex-col justify-center">
                                         <p className="text-[10px] font-bold text-brand-gold uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                                             <Film className="w-3 h-3" /> Up Next
                                         </p>
@@ -190,11 +192,13 @@ export default function WatchVideoPage() {
                     </div>
 
                     {/* B) INFO & SIDEBAR GRID */}
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+                    {/* UPDATED: lg:items-stretch to force equal height columns */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 lg:items-stretch items-start">
 
                         {/* LEFT: VIDEO INFO */}
                         <div className="lg:col-span-8">
-                            <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm" dir={dir}>
+                            {/* UPDATED: h-full added */}
+                            <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm h-full" dir={dir}>
                                 {/* Control Strip */}
                                 <div className="flex flex-wrap items-center justify-between gap-4 mb-6 border-b border-gray-50 pb-6" dir="ltr">
                                     <div className="flex items-center gap-3">
@@ -241,7 +245,8 @@ export default function WatchVideoPage() {
                         </div>
 
                         {/* RIGHT: SIDEBAR */}
-                        <div className="lg:col-span-4 space-y-8">
+                        {/* UPDATED: h-full and flex column added to fill height */}
+                        <div className="lg:col-span-4 space-y-8 flex flex-col h-full">
                             
                             {/* Up Next (Mobile Only - Original position) */}
                             {nextVideo && (
@@ -280,7 +285,8 @@ export default function WatchVideoPage() {
                             )}
 
                             {/* Related Videos */}
-                            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm">
+                            {/* UPDATED: flex-grow added so it expands to match the left column height */}
+                            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm flex-grow">
                                 <h3 className="font-agency text-xl text-brand-brown-dark mb-6 px-1 flex items-center gap-2">
                                     {video.playlist ? "Series Content" : "Related Videos"}
                                 </h3>
