@@ -141,7 +141,7 @@ return (
 
                     {/* A) CUSTOM PLAYER WRAPPER */}
                     {/* UPDATED: Further reduced desktop max-width (lg:max-w-[800px] xl:max-w-[900px]) */}
-                    <div className="w-full lg:max-w-[800px] xl:max-w-[900px] mx-auto mb-12">
+                    <div className="w-full lg:max-w-[720px] xl:max-w-[854px] mx-auto mb-12">
                         <CustomVideoPlayer 
                             videoId={video.videoId} 
                             thumbnail={video.thumbnail} 
