@@ -71,7 +71,7 @@ const SocialShare = ({ title }) => {
     );
 };
 
-// --- COMPONENT: Like Button (Restored) ---
+// --- COMPONENT: Like Button ---
 const LikeButton = ({ postId, initialLikes }) => {
     const [likes, setLikes] = useState(initialLikes || 0);
     const [liked, setLiked] = useState(false);
@@ -193,6 +193,7 @@ const CommentsSection = ({ postId, isArabic }) => {
         </div>
     );
 };
+
 // ==========================================
 // MAIN PAGE COMPONENT
 // ==========================================
@@ -206,7 +207,7 @@ export default function PodcastPlayPage() {
     const [nextEpisode, setNextEpisode] = useState(null);
     const [playlistId, setPlaylistId] = useState(null); 
     const [loading, setLoading] = useState(true);
-    const [fileSize, setFileSize] = useState(''); // Holds computed audio file size
+    const [fileSize, setFileSize] = useState(''); 
     
     const [expandedIds, setExpandedIds] = useState(new Set());
 
@@ -284,8 +285,7 @@ export default function PodcastPlayPage() {
 
         fetchEpisodeData();
     }, [id, router]);
-
-    // Native silent download using proxy stream
+    // UPDATED: Use server-side proxy route to force native download behavior
     const handleDownload = (e, audioUrl, title) => {
         e.preventDefault();
         if (!audioUrl) return;
@@ -309,7 +309,8 @@ export default function PodcastPlayPage() {
 
     const isArabic = episode.category === 'Arabic';
     const dir = getDir(episode.title);
-return (
+
+    return (
         <div className="min-h-screen flex flex-col bg-[#FAFAFA] font-lato">
             <Header />
 
@@ -384,8 +385,7 @@ return (
                             </div>
                         )}
                     </div>
-
-                    {/* B) INFO & SIDEBAR GRID */}
+{/* B) INFO & SIDEBAR GRID */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 lg:items-stretch items-start">
 
                         {/* LEFT: EPISODE INFO */}
@@ -400,14 +400,14 @@ return (
                                         </span>
                                         {episode.show && (
                                             playlistId ? (
-                                                <Link href={`/media/podcasts/playlists/${playlistId}`} className="flex items-center gap-2 text-brand-brown-dark/60 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-gray-50 hover:bg-brand-gold/10 hover:border-brand-gold/30 border border-transparent transition-all">
+                                                <Link href={`/media/podcasts/playlists/${playlistId}`} className="hidden sm:flex items-center gap-2 text-brand-brown-dark/60 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-gray-50 hover:bg-gray-100 hover:text-brand-brown-dark transition-colors">
                                                     <ListMusic className="w-3 h-3" /> 
                                                     <span className="truncate max-w-[200px]" title={episode.show}>
                                                         {episode.show}
                                                     </span>
                                                 </Link>
                                             ) : (
-                                                <div className="flex items-center gap-2 text-brand-brown-dark/60 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-gray-50 border border-transparent">
+                                                <div className="hidden sm:flex items-center gap-2 text-brand-brown-dark/60 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-gray-50">
                                                     <ListMusic className="w-3 h-3" /> 
                                                     <span className="truncate max-w-[200px]" title={episode.show}>
                                                         {episode.show}
@@ -460,6 +460,20 @@ return (
 
                                 {/* Description */}
                                 <div className={`prose prose-sm md:prose-base max-w-none text-gray-600 leading-relaxed whitespace-pre-line ${dir === 'rtl' ? 'font-arabic text-right' : 'font-lato'}`}>
+                                    {episode.show && (
+                                        playlistId ? (
+                                            <Link 
+                                                href={`/media/podcasts/playlists/${playlistId}`} 
+                                                className="block w-fit text-xs font-bold text-brand-gold mb-4 uppercase tracking-wide border-l-2 border-brand-gold pl-3 hover:text-brand-brown-dark hover:underline transition-colors"
+                                            >
+                                                Podcast Series: {episode.show}
+                                            </Link>
+                                        ) : (
+                                            <p className="text-xs font-bold text-brand-gold mb-4 uppercase tracking-wide border-l-2 border-brand-gold pl-3">
+                                                Podcast Series: {episode.show}
+                                            </p>
+                                        )
+                                    )}
                                     {episode.description}
                                 </div>
 
@@ -471,7 +485,7 @@ return (
                         {/* RIGHT: SIDEBAR */}
                         <div className="lg:col-span-4 space-y-8 flex flex-col h-full">
 
-                            {/* Up Next (Mobile Only - Original position) */}
+                            {/* Up Next (Mobile Only) */}
                             {nextEpisode && (
                                 <div className="block lg:hidden">
                                     <div className="bg-brand-brown-dark text-white p-6 rounded-3xl relative overflow-hidden shadow-xl ring-1 ring-white/10 group">
