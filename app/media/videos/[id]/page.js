@@ -113,10 +113,10 @@ return (
 
                 {/* 1. HERO BACKGROUND SECTION */}
                 <div className="relative w-full bg-brand-brown-dark pt-12 pb-32 lg:pb-48 px-4 overflow-hidden">
-                    {/* UPDATED: Fallback Overlay Image with Low Opacity */}
+                    {/* Fallback Overlay Image with Low Opacity */}
                     <div className="absolute inset-0 z-0">
                         <Image
-                            src="/fallback.webp" // As requested
+                            src="/fallback.webp" 
                             alt=""
                             fill
                             className="object-cover opacity-45 mix-blend-overlay scale-110 saturate-0"
@@ -137,11 +137,11 @@ return (
                 </div>
 
                 {/* 2. OVERLAPPING PLAYER & CONTENT */}
-                {/* UPDATED: max-w-[1200px] on desktop to control player width */}
                 <div className="max-w-[1200px] mx-auto px-4 md:px-8 lg:px-12 relative z-20 -mt-24 lg:-mt-40">
 
                     {/* A) CUSTOM PLAYER WRAPPER */}
-                    <div className="w-full mb-12">
+                    {/* UPDATED: Added lg:max-w-[900px] xl:max-w-[1000px] mx-auto to restrict desktop size while keeping mobile w-full untouched */}
+                    <div className="w-full lg:max-w-[900px] xl:max-w-[1000px] mx-auto mb-12">
                         <CustomVideoPlayer 
                             videoId={video.videoId} 
                             thumbnail={video.thumbnail} 
@@ -184,14 +184,12 @@ return (
                                     </div>
                                 </div>
 
-                                {/* UPDATED: Reduced Title Size (50% smaller from 5xl -> 2xl/3xl) */}
                                 <h1 className={`text-xl md:text-3xl font-bold text-brand-brown-dark mb-6 leading-tight ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
                                     {video.title}
                                 </h1>
 
                                 {/* Description with Playlist Info */}
                                 <div className={`prose prose-sm md:prose-base max-w-none text-gray-600 leading-relaxed whitespace-pre-line ${dir === 'rtl' ? 'font-arabic text-right' : 'font-lato'}`}>
-                                    {/* UPDATED: Added Playlist name to meta description area */}
                                     {video.playlist && (
                                         <p className="text-xs font-bold text-brand-gold mb-3 uppercase tracking-wide border-l-2 border-brand-gold pl-3">
                                             Series: {video.playlist}
