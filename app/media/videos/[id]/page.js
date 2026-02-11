@@ -288,7 +288,7 @@ export default function WatchVideoPage() {
                             {/* UPDATED: flex-grow added so it expands to match the left column height */}
                             <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm flex-grow">
                                 <h3 className="font-agency text-xl text-brand-brown-dark mb-6 px-1 flex items-center gap-2">
-                                    {video.playlist ? "Series Content" : "Related Videos"}
+                                    {video.playlist ? "More From This Series" : "Related Videos"}
                                 </h3>
                                 <div className="flex flex-col gap-4">
                                     {relatedVideos.length > 0 ? (
