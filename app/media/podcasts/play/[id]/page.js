@@ -7,20 +7,28 @@ import { useParams, useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Loader from '@/components/Loader';
+// Imported Custom Player (Reused for consistent look)
+import CustomVideoPlayer from '@/components/CustomVideoPlayer';
 // Firebase
 import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, increment, collection, query, where, orderBy, limit, getDocs, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 
 import { 
     Play, Calendar, Clock, Download, Share2, Heart, 
-    MessageCircle, Send, Check, ArrowLeft, Mic, ListMusic 
+    MessageCircle, Send, Check, ArrowLeft, Mic, ListMusic, Headphones, ChevronUp, ChevronDown 
 } from 'lucide-react';
 
 // --- HELPER: Date Formatter ---
 const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+const getDir = (text) => {
+    if (!text) return 'ltr';
+    const arabicPattern = /[\u0600-\u06FF]/;
+    return arabicPattern.test(text) ? 'rtl' : 'ltr';
 };
 
 // --- COMPONENT: Social Share ---
@@ -43,50 +51,15 @@ const SocialShare = ({ title }) => {
     return (
         <button 
             onClick={handleCopy} 
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-full hover:bg-brand-gold hover:text-white transition-colors text-xs font-bold uppercase tracking-wider"
+            className="flex items-center gap-2 text-brand-gold hover:text-brand-brown-dark transition-colors text-xs font-bold uppercase tracking-wider"
         >
-            {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+            {copied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
             {copied ? 'Copied' : 'Share'}
         </button>
     );
 };
 
-// --- COMPONENT: Like Button ---
-const LikeButton = ({ postId, initialLikes }) => {
-    const [likes, setLikes] = useState(initialLikes || 0);
-    const [liked, setLiked] = useState(false);
-
-    useEffect(() => {
-        const hasLiked = localStorage.getItem(`liked_podcast_${postId}`);
-        if (hasLiked) setLiked(true);
-    }, [postId]);
-
-    const handleLike = async () => {
-        if (liked) return;
-        setLikes(prev => prev + 1);
-        setLiked(true);
-        localStorage.setItem(`liked_podcast_${postId}`, 'true');
-        try {
-            const postRef = doc(db, "podcasts", postId);
-            await updateDoc(postRef, { likes: increment(1) });
-        } catch (error) { console.error("Error liking:", error); }
-    };
-
-    return (
-        <button 
-            onClick={handleLike} 
-            disabled={liked} 
-            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all text-xs font-bold uppercase tracking-wider ${
-                liked ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-500'
-            }`}
-        >
-            <Heart className={`w-4 h-4 ${liked ? 'fill-current' : ''}`} />
-            <span>{likes} Likes</span>
-        </button>
-    );
-};
-
-// --- COMPONENT: Comments Section ---
+// --- COMPONENT: Comments Section (Unchanged logic, slightly refined styling) ---
 const CommentsSection = ({ postId, isArabic }) => {
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
@@ -119,11 +92,11 @@ const CommentsSection = ({ postId, isArabic }) => {
     return (
         <div className="mt-12 border-t border-gray-100 pt-8" dir={isArabic ? 'rtl' : 'ltr'}>
             <h3 className={`font-agency text-2xl text-brand-brown-dark mb-6 flex items-center gap-2 ${isArabic ? 'font-tajawal' : ''}`}>
-                <MessageCircle className="w-5 h-5" /> {isArabic ? 'التعليقات' : 'Discussion'}
+                <MessageCircle className="w-5 h-5 text-brand-gold" /> {isArabic ? 'التعليقات' : 'Discussion'}
             </h3>
-            
+
             {/* Comment Form */}
-            <form onSubmit={handlePostComment} className="mb-8 bg-gray-50 p-6 rounded-2xl border border-gray-100">
+            <form onSubmit={handlePostComment} className="mb-8 bg-gray-50 p-6 rounded-3xl border border-gray-100">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div className="md:col-span-1">
                         <input 
@@ -131,7 +104,7 @@ const CommentsSection = ({ postId, isArabic }) => {
                             value={authorName} 
                             onChange={(e) => setAuthorName(e.target.value)} 
                             placeholder={isArabic ? "الاسم" : "Your Name"} 
-                            className={`w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 ${isArabic ? 'font-arabic' : ''}`} 
+                            className={`w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-gold/50 transition-colors ${isArabic ? 'font-arabic' : ''}`} 
                             required 
                         />
                     </div>
@@ -141,14 +114,14 @@ const CommentsSection = ({ postId, isArabic }) => {
                             value={newComment} 
                             onChange={(e) => setNewComment(e.target.value)} 
                             placeholder={isArabic ? "شارك برأيك..." : "Join the conversation..."} 
-                            className={`w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 ${isArabic ? 'font-arabic' : ''}`} 
+                            className={`w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-gold/50 transition-colors ${isArabic ? 'font-arabic' : ''}`} 
                             required
                         />
                     </div>
                 </div>
                 <div className={`flex ${isArabic ? 'justify-start' : 'justify-end'}`}>
-                    <button type="submit" disabled={isSubmitting} className="bg-brand-brown-dark text-white px-6 py-2 rounded-full font-bold text-xs uppercase tracking-wider hover:bg-brand-gold transition-colors flex items-center gap-2 disabled:opacity-50">
-                        {isSubmitting ? 'Posting...' : <>{isArabic ? 'إرسال' : 'Post Comment'} <Send className={`w-3 h-3 ${isArabic ? 'rotate-180' : ''}`} /></>}
+                    <button type="submit" disabled={isSubmitting} className="bg-brand-brown-dark text-white px-8 py-2.5 rounded-full font-bold text-xs uppercase tracking-wider hover:bg-brand-gold transition-colors flex items-center gap-2 disabled:opacity-50">
+                        {isSubmitting ? 'Posting...' : <>{isArabic ? 'إرسال' : 'Post Comment'} <Send className={`w-3.5 h-3.5 ${isArabic ? 'rotate-180' : ''}`} /></>}
                     </button>
                 </div>
             </form>
@@ -158,20 +131,21 @@ const CommentsSection = ({ postId, isArabic }) => {
                 {comments.length > 0 ? (
                     comments.map(comment => (
                         <div key={comment.id} className="flex gap-4">
-                            <div className="w-8 h-8 rounded-full bg-brand-sand flex items-center justify-center text-brand-brown-dark font-bold text-xs flex-shrink-0">
-                                {comment.author.charAt(0).toUpperCase()}
+                            <div className="w-10 h-10 rounded-full bg-brand-gold/10 border border-brand-gold/20 flex items-center justify-center text-brand-gold font-bold text-sm flex-shrink-0 uppercase">
+                                {comment.author.charAt(0)}
                             </div>
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
                                     <span className="font-bold text-brand-brown-dark text-sm">{comment.author}</span>
-                                    <span className="text-xs text-gray-400 opacity-60">• Just now</span>
                                 </div>
-                                <p className={`text-gray-600 text-sm leading-relaxed ${isArabic ? 'font-arabic' : ''}`}>{comment.text}</p>
+                                <p className={`text-gray-600 text-sm leading-relaxed ${isArabic ? 'font-arabic' : 'font-lato'}`}>{comment.text}</p>
                             </div>
                         </div>
                     ))
                 ) : (
-                    <p className="text-gray-400 text-sm italic">{isArabic ? "كن أول من يعلق!" : "Be the first to share your thoughts."}</p>
+                    <div className="text-center py-8 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                        <p className="text-gray-400 text-sm italic">{isArabic ? "كن أول من يعلق!" : "Be the first to share your thoughts."}</p>
+                    </div>
                 )}
             </div>
         </div>
@@ -188,7 +162,10 @@ export default function PodcastPlayPage() {
 
     const [episode, setEpisode] = useState(null);
     const [relatedEpisodes, setRelatedEpisodes] = useState([]);
+    const [nextEpisode, setNextEpisode] = useState(null);
     const [loading, setLoading] = useState(true);
+    
+    const [expandedIds, setExpandedIds] = useState(new Set());
 
     useEffect(() => {
         const fetchEpisodeData = async () => {
@@ -202,21 +179,30 @@ export default function PodcastPlayPage() {
                     const data = docSnap.data();
                     setEpisode({ id: docSnap.id, ...data });
 
-                    // 2. Increment Plays (Client-side trigger, ideally secure this server-side later)
+                    // 2. Increment Plays (Client-side trigger)
                     updateDoc(docRef, { plays: increment(1) });
 
-                    // 3. Fetch Related (Same Show)
+                    // 3. Fetch Related (Same Show/Category)
+                    const podcastsRef = collection(db, "podcasts");
+                    let q;
+
                     if (data.show) {
-                        const qRelated = query(
-                            collection(db, "podcasts"), 
-                            where("show", "==", data.show),
-                            orderBy("date", "desc"),
-                            limit(5)
-                        );
-                        const relatedSnap = await getDocs(qRelated);
-                        const related = relatedSnap.docs
-                            .map(d => ({ id: d.id, ...d.data() }))
-                            .filter(ep => ep.id !== id); // Exclude current
+                        q = query(podcastsRef, where("show", "==", data.show));
+                        const snap = await getDocs(q);
+                        let showEpisodes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                        showEpisodes.sort((a, b) => new Date(a.date) - new Date(b.date));
+                        const currentIndex = showEpisodes.findIndex(v => v.id === id);
+
+                        if (currentIndex !== -1 && currentIndex < showEpisodes.length - 1) {
+                            setNextEpisode(showEpisodes[currentIndex + 1]); 
+                        } else {
+                            setNextEpisode(null); 
+                        }
+                        setRelatedEpisodes(showEpisodes.filter(v => v.id !== id).slice(0, 4));
+                    } else {
+                        q = query(podcastsRef, where("category", "==", data.category), orderBy("createdAt", "desc"), limit(5));
+                        const snap = await getDocs(q);
+                        const related = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(v => v.id !== id);
                         setRelatedEpisodes(related);
                     }
                 } else {
@@ -232,142 +218,290 @@ export default function PodcastPlayPage() {
         fetchEpisodeData();
     }, [id, router]);
 
-    if (loading) return <Loader size="lg" className="h-screen bg-brand-sand" />;
+    const handleDownload = (e, audioUrl) => {
+        if (!audioUrl) {
+            e.preventDefault();
+            return;
+        }
+        // Creates a hidden anchor tag to force download without opening a new tab
+        e.preventDefault();
+        const a = document.createElement('a');
+        a.href = audioUrl;
+        a.download = ''; 
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    };
+
+    const toggleExpand = (e, epId) => {
+        e.preventDefault(); 
+        e.stopPropagation();
+        setExpandedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(epId)) next.delete(epId);
+            else next.add(epId);
+            return next;
+        });
+    };
+
+    if (loading) return <div className="min-h-screen flex flex-col bg-white"><Header /><div className="flex-grow flex items-center justify-center"><Loader size="lg" /></div><Footer /></div>;
     if (!episode) return null;
 
     const isArabic = episode.category === 'Arabic';
-
-    return (
-        <div className="min-h-screen flex flex-col bg-white font-lato">
+    const dir = getDir(episode.title);
+return (
+        <div className="min-h-screen flex flex-col bg-[#FAFAFA] font-lato">
             <Header />
 
-            <main className="flex-grow">
-                {/* 1. CINEMA MODE PLAYER SECTION */}
-                <div className="bg-brand-brown-dark text-white pt-8 pb-12 px-4 md:px-0">
-                    <div className="max-w-6xl mx-auto">
-                        
-                        {/* Breadcrumb / Back */}
-                        <div className="flex justify-between items-center mb-6 px-4">
-                            <Link href="/media/podcasts" className="flex items-center gap-2 text-white/60 hover:text-brand-gold transition-colors text-sm font-bold uppercase tracking-wider">
-                                <ArrowLeft className="w-4 h-4" /> Back to Library
-                            </Link>
-                            <span className="text-white/40 text-xs font-agency tracking-widest hidden md:block">Now Playing</span>
-                        </div>
+            <main className="flex-grow pb-24">
 
-                        {/* Player Container */}
-                        <div className="relative w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border border-white/10">
-                            <iframe 
-                                src={`https://www.youtube.com/embed/${episode.videoId}?autoplay=1&modestbranding=1&rel=0`} 
-                                title={episode.title}
-                                className="absolute inset-0 w-full h-full"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                allowFullScreen
-                            ></iframe>
+                {/* 1. HERO BACKGROUND SECTION (Matches Video Watch Page) */}
+                <div className="relative w-full bg-brand-brown-dark pt-12 pb-32 lg:pb-48 px-4 overflow-hidden">
+                    {/* Fallback Overlay Image with Low Opacity */}
+                    <div className="absolute inset-0 z-0">
+                        <Image
+                            src="/fallback.webp"
+                            alt=""
+                            fill
+                            className="object-cover opacity-50 mix-blend-overlay scale-110 saturate-0"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-dark via-brand-brown-dark/90 to-transparent"></div>
+                    </div>
+
+                    {/* Ambient Glow */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-brand-gold/5 blur-[120px] rounded-full pointer-events-none"></div>
+
+                    {/* Content Layer */}
+                    <div className="relative z-10 flex flex-col items-center justify-center text-center">
+                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-black/20 backdrop-blur-md mb-6">
+                            <Headphones className="w-3.5 h-3.5 text-brand-gold animate-pulse" />
+                            <span className="text-[10px] font-bold text-white tracking-[0.2em] uppercase">Now Playing</span>
                         </div>
                     </div>
                 </div>
 
-                {/* 2. DETAILS & SIDEBAR GRID */}
-                <div className="max-w-6xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-12 gap-12">
-                    
-                    {/* LEFT: INFO & COMMENTS */}
-                    <div className="lg:col-span-8">
-                        {/* Meta Header */}
-                        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6 mb-8 border-b border-gray-100 pb-8" dir={isArabic ? 'rtl' : 'ltr'}>
-                            <div className="flex-grow">
-                                <div className="flex flex-wrap items-center gap-3 mb-3">
-                                    <span className="px-3 py-1 bg-brand-sand text-brand-brown-dark rounded-md text-[10px] font-bold uppercase tracking-widest">
-                                        {episode.show}
-                                    </span>
-                                    {episode.episodeNumber && (
-                                        <span className="px-3 py-1 bg-brand-gold text-white rounded-md text-[10px] font-bold uppercase tracking-widest">
-                                            S{episode.season || 1} • EP{episode.episodeNumber}
-                                        </span>
-                                    )}
-                                </div>
-                                <h1 className={`text-3xl md:text-4xl text-brand-brown-dark leading-tight mb-4 ${isArabic ? 'font-tajawal font-bold' : 'font-agency'}`}>
-                                    {episode.title}
-                                </h1>
-                                <div className="flex items-center gap-4 text-xs text-gray-500 font-bold uppercase tracking-wider">
-                                    <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {formatDate(episode.date)}</span>
-                                    <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                                    <span className="flex items-center gap-1"><Play className="w-3 h-3" /> {episode.plays || 0} Plays</span>
-                                </div>
-                            </div>
+                {/* 2. OVERLAPPING PLAYER & CONTENT */}
+                <div className="max-w-[1200px] mx-auto px-4 md:px-8 lg:px-12 relative z-20 -mt-24 lg:-mt-40">
 
-                            {/* Action Buttons */}
-                            <div className="flex flex-wrap gap-3 flex-shrink-0">
-                                <LikeButton postId={episode.id} initialLikes={episode.likes || 0} />
-                                <SocialShare title={episode.title} />
-                                {episode.audioUrl && (
-                                    <a 
-                                        href={episode.audioUrl} 
-                                        target="_blank" 
-                                        download 
-                                        className="flex items-center gap-2 px-4 py-2 bg-brand-brown-dark text-white rounded-full hover:bg-brand-gold transition-colors text-xs font-bold uppercase tracking-wider"
-                                    >
-                                        <Download className="w-4 h-4" /> Download MP3
-                                    </a>
-                                )}
-                            </div>
+                    {/* A) TOP ROW: PLAYER & DESKTOP UP NEXT */}
+                    <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-stretch mb-12">
+
+                        {/* CUSTOM PLAYER WRAPPER */}
+                        <div className={`w-full ${nextEpisode ? 'lg:w-[65%]' : 'lg:max-w-[854px] mx-auto'}`}>
+                            {/* We use the same video player component, passing the YouTube video ID if available */}
+                            <CustomVideoPlayer 
+                                videoId={episode.videoId} 
+                                thumbnail={episode.thumbnail} 
+                                title={episode.title} 
+                            />
                         </div>
 
-                        {/* Description */}
-                        <div className="prose prose-stone max-w-none text-gray-600 leading-loose font-lato" dir={isArabic ? 'rtl' : 'ltr'}>
-                            <p className={isArabic ? 'font-arabic text-lg' : ''}>
-                                {episode.description || "No description provided."}
-                            </p>
-                        </div>
+                        {/* UP NEXT (Desktop Only - Side by side with player) */}
+                        {nextEpisode && (
+                            <div className="hidden lg:block lg:w-[35%]">
+                                <div className="bg-brand-brown-dark text-white p-6 rounded-3xl relative overflow-hidden shadow-xl ring-1 ring-white/10 group h-full flex flex-col">
+                                    <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+                                        <Headphones className="w-24 h-24" />
+                                    </div>
 
-                        {/* Comments */}
-                        <CommentsSection postId={episode.id} isArabic={isArabic} />
-                    </div>
-
-                    {/* RIGHT: UP NEXT */}
-                    <aside className="lg:col-span-4 space-y-8">
-                        <div className="bg-brand-sand/30 p-6 rounded-2xl border border-brand-sand">
-                            <h3 className="font-agency text-xl text-brand-brown-dark mb-6 flex items-center gap-2">
-                                <ListMusic className="w-5 h-5 text-brand-gold" /> Up Next
-                            </h3>
-                            
-                            <div className="space-y-4">
-                                {relatedEpisodes.length > 0 ? (
-                                    relatedEpisodes.map((ep) => (
-                                        <Link key={ep.id} href={`/media/podcasts/play/${ep.id}`} className="group flex gap-4 items-start bg-white p-3 rounded-xl shadow-sm hover:shadow-md transition-all">
-                                            <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200">
-                                                <Image src={ep.thumbnail || "/fallback.webp"} alt={ep.title} fill className="object-cover group-hover:scale-105 transition-transform" />
-                                                <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
-                                                    <Play className="w-6 h-6 text-white opacity-80 group-hover:opacity-100" />
+                                    <div className="relative z-10 flex-grow flex flex-col justify-center">
+                                        <p className="text-[10px] font-bold text-brand-gold uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                            <ListMusic className="w-3 h-3" /> Up Next
+                                        </p>
+                                        <Link href={`/media/podcasts/${nextEpisode.id}`} className="block group/link">
+                                            <div className="relative w-full aspect-video rounded-2xl overflow-hidden mb-4 bg-black/40 border border-white/5 shadow-inner">
+                                                <Image 
+                                                    src={nextEpisode.thumbnail || "/fallback.webp"} 
+                                                    alt={nextEpisode.title} 
+                                                    fill 
+                                                    className="object-cover opacity-80 group-hover/link:opacity-100 transition-opacity duration-500"
+                                                />
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 group-hover/link:bg-brand-gold group-hover/link:border-brand-gold group-hover/link:scale-110 transition-all duration-300 shadow-xl">
+                                                        <Play className="w-5 h-5 fill-current ml-0.5" />
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className="min-w-0 flex-grow pt-1">
-                                                <h4 className="font-agency text-base text-brand-brown-dark leading-tight mb-1 truncate group-hover:text-brand-gold transition-colors">
-                                                    {ep.title}
-                                                </h4>
-                                                <p className="text-xs text-gray-500 mb-2 truncate">{ep.show}</p>
-                                                <span className="text-[10px] font-bold text-white bg-brand-brown-dark/80 px-2 py-0.5 rounded">
-                                                    EP {ep.episodeNumber || '-'}
+                                            <h3 className="text-white font-agency text-xl md:text-2xl leading-snug line-clamp-2 mb-2 group-hover/link:text-brand-gold transition-colors">
+                                                {nextEpisode.title}
+                                            </h3>
+                                            <p className="text-xs text-white/40 line-clamp-1">From Series: {nextEpisode.show || episode.category}</p>
+                                        </Link>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* B) INFO & SIDEBAR GRID */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 lg:items-stretch items-start">
+
+                        {/* LEFT: EPISODE INFO */}
+                        <div className="lg:col-span-8">
+                            <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm h-full" dir={dir}>
+                                {/* Control Strip */}
+                                <div className="flex flex-wrap items-center justify-between gap-4 mb-6 border-b border-gray-50 pb-6" dir="ltr">
+                                    <div className="flex items-center gap-3">
+                                        <span className="px-3 py-1 bg-brand-brown-dark text-white text-[10px] font-bold uppercase rounded-full tracking-wider">
+                                            {episode.category}
+                                        </span>
+                                        {episode.show && (
+                                            <div className="hidden sm:flex items-center gap-2 text-brand-brown-dark/60 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-gray-50">
+                                                <ListMusic className="w-3 h-3" /> 
+                                                <span className="truncate max-w-[200px]" title={episode.show}>
+                                                    {episode.show}
                                                 </span>
                                             </div>
-                                        </Link>
-                                    ))
-                                ) : (
-                                    <div className="text-center py-8 text-gray-400 text-sm">
-                                        <Mic className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                                        No more episodes in this series.
+                                        )}
+                                        {episode.episodeNumber && (
+                                            <span className="px-3 py-1 border border-gray-200 text-gray-500 rounded-full text-[10px] font-bold uppercase tracking-widest hidden sm:block">
+                                                S{episode.season || 1} • EP{episode.episodeNumber}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-2 text-gray-400 text-xs font-bold">
+                                            <Calendar className="w-3.5 h-3.5" /> {formatDate(episode.date)}
+                                        </div>
+                                        <div className="h-4 w-px bg-gray-200"></div>
+                                        <SocialShare title={episode.title} />
+                                    </div>
+                                </div>
+
+                                <h1 className={`text-xl md:text-3xl font-bold text-brand-brown-dark mb-6 leading-tight ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
+                                    {episode.title}
+                                </h1>
+
+                                {/* Audio Download Action Strip */}
+                                {episode.audioUrl && (
+                                    <div className="mb-8 flex items-center justify-between p-4 bg-brand-sand/10 border border-brand-gold/20 rounded-2xl" dir="ltr">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-brand-gold rounded-full flex items-center justify-center text-white shadow-md">
+                                                <Mic className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold text-brand-brown-dark">Audio Version</p>
+                                                <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Listen on the go</p>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={(e) => handleDownload(e, episode.audioUrl)}
+                                            className="flex items-center gap-2 px-5 py-2.5 bg-brand-brown-dark text-white rounded-full hover:bg-brand-gold transition-all shadow-md text-xs font-bold uppercase tracking-wider"
+                                        >
+                                            <Download className="w-4 h-4" /> Download
+                                        </button>
                                     </div>
                                 )}
-                            </div>
-                            
-                            <div className="mt-6 pt-6 border-t border-brand-brown/10 text-center">
-                                <Link href="/media/podcasts" className="inline-block text-xs font-bold text-brand-brown-dark uppercase tracking-widest hover:text-brand-gold transition-colors">
-                                    View Full Library
-                                </Link>
+
+                                {/* Description */}
+                                <div className={`prose prose-sm md:prose-base max-w-none text-gray-600 leading-relaxed whitespace-pre-line ${dir === 'rtl' ? 'font-arabic text-right' : 'font-lato'}`}>
+                                    {episode.show && (
+                                        <p className="text-xs font-bold text-brand-gold mb-3 uppercase tracking-wide border-l-2 border-brand-gold pl-3">
+                                            Podcast Series: {episode.show}
+                                        </p>
+                                    )}
+                                    {episode.description}
+                                </div>
+
+                                {/* Comments injected at bottom of info card area */}
+                                <CommentsSection postId={episode.id} isArabic={isArabic} />
                             </div>
                         </div>
-                    </aside>
 
+                        {/* RIGHT: SIDEBAR */}
+                        <div className="lg:col-span-4 space-y-8 flex flex-col h-full">
+
+                            {/* Up Next (Mobile Only) */}
+                            {nextEpisode && (
+                                <div className="block lg:hidden">
+                                    <div className="bg-brand-brown-dark text-white p-6 rounded-3xl relative overflow-hidden shadow-xl ring-1 ring-white/10 group">
+                                        <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+                                            <Headphones className="w-24 h-24" />
+                                        </div>
+
+                                        <div className="relative z-10">
+                                            <p className="text-[10px] font-bold text-brand-gold uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                                <ListMusic className="w-3 h-3" /> Up Next
+                                            </p>
+                                            <Link href={`/media/podcasts/${nextEpisode.id}`} className="block group/link">
+                                                <div className="relative w-full aspect-video rounded-2xl overflow-hidden mb-4 bg-black/40 border border-white/5 shadow-inner">
+                                                    <Image 
+                                                        src={nextEpisode.thumbnail || "/fallback.webp"} 
+                                                        alt={nextEpisode.title} 
+                                                        fill 
+                                                        className="object-cover opacity-80 group-hover/link:opacity-100 transition-opacity duration-500"
+                                                    />
+                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                        <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 group-hover/link:bg-brand-gold group-hover/link:border-brand-gold group-hover/link:scale-110 transition-all duration-300 shadow-xl">
+                                                            <Play className="w-5 h-5 fill-current ml-0.5" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <h3 className="text-white font-agency text-xl leading-snug line-clamp-2 mb-2 group-hover/link:text-brand-gold transition-colors">
+                                                    {nextEpisode.title}
+                                                </h3>
+                                                <p className="text-xs text-white/40 line-clamp-1">From Series: {nextEpisode.show || episode.category}</p>
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Related Episodes */}
+                            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm flex-grow">
+                                <h3 className="font-agency text-xl text-brand-brown-dark mb-6 px-1 flex items-center gap-2">
+                                    {episode.show ? "More From This Series" : "Related Episodes"}
+                                </h3>
+                                <div className="flex flex-col gap-4">
+                                    {relatedEpisodes.length > 0 ? (
+                                        relatedEpisodes.map((rel) => {
+                                            const isExpanded = expandedIds.has(rel.id);
+                                            return (
+                                                <Link 
+                                                    key={rel.id} 
+                                                    href={`/media/podcasts/${rel.id}`}
+                                                    className="group relative flex items-start gap-3 p-2 rounded-2xl hover:bg-gray-50 transition-all duration-300"
+                                                >
+                                                    <div className="relative w-28 aspect-video rounded-xl overflow-hidden bg-black flex-shrink-0 border border-gray-100 shadow-sm">
+                                                        <Image 
+                                                            src={rel.thumbnail || "/fallback.webp"} 
+                                                            alt={rel.title} 
+                                                            fill 
+                                                            className="object-cover opacity-90 group-hover:opacity-100 scale-110 group-hover:scale-125 transition-transform duration-700"
+                                                        />
+                                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <div className="w-6 h-6 bg-black/50 backdrop-blur rounded-full flex items-center justify-center text-white border border-white/20">
+                                                                <Headphones className="w-2.5 h-2.5 text-white" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex-grow min-w-0 py-0.5" dir={getDir(rel.title)}>
+                                                        <div className="relative pr-6">
+                                                            <h4 className={`text-sm font-bold text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors ${isExpanded ? '' : 'line-clamp-2'} ${getDir(rel.title) === 'rtl' ? 'font-tajawal' : 'font-lato'}`}>
+                                                                {rel.title}
+                                                            </h4>
+                                                            <button 
+                                                                onClick={(e) => toggleExpand(e, rel.id)}
+                                                                className="absolute right-0 top-0 p-0.5 text-gray-300 hover:text-brand-gold transition-colors"
+                                                            >
+                                                                {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                                            </button>
+                                                        </div>
+                                                        <p className="text-[9px] text-gray-400 mt-1.5 font-bold uppercase tracking-wider" dir="ltr">{formatDate(rel.date)}</p>
+                                                    </div>
+                                                </Link>
+                                            );
+                                        })
+                                    ) : (
+                                        <div className="text-center text-gray-400 text-xs py-4">No related episodes found.</div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
+
             </main>
 
             <Footer />
