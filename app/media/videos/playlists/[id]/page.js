@@ -20,6 +20,7 @@ export default function PlaylistViewPage() {
     
     // Sort Order State ('desc' = Newest Date Recorded First)
     const [sortOrder, setSortOrder] = useState('desc');
+    const [visibleCount, setVisibleCount] = useState(10); // Added for Load More functionality
 
     // Expand state for detail page related cards
     const [expandedIds, setExpandedIds] = useState(new Set());
@@ -65,7 +66,9 @@ export default function PlaylistViewPage() {
     // Helpers
     const formatDate = (dateString) => {
         if (!dateString) return '';
-        return new Date(dateString).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '';
+        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     };
 
     const getDir = (text) => {
@@ -116,6 +119,8 @@ export default function PlaylistViewPage() {
         return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
     });
 
+    const visibleVideos = sortedVideos.slice(0, visibleCount);
+
     // Logic for "Start Watching":
     // The "Start Watching" should ideally be the oldest video (first episode chronologically)
     const oldestVideoSorted = [...videos].sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -128,18 +133,27 @@ export default function PlaylistViewPage() {
             <main className="flex-grow pb-24">
                 
                 {/* 1. GLASSMORPHIC HEADER */}
-                <div className="relative w-full pt-10 pb-32 lg:pt-16 lg:pb-48 overflow-hidden">
+                <div className="relative w-full pt-10 pb-32 lg:pt-16 lg:pb-48 overflow-hidden bg-brand-brown-dark">
                     {/* Ambient Blurred Background */}
-                    <div className="absolute inset-0 z-0 pointer-events-none">
+                    <div className="absolute inset-0 z-0 pointer-events-none mix-blend-soft-light opacity-50">
                         <Image 
                             src={playlist.cover || "/fallback.webp"} 
                             alt="" 
                             fill 
-                            className="object-cover blur-[100px] scale-125 opacity-70"
+                            className="object-cover blur-[80px] scale-110"
                         />
-                        <div className="absolute inset-0 bg-brand-brown-dark/80 backdrop-blur-3xl"></div>
-                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-brand-gold/5 blur-[120px] rounded-full"></div>
                     </div>
+                    {/* Subtle Overlay Picture */}
+                    <div className="absolute inset-0 z-0 pointer-events-none">
+                        <Image
+                            src={playlist.cover || "/fallback.webp"}
+                            alt=""
+                            fill
+                            className="object-cover opacity-10 mix-blend-overlay scale-105 saturate-0"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-dark via-brand-brown-dark/50 to-transparent"></div>
+                    </div>
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-brand-gold/5 blur-[120px] rounded-full z-0 pointer-events-none"></div>
 
                     <div className="max-w-[1400px] mx-auto px-4 relative z-10">
                         {/* Navigation Row */}
@@ -153,32 +167,32 @@ export default function PlaylistViewPage() {
 
                 {/* Overlapping Playlist Info Card */}
                 <div className="max-w-[1400px] mx-auto px-4 relative z-20 -mt-24 lg:-mt-36 mb-12">
-                    <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-8 md:p-12 relative overflow-hidden" dir={dir}>
+                    <div className="bg-white rounded-[2rem] shadow-2xl border border-gray-100 p-6 md:p-10 relative overflow-hidden" dir={dir}>
                         {/* Card Background Decoration */}
                         <div className="absolute top-0 right-0 w-64 h-64 bg-brand-sand/30 rounded-full blur-[80px] -z-10 pointer-events-none"></div>
 
                         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center lg:items-start">
                             
-                            {/* Playlist Cover (Overlapping upwards out of the card) */}
-                            <div className="w-48 md:w-64 lg:w-72 flex-shrink-0 lg:-mt-24">
-                                <div className="relative aspect-[3/4] md:aspect-[4/5] lg:aspect-[3/4] rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white">
+                            {/* Playlist Cover (Landscape, Overlapping upwards) */}
+                            <div className="w-full sm:w-[400px] lg:w-[480px] flex-shrink-0 lg:-mt-20">
+                                <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white border border-gray-100">
                                     <Image 
                                         src={playlist.cover || "/fallback.webp"} 
                                         alt={playlist.title} 
                                         fill 
-                                        className="object-cover"
+                                        className="object-cover object-center"
                                         priority
                                     />
                                 </div>
                             </div>
 
                             {/* Details Stack */}
-                            <div className="flex-grow flex flex-col items-center lg:items-start text-center lg:text-left">
+                            <div className="flex-grow flex flex-col items-center lg:items-start text-center lg:text-left pt-2 lg:pt-0">
                                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-brand-gold/20 bg-brand-gold/5 text-brand-gold text-[10px] font-bold uppercase tracking-widest mb-4">
                                     <Film className="w-3 h-3" /> Playlist
                                 </div>
 
-                                <h1 className={`text-3xl md:text-5xl lg:text-6xl font-bold text-brand-brown-dark mb-4 leading-tight ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
+                                <h1 className={`text-3xl md:text-4xl lg:text-5xl font-bold text-brand-brown-dark mb-4 leading-tight ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
                                     {playlist.title}
                                 </h1>
 
@@ -214,22 +228,26 @@ export default function PlaylistViewPage() {
                 {/* 2. EPISODE LIST (Matching Videos Library Style) */}
                 <div className="max-w-[1400px] mx-auto px-4 md:px-8">
                     
-                    <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200">
+                    <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-100">
                         <h2 className="font-agency text-2xl md:text-3xl text-brand-brown-dark flex items-center gap-3">
                             <ListVideo className="w-6 h-6 text-brand-gold" /> Episodes
                         </h2>
                         <button 
                             onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
-                            className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 uppercase tracking-widest bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm hover:border-brand-brown-dark hover:text-brand-brown-dark transition-all"
+                            className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-lg border shadow-sm transition-all ${
+                                sortOrder === 'desc' 
+                                ? 'bg-brand-brown-dark text-white border-brand-brown-dark' 
+                                : 'bg-white text-gray-500 border-gray-200 hover:border-brand-brown-dark hover:text-brand-brown-dark'
+                            }`}
                         >
                             <ArrowUpDown className="w-3.5 h-3.5" />
                             {sortOrder === 'desc' ? 'Newest First' : 'Oldest First'}
                         </button>
                     </div>
 
-                    {sortedVideos.length > 0 ? (
+                    {visibleVideos.length > 0 ? (
                         <div className="flex flex-col gap-4 max-w-5xl mx-auto">
-                            {sortedVideos.map((video) => {
+                            {visibleVideos.map((video) => {
                                 const isExpanded = expandedIds.has(video.id);
                                 return (
                                     <Link 
@@ -296,12 +314,20 @@ export default function PlaylistViewPage() {
                         </div>
                     )}
 
-                    {/* Footer Status */}
+                    {/* Footer Status & Load More */}
                     {sortedVideos.length > 0 && (
-                        <div className="py-10 text-center">
+                        <div className="py-10 text-center space-y-4">
                             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                                Showing {sortedVideos.length} of {videos.length} Episodes
+                                Showing {visibleVideos.length} of {sortedVideos.length} Episodes
                             </p>
+                            {visibleCount < sortedVideos.length && (
+                                <button 
+                                    onClick={() => setVisibleCount(prev => prev + 10)}
+                                    className="px-8 py-2.5 bg-white border border-gray-200 text-brand-brown-dark rounded-full font-bold text-xs hover:border-brand-brown-dark transition-all uppercase tracking-wider shadow-sm"
+                                >
+                                    Load More Videos
+                                </button>
+                            )}
                         </div>
                     )}
                 </div>
