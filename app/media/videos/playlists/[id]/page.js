@@ -133,7 +133,7 @@ export default function PlaylistViewPage() {
             <main className="flex-grow pb-24">
                 
                 {/* 1. GLASSMORPHIC HEADER */}
-                <div className="relative w-full pt-10 pb-32 lg:pt-16 lg:pb-32 overflow-hidden bg-brand-brown-dark">
+                <div className="relative w-full pt-10 pb-32 lg:pt-16 lg:pb-48 overflow-hidden bg-brand-brown-dark">
                     {/* Ambient Blurred Background */}
                     <div className="absolute inset-0 z-0 pointer-events-none mix-blend-soft-light opacity-50">
                         <Image 
@@ -166,7 +166,7 @@ export default function PlaylistViewPage() {
                 </div>
 
                 {/* Overlapping Playlist Info Card */}
-                <div className="max-w-[1400px] lg:max-w-[1000px] xl:max-w-[1100px] mx-auto px-4 relative z-20 -mt-24 lg:-mt-24 mb-12">
+                <div className="max-w-[1400px] lg:max-w-[1000px] xl:max-w-[1100px] mx-auto px-4 relative z-20 -mt-24 lg:-mt-36 mb-12">
                     <div className="bg-white rounded-[2rem] shadow-2xl border border-gray-100 p-6 md:p-10 lg:p-12 relative overflow-hidden lg:overflow-visible" dir={dir}>
                         
                         {/* Card Background Decoration (Contained within border radius) */}
@@ -174,10 +174,10 @@ export default function PlaylistViewPage() {
                             <div className="absolute top-0 right-0 w-64 h-64 bg-brand-sand/30 rounded-full blur-[80px]"></div>
                         </div>
 
-                        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center lg:items-start relative z-10">
+                        <div className="flex flex-col gap-8 lg:gap-10 items-center relative z-10">
                             
-                            {/* Playlist Cover (Landscape, Overlapping upwards on Desktop) */}
-                            <div className="w-full sm:w-[400px] lg:w-[45%] xl:w-[48%] flex-shrink-0 lg:-mt-24">
+                            {/* Playlist Cover (Landscape, Overlapping upwards) */}
+                            <div className="w-full sm:w-[400px] lg:w-[600px] flex-shrink-0 lg:-mt-32">
                                 <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white border border-gray-100 bg-gray-50">
                                     <Image 
                                         src={playlist.cover || "/fallback.webp"} 
@@ -189,8 +189,8 @@ export default function PlaylistViewPage() {
                                 </div>
                             </div>
 
-                            {/* Details Stack (Dynamically aligns left/right based on language) */}
-                            <div className={`flex-grow flex flex-col items-center pt-2 lg:pt-0 w-full ${dir === 'rtl' ? 'lg:items-end text-center lg:text-right' : 'lg:items-start text-center lg:text-left'}`}>
+                            {/* Details Stack */}
+                            <div className="flex-grow flex flex-col items-center text-center pt-2 lg:pt-0 w-full max-w-3xl">
                                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-brand-gold/20 bg-brand-gold/5 text-brand-gold text-[10px] font-bold uppercase tracking-widest mb-4">
                                     <Film className="w-3 h-3" /> Playlist
                                 </div>
@@ -199,7 +199,7 @@ export default function PlaylistViewPage() {
                                     {playlist.title}
                                 </h1>
 
-                                <div className={`flex flex-wrap items-center justify-center gap-3 mb-6 text-[10px] font-bold uppercase tracking-wider ${dir === 'rtl' ? 'lg:justify-end' : 'lg:justify-start'}`} dir="ltr">
+                                <div className="flex flex-wrap items-center justify-center gap-3 mb-6 text-[10px] font-bold uppercase tracking-wider" dir="ltr">
                                     <span className="bg-brand-brown-dark text-white px-3 py-1 rounded-md">
                                         {playlist.category}
                                     </span>
@@ -208,7 +208,7 @@ export default function PlaylistViewPage() {
                                     </span>
                                 </div>
 
-                                <p className={`text-gray-600 text-sm md:text-base lg:text-lg max-w-2xl leading-relaxed mb-8 w-full ${dir === 'rtl' ? 'font-arabic' : 'font-lato'}`} dir={getDir(playlist.description || "")}>
+                                <p className={`text-gray-600 text-sm md:text-base lg:text-lg max-w-2xl leading-relaxed mb-8 w-full ${getDir(playlist.description || "") === 'rtl' ? 'font-arabic text-right' : 'font-lato text-left'}`} dir={getDir(playlist.description || "")}>
                                     {playlist.description || "Browse all episodes in this series below. Episodes are listed from newest to oldest."}
                                 </p>
 
