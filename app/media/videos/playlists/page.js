@@ -163,7 +163,7 @@ export default function PlaylistsPage() {
 
                                 {visiblePlaylists.length > 0 ? (
                                     <>
-                                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                                             {visiblePlaylists.map((playlist) => {
                                                 const isExpanded = expandedIds.has(playlist.id);
                                                 const dir = getDir(playlist.title);
@@ -172,9 +172,9 @@ export default function PlaylistsPage() {
                                                     <Link
                                                         key={playlist.id}
                                                         href={`/media/videos/playlists/${playlist.id}`}
-                                                        className="group flex flex-col bg-white rounded-[1.25rem] overflow-hidden border border-gray-100 hover:border-brand-gold/30 hover:shadow-xl hover:shadow-brand-sand/10 transition-all duration-300 h-full"
+                                                        className="group flex flex-col bg-white rounded-xl overflow-hidden border border-gray-100 shadow-sm hover:border-brand-gold/40 hover:shadow-lg hover:shadow-brand-sand/10 transition-all duration-300 h-full"
                                                     >
-                                                        <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden border-b border-gray-50">
+                                                        <div className="relative aspect-[16/8] sm:aspect-[4/3] bg-gray-100 overflow-hidden border-b border-gray-50">
                                                             <Image
                                                                 src={playlist.cover || '/fallback.webp'}
                                                                 alt={playlist.title}
@@ -199,8 +199,8 @@ export default function PlaylistsPage() {
                                                             </div>
                                                         </div>
 
-                                                        <div className="p-3 md:p-4 flex flex-col flex-grow" dir={dir}>
-                                                            <div className="relative pr-6 mb-3">
+                                                        <div className="p-2.5 md:p-3.5 flex flex-col flex-grow" dir={dir}>
+                                                            <div className="relative pr-6 mb-2">
                                                                 <h3 className={`text-base md:text-lg font-bold text-brand-brown-dark leading-snug group-hover:text-brand-gold transition-colors ${isExpanded ? '' : 'line-clamp-2'} ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
                                                                     {playlist.title}
                                                                 </h3>
@@ -212,7 +212,7 @@ export default function PlaylistsPage() {
                                                                 </button>
                                                             </div>
 
-                                                            <div className="mt-auto pt-2 flex items-center justify-between border-t border-gray-50" dir="ltr">
+                                                            <div className="mt-auto pt-1.5 flex items-center justify-between border-t border-gray-50" dir="ltr">
                                                                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest group-hover:text-brand-brown-dark transition-colors">View Collection</span>
                                                                 <ArrowRight className={`w-3.5 h-3.5 text-gray-300 group-hover:text-brand-gold transition-colors duration-300 ${dir === 'rtl' ? 'rotate-180' : ''}`} />
                                                             </div>
