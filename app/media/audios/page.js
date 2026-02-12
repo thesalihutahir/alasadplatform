@@ -29,7 +29,7 @@ export default function AudiosPage() {
     const [allSeries, setAllSeries] = useState([]);
 
     const [loading, setLoading] = useState(true);
-    const [activeLang, setActiveLang] = useState('English');
+    const [activeLang, setActiveLang] = useState('All');
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOrder, setSortOrder] = useState('desc');
     const [visibleCount, setVisibleCount] = useState(6);
@@ -37,12 +37,12 @@ export default function AudiosPage() {
     // UI State for Card Expansion
     const [expandedIds, setExpandedIds] = useState(new Set());
 
-    const languages = ['English', 'Hausa', 'Arabic'];
+    const languages = ['All', 'English', 'Hausa', 'Arabic'];
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const qAudios = query(collection(db, 'audios'), orderBy('date', 'desc'));
+                const qAudios = query(collection(db, 'audios'), orderBy('createdAt', 'desc'));
                 const audiosSnapshot = await getDocs(qAudios);
                 const fetchedAudios = audiosSnapshot.docs.map((docItem) => ({
                     id: docItem.id,
@@ -96,13 +96,13 @@ export default function AudiosPage() {
     };
 
     const filteredSeries = useMemo(
-        () => allSeries.filter((series) => series.category === activeLang),
+        () => allSeries.filter((series) => activeLang === 'All' || series.category === activeLang),
         [allSeries, activeLang]
     );
 
     const matchingAudios = useMemo(() => {
         return allAudios.filter((audio) => {
-            const matchesCategory = audio.category === activeLang;
+            const matchesCategory = activeLang === 'All' || audio.category === activeLang;
             const matchesSearch = (audio.title || '').toLowerCase().includes(searchTerm.toLowerCase());
             return matchesCategory && matchesSearch;
         });
@@ -350,7 +350,7 @@ export default function AudiosPage() {
                                         <button
                                             onClick={() => {
                                                 setSearchTerm('');
-                                                setActiveLang('English');
+                                                setActiveLang('All');
                                             }}
                                             className="mt-4 text-xs font-bold text-brand-gold hover:underline"
                                         >
