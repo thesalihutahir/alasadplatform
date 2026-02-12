@@ -179,7 +179,8 @@ export default function AllShowsPage() {
                                     </div>
                                 </div>
                             </div>
-{/* RIGHT RAIL: RESULTS LIST (Match Video Playlists) */}
+
+                            {/* RIGHT RAIL: RESULTS LIST (Match Video Playlists) */}
                             <div className="flex-grow w-full">
 
                                 {/* Header Row */}
@@ -259,15 +260,6 @@ export default function AllShowsPage() {
                                                                     )}
                                                                 </button>
                                                             </div>
-
-                                                            {/* Description Preview */}
-                                                            <p
-                                                                className={`text-xs text-gray-400 ${
-                                                                    isExpanded ? '' : 'line-clamp-2'
-                                                                } mb-3 ${getDir(show.description) === 'rtl' ? 'font-arabic' : 'font-lato'}`}
-                                                            >
-                                                                {show.description || "No description available."}
-                                                            </p>
 
                                                             {/* Minimalist CTA */}
                                                             <div className="mt-auto pt-2 flex items-center justify-between border-t border-gray-50" dir="ltr">
