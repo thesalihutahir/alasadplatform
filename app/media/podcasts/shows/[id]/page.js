@@ -10,9 +10,9 @@ import Loader from '@/components/Loader';
 // Firebase Imports
 import { db } from '@/lib/firebase';
 import { doc, getDoc, collection, query, where, orderBy, getDocs } from 'firebase/firestore';
-import {
-    Play, Mic, Calendar, Search, ArrowLeft,
-    Share2, Check, ListMusic, ChevronDown, ChevronUp, ArrowUpRight, ArrowUpDown, X, Headphones
+import { 
+    Play, Mic, Calendar, Search, ArrowLeft, 
+    Share2, Check, ListMusic, ChevronDown, ChevronUp, ArrowUpRight, ArrowUpDown, X, Headphones 
 } from 'lucide-react';
 
 export default function ViewShowPage() {
@@ -108,6 +108,7 @@ export default function ViewShowPage() {
                 });
             } else {
                 await navigator.clipboard.writeText(url);
+                alert("Share URL copied to clipboard!");
             }
         } catch (e) {
             console.error("Share failed:", e);
@@ -161,10 +162,10 @@ export default function ViewShowPage() {
                 <div className="relative w-full pt-10 pb-32 lg:pt-16 lg:pb-48 overflow-hidden bg-brand-brown-dark">
                     {/* Ambient Blurred Background */}
                     <div className="absolute inset-0 z-0 pointer-events-none mix-blend-soft-light opacity-50">
-                        <Image
-                            src={show.cover || "/fallback.webp"}
-                            alt=""
-                            fill
+                        <Image 
+                            src={show.cover || "/fallback.webp"} 
+                            alt="" 
+                            fill 
                             className="object-cover blur-[80px] scale-120"
                         />
                     </div>
@@ -194,22 +195,22 @@ export default function ViewShowPage() {
 
                 {/* Overlapping Show Info Card */}
                 <div className="max-w-[1400px] lg:max-w-[1000px] xl:max-w-[1100px] mx-auto px-4 relative z-20 -mt-24 lg:-mt-36 mb-12">
-                    <div className="bg-white rounded-[2rem] shadow-2xl border border-gray-100 p-6 md:p-10 lg:p-12 relative" dir={dir}>
+                    <div className="bg-white rounded-[2rem] shadow-2xl border border-gray-100 p-6 md:p-10 lg:p-12 relative overflow-hidden lg:overflow-visible" dir={dir}>
 
                         {/* Card Background Decoration */}
                         <div className="absolute inset-0 overflow-hidden rounded-[2rem] pointer-events-none z-0">
                             <div className="absolute top-0 right-0 w-64 h-64 bg-brand-sand/30 rounded-full blur-[80px]"></div>
                         </div>
 
-                        <div className="flex flex-col gap-8 lg:gap-10 items-center relative z-10">
+                        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center lg:items-start relative z-10">
 
-                            {/* Cover (Podcast vibe: square artwork) */}
-                            <div className="w-full sm:w-[360px] lg:w-[420px] flex-shrink-0 -mt-20 lg:-mt-32">
-                                <div className="relative aspect-square rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white border border-gray-100 bg-gray-50">
-                                    <Image
-                                        src={show.cover || "/fallback.webp"}
-                                        alt={show.title}
-                                        fill
+                            {/* Cover (UPDATED: Landscape style matching PlaylistViewPage) */}
+                            <div className="w-full sm:w-[400px] lg:w-[45%] xl:w-[48%] flex-shrink-0 lg:-mt-24">
+                                <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white border border-gray-100 bg-gray-50">
+                                    <Image 
+                                        src={show.cover || "/fallback.webp"} 
+                                        alt={show.title} 
+                                        fill 
                                         className="object-cover object-center"
                                         priority
                                     />
@@ -217,7 +218,7 @@ export default function ViewShowPage() {
                             </div>
 
                             {/* Details Stack */}
-                            <div className="flex-grow flex flex-col items-center text-center pt-2 w-full max-w-3xl">
+                            <div className={`flex-grow flex flex-col items-center pt-2 lg:pt-0 w-full ${dir === 'rtl' ? 'lg:items-end text-center lg:text-right' : 'lg:items-start text-center lg:text-left'}`}>
                                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-brand-gold/20 bg-brand-gold/5 text-brand-gold text-[10px] font-bold uppercase tracking-widest mb-4">
                                     <Headphones className="w-3 h-3" /> Podcast Show
                                 </div>
@@ -226,7 +227,7 @@ export default function ViewShowPage() {
                                     {show.title}
                                 </h1>
 
-                                <div className="flex flex-wrap items-center justify-center gap-3 mb-6 text-[10px] font-bold uppercase tracking-wider" dir="ltr">
+                                <div className={`flex flex-wrap items-center justify-center gap-3 mb-6 text-[10px] font-bold uppercase tracking-wider ${dir === 'rtl' ? 'lg:justify-end' : 'lg:justify-start'}`} dir="ltr">
                                     <span className="bg-brand-brown-dark text-white px-3 py-1 rounded-md">
                                         {show.category} Series
                                     </span>
@@ -240,15 +241,15 @@ export default function ViewShowPage() {
                                     )}
                                 </div>
 
-                                <p className={`text-gray-600 text-sm md:text-base lg:text-lg max-w-2xl leading-relaxed mb-8 w-full lg:text-center ${getDir(show.description || "") === 'rtl' ? 'font-arabic text-right' : 'font-lato text-left'}`} dir={getDir(show.description || "")}>
+                                <p className={`text-gray-600 text-sm md:text-base lg:text-lg max-w-2xl leading-relaxed mb-8 w-full ${getDir(show.description || "") === 'rtl' ? 'font-arabic lg:text-right' : 'font-lato lg:text-left'}`} dir={getDir(show.description || "")}>
                                     {show.description || "Browse all episodes in this show below. Episodes can be sorted newest or oldest."}
                                 </p>
 
                                 {/* Actions */}
-                                <div className={`flex flex-col sm:flex-row items-center justify-center gap-3 w-full`} dir="ltr">
+                                <div className={`flex flex-col sm:flex-row items-center justify-center gap-3 w-full ${dir === 'rtl' ? 'lg:justify-end' : 'lg:justify-start'}`} dir="ltr">
                                     {oldestEpisodeId && (
-                                        <Link
-                                            href={`/media/podcasts/play/${oldestEpisodeId}`}
+                                        <Link 
+                                            href={`/media/podcasts/play/${oldestEpisodeId}`} 
                                             className="inline-flex items-center justify-center gap-3 bg-brand-gold text-white px-8 py-3.5 rounded-xl font-bold hover:bg-brand-brown-dark transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 group w-full sm:w-auto"
                                         >
                                             <Play className="w-4 h-4 fill-current" /> Start Listening
@@ -256,12 +257,11 @@ export default function ViewShowPage() {
                                         </Link>
                                     )}
 
-                                    <button
-                                        onClick={handleShare}
+                                    <button 
+                                        onClick={handleShare} 
                                         className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all shadow-sm w-full sm:w-auto bg-white border border-gray-200 text-brand-brown-dark hover:border-brand-gold/50"
                                     >
-                                        <Share2 className="w-4 h-4" />
-                                        Share
+                                        <Share2 className="w-4 h-4" /> Share
                                     </button>
                                 </div>
                             </div>
@@ -282,12 +282,13 @@ export default function ViewShowPage() {
                             </p>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+                        {/* UPDATED: Search & Sort in single row on mobile */}
+                        <div className="flex flex-row items-center gap-3 w-full lg:w-auto">
                             {/* Search */}
-                            <div className="relative w-full sm:w-72">
+                            <div className="relative w-full sm:w-72 flex-grow">
                                 <Search className={`absolute w-4 h-4 text-gray-400 top-1/2 -translate-y-1/2 ${isArabic ? 'right-3' : 'left-3'}`} />
-                                <input
-                                    type="text"
+                                <input 
+                                    type="text" 
                                     value={searchTerm}
                                     onChange={(e) => {
                                         setSearchTerm(e.target.value);
@@ -298,8 +299,8 @@ export default function ViewShowPage() {
                                     dir={isArabic ? 'rtl' : 'ltr'}
                                 />
                                 {searchTerm && (
-                                    <button
-                                        onClick={() => setSearchTerm('')}
+                                    <button 
+                                        onClick={() => setSearchTerm('')} 
                                         className={`absolute top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors ${isArabic ? 'left-3' : 'right-3'}`}
                                         aria-label="Clear search"
                                     >
@@ -307,19 +308,19 @@ export default function ViewShowPage() {
                                     </button>
                                 )}
                             </div>
-
+                            
                             {/* Sort */}
-                            <button
+                            <button 
                                 onClick={() => setSortOrder(prev => (prev === 'desc' ? 'asc' : 'desc'))}
-                                className={`flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-4 py-2.5 rounded-xl border shadow-sm transition-all w-full sm:w-auto ${
-                                    sortOrder === 'desc'
-                                        ? 'bg-brand-brown-dark text-white border-brand-brown-dark'
+                                className={`flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-4 py-2.5 rounded-xl border shadow-sm transition-all active:scale-95 flex-shrink-0 ${
+                                    sortOrder === 'desc' 
+                                        ? 'bg-brand-brown-dark text-white border-brand-brown-dark' 
                                         : 'bg-white text-gray-500 border-gray-200 hover:border-brand-brown-dark hover:text-brand-brown-dark'
                                 }`}
                                 dir="ltr"
                             >
-                                <ArrowUpDown className="w-3.5 h-3.5" />
-                                {sortOrder === 'desc' ? 'Newest First' : 'Oldest First'}
+                                <ArrowUpDown className={`w-3.5 h-3.5 transition-transform duration-300 ${sortOrder === 'desc' ? '' : 'rotate-180'}`} />
+                                <span className="hidden sm:inline">{sortOrder === 'desc' ? 'Newest First' : 'Oldest First'}</span>
                             </button>
                         </div>
                     </div>
@@ -332,18 +333,18 @@ export default function ViewShowPage() {
                                     const epDir = getDir(ep.title);
 
                                     return (
-                                        <Link
-                                            key={ep.id}
-                                            href={`/media/podcasts/play/${ep.id}`}
+                                        <Link 
+                                            key={ep.id} 
+                                            href={`/media/podcasts/play/${ep.id}`} 
                                             className="group relative flex items-start gap-4 p-3 rounded-xl border border-gray-100 hover:shadow-md hover:border-brand-gold/20 transition-all duration-300 bg-white"
                                         >
                                             {/* Thumbnail */}
                                             <div className="relative w-32 md:w-40 aspect-video rounded-lg overflow-hidden bg-black flex-shrink-0 border border-gray-50">
-                                                <Image
-                                                    src={ep.thumbnail || "/fallback.webp"}
-                                                    alt={ep.title}
-                                                    fill
-                                                    className="object-cover opacity-90 group-hover:opacity-100 scale-110 group-hover:scale-125 transition-transform duration-700"
+                                                <Image 
+                                                    src={ep.thumbnail || "/fallback.webp"} 
+                                                    alt={ep.title} 
+                                                    fill 
+                                                    className="object-cover opacity-90 group-hover:opacity-100 scale-110 group-hover:scale-125 transition-transform duration-700" 
                                                 />
                                                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <div className="w-8 h-8 bg-black/50 backdrop-blur rounded-full flex items-center justify-center text-white">
@@ -376,7 +377,7 @@ export default function ViewShowPage() {
                                                     </h4>
 
                                                     {/* Expand Button */}
-                                                    <button
+                                                    <button 
                                                         onClick={(e) => toggleExpand(e, ep.id)}
                                                         className="absolute right-0 top-0 p-1 text-gray-300 hover:text-brand-gold transition-colors"
                                                         aria-label={isExpanded ? "Collapse" : "Expand"}
@@ -397,7 +398,7 @@ export default function ViewShowPage() {
                                         Showing {visibleEpisodes.length} of {sortedEpisodes.length} Episodes
                                     </p>
                                     {visibleCount < sortedEpisodes.length && (
-                                        <button
+                                        <button 
                                             onClick={() => setVisibleCount(prev => prev + 10)}
                                             className="px-8 py-2.5 bg-white border border-gray-200 text-brand-brown-dark rounded-full font-bold text-xs hover:border-brand-brown-dark transition-all uppercase tracking-wider shadow-sm"
                                         >
