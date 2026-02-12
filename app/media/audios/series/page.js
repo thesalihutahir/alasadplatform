@@ -9,35 +9,31 @@ import Loader from '@/components/Loader';
 // Firebase Imports
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
-import { Search, Mic, Layers, ArrowRight, ListMusic } from 'lucide-react';
+import { Search, Mic, Layers, ArrowRight, ListMusic, X } from 'lucide-react';
 
 export default function AllSeriesPage() {
-
-    // --- STATE ---
     const [allSeries, setAllSeries] = useState([]);
     const [filteredSeries, setFilteredSeries] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Filters
     const [activeLang, setActiveLang] = useState('All');
     const [searchTerm, setSearchTerm] = useState('');
 
-    const languages = ["All", "English", "Hausa", "Arabic"];
+    const languages = ['All', 'English', 'Hausa', 'Arabic'];
 
-    // --- FETCH DATA ---
     useEffect(() => {
         const fetchSeries = async () => {
             try {
-                const q = query(collection(db, "audio_series"), orderBy("createdAt", "desc"));
+                const q = query(collection(db, 'audio_series'), orderBy('createdAt', 'desc'));
                 const snapshot = await getDocs(q);
-                const fetchedSeries = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
+                const fetchedSeries = snapshot.docs.map((docItem) => ({
+                    id: docItem.id,
+                    ...docItem.data()
                 }));
                 setAllSeries(fetchedSeries);
                 setFilteredSeries(fetchedSeries);
             } catch (error) {
-                console.error("Error fetching series:", error);
+                console.error('Error fetching series:', error);
             } finally {
                 setLoading(false);
             }
@@ -46,20 +42,17 @@ export default function AllSeriesPage() {
         fetchSeries();
     }, []);
 
-    // --- FILTER LOGIC ---
     useEffect(() => {
         let results = allSeries;
 
-        // 1. Language Filter
         if (activeLang !== 'All') {
-            results = results.filter(series => series.category === activeLang);
+            results = results.filter((series) => series.category === activeLang);
         }
 
-        // 2. Search Filter
         if (searchTerm) {
             const term = searchTerm.toLowerCase();
-            results = results.filter(series => 
-                series.title.toLowerCase().includes(term) || 
+            results = results.filter((series) =>
+                (series.title || '').toLowerCase().includes(term) ||
                 (series.host && series.host.toLowerCase().includes(term)) ||
                 (series.description && series.description.toLowerCase().includes(term))
             );
@@ -68,7 +61,6 @@ export default function AllSeriesPage() {
         setFilteredSeries(results);
     }, [activeLang, searchTerm, allSeries]);
 
-    // --- HELPER: Auto-Detect Arabic ---
     const getDir = (text) => {
         if (!text) return 'ltr';
         const arabicPattern = /[\u0600-\u06FF]/;
@@ -76,32 +68,24 @@ export default function AllSeriesPage() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col bg-brand-sand font-lato">
+        <div className="min-h-screen flex flex-col bg-white font-lato text-brand-brown-dark">
             <Header />
 
-            <main className="flex-grow pb-16">
-
-                {/* 1. HERO SECTION */}
-                <section className="w-full relative bg-white mb-8 md:mb-16">
-                    <div className="relative w-full aspect-[2.5/1] md:aspect-[3.5/1] lg:aspect-[4/1]">
-                        <Image
-                            src="/images/heroes/media-audios-hero.webp" 
-                            alt="Audio Series Hero"
-                            fill
-                            className="object-cover object-center"
-                            priority
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-white via-brand-gold/40 to-transparent "></div>
-                    </div>
-
-                    <div className="relative -mt-16 md:-mt-32 text-center px-6 z-10 max-w-4xl mx-auto">
-                        <h1 className="font-agency text-4xl md:text-6xl lg:text-7xl text-brand-brown-dark mb-4 drop-shadow-md">
-                            Series & Playlists
-                        </h1>
-                        <div className="w-16 md:w-24 h-1 bg-brand-gold mx-auto rounded-full mb-6"></div>
-                        <p className="font-lato text-brand-brown text-sm md:text-xl max-w-2xl mx-auto leading-relaxed font-medium">
-                            Collections of sermons, Tafsir, and lectures organized for deep, continuous learning.
-                        </p>
+            <main className="flex-grow pb-24">
+                <section className="relative h-[220px] w-full overflow-hidden bg-brand-brown-dark mb-12">
+                    <Image
+                        src="/images/heroes/media-audios-hero.webp"
+                        alt="Audio Series"
+                        fill
+                        className="object-cover object-center opacity-20"
+                        priority
+                    />
+                    <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-6 z-10">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-brand-gold text-[10px] font-bold uppercase tracking-widest mb-3">
+                            <Layers className="w-3 h-3" /> Audio Series
+                        </div>
+                        <h1 className="font-agency text-4xl md:text-5xl text-white mb-2 leading-none">Series & Playlists</h1>
+                        <p className="font-lato text-white/60 text-sm md:text-base max-w-xl">Collections of sermons, Tafsir, and lectures organized for deep, continuous learning.</p>
                     </div>
                 </section>
 
@@ -110,114 +94,131 @@ export default function AllSeriesPage() {
                         <Loader size="md" />
                     </div>
                 ) : (
-                    <>
-                        {/* 2. FILTER & SEARCH BAR */}
-                        <section className="px-6 md:px-12 lg:px-24 mb-12 max-w-7xl mx-auto">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                                {/* Horizontal Language Loop */}
-                                <div className="flex overflow-x-auto gap-2 pb-2 md:pb-0 scrollbar-hide w-full md:w-auto">
-                                    {languages.map((lang) => (
-                                        <button 
-                                            key={lang} 
-                                            onClick={() => setActiveLang(lang)}
-                                            className={`px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-colors border ${
-                                                activeLang === lang 
-                                                ? 'bg-brand-brown-dark text-white border-brand-brown-dark shadow-md' 
-                                                : 'bg-brand-sand text-gray-500 border-transparent hover:border-brand-gold hover:text-brand-gold'
-                                            }`}
-                                        >
-                                            {lang}
-                                        </button>
-                                    ))}
+                    <div className="max-w-[1400px] mx-auto px-4 md:px-8 lg:px-12">
+                        <section className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start mb-12">
+                            <div className="w-full lg:w-[280px] lg:sticky lg:top-24 flex-shrink-0 space-y-8">
+                                <div>
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Search</h3>
+                                    <div className="relative group">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-brand-gold transition-colors" />
+                                        <input
+                                            type="text"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            placeholder="Find a series or speaker..."
+                                            className="w-full pl-9 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-gold/50 transition-all shadow-sm"
+                                        />
+                                        {searchTerm && (
+                                            <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors" aria-label="Clear search">
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
 
-                                {/* Search Bar */}
-                                <div className="relative w-full md:w-80">
-                                    <input 
-                                        type="text" 
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        placeholder="Search by title or speaker..." 
-                                        className="w-full pl-4 pr-10 py-2.5 rounded-full border border-gray-200 focus:outline-none focus:ring-1 focus:ring-brand-gold text-sm bg-gray-50"
-                                    />
-                                    <Search className="absolute right-3 top-3 text-gray-400 w-4 h-4" />
+                                <div>
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Filter By</h3>
+                                    <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 scrollbar-hide">
+                                        {languages.map((lang) => (
+                                            <button
+                                                key={lang}
+                                                onClick={() => setActiveLang(lang)}
+                                                className={`px-3 py-1.5 lg:px-4 lg:py-2 rounded-lg text-xs lg:text-sm font-bold text-left transition-all flex items-center justify-between group flex-shrink-0 whitespace-nowrap ${
+                                                    activeLang === lang
+                                                        ? 'bg-brand-brown-dark text-white shadow-md'
+                                                        : 'bg-white border border-gray-100 text-gray-600 hover:bg-gray-50 hover:text-brand-brown-dark'
+                                                }`}
+                                            >
+                                                {lang}
+                                                {activeLang === lang && <div className="w-1.5 h-1.5 rounded-full bg-brand-gold hidden lg:block"></div>}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
-                        </section>
+                            <div className="flex-grow w-full">
+                                <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+                                    <h2 className="font-agency text-2xl text-brand-brown-dark">Series</h2>
+                                </div>
 
-                        {/* 3. SERIES GRID */}
-                        <section className="px-6 md:px-12 lg:px-24 max-w-7xl mx-auto mb-20">
-                            {filteredSeries.length > 0 ? (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
-                                    {filteredSeries.map((series) => (
-                                        <Link 
-                                            key={series.id} 
-                                            href={`/media/audios/series/${series.id}`}
-                                            className="group flex flex-col bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all border border-gray-100 hover:border-brand-gold/30 h-full"
+                                {filteredSeries.length > 0 ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+                                        {filteredSeries.map((series) => {
+                                            const dir = getDir(series.title);
+                                            return (
+                                                <Link
+                                                    key={series.id}
+                                                    href={`/media/audios/series/${series.id}`}
+                                                    className="group flex flex-col bg-white rounded-xl overflow-hidden border border-gray-100 shadow-sm hover:border-brand-gold/40 hover:shadow-lg hover:shadow-brand-sand/10 transition-all duration-300 h-full"
+                                                >
+                                                    <div className="relative aspect-[16/8] sm:aspect-[4/3] bg-gray-100 overflow-hidden border-b border-gray-50">
+                                                        <Image
+                                                            src={series.cover || '/fallback.webp'}
+                                                            alt={series.title}
+                                                            fill
+                                                            className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-700"
+                                                        />
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-70 group-hover:opacity-90 transition-opacity"></div>
+
+                                                        <div className="absolute top-2 left-2 right-2 flex items-center justify-between gap-2">
+                                                            <span className="px-2 py-1 bg-black/55 backdrop-blur-md border border-white/10 rounded text-[9px] font-bold uppercase tracking-wider text-brand-gold">
+                                                                {series.category || 'Series'}
+                                                            </span>
+                                                            {series.host && (
+                                                                <span className="px-2 py-1 bg-black/55 backdrop-blur-md border border-white/10 rounded text-[9px] font-bold text-white flex items-center gap-1 max-w-[120px]">
+                                                                    <Mic className="w-3 h-3 text-brand-gold flex-shrink-0" />
+                                                                    <span className="truncate">{series.host}</span>
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                            <div className="w-11 h-11 rounded-full bg-white/15 border border-white/20 backdrop-blur-md flex items-center justify-center text-white">
+                                                                <ListMusic className="w-5 h-5" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="p-2.5 md:p-3.5 flex flex-col flex-grow" dir={dir}>
+                                                        <h3 className={`text-base md:text-lg font-bold text-brand-brown-dark leading-snug mb-2 group-hover:text-brand-gold transition-colors ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
+                                                            {series.title}
+                                                        </h3>
+
+                                                        <p className={`text-xs text-gray-400 line-clamp-2 mb-4 flex-grow ${getDir(series.description || '') === 'rtl' ? 'font-arabic' : ''}`}>
+                                                            {series.description || 'No description available.'}
+                                                        </p>
+
+                                                        <div className="mt-auto pt-1.5 flex items-center justify-between border-t border-gray-50" dir="ltr">
+                                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest group-hover:text-brand-brown-dark transition-colors">View Series</span>
+                                                            <ArrowRight className={`w-3.5 h-3.5 text-gray-300 group-hover:text-brand-gold transition-colors duration-300 ${dir === 'rtl' ? 'rotate-180' : ''}`} />
+                                                        </div>
+                                                    </div>
+                                                </Link>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-center">
+                                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-3 shadow-sm text-gray-300">
+                                            <Search className="w-5 h-5" />
+                                        </div>
+                                        <h3 className="font-agency text-lg text-gray-500">No series found</h3>
+                                        <p className="text-xs text-gray-400 mt-1">Try clearing filters or search terms.</p>
+                                        <button
+                                            onClick={() => {
+                                                setSearchTerm('');
+                                                setActiveLang('All');
+                                            }}
+                                            className="mt-4 text-xs font-bold text-brand-gold hover:underline"
                                         >
-                                            {/* Cover Image */}
-                                            <div className="relative w-full aspect-square bg-gray-200">
-                                                <Image 
-                                                    src={series.cover || "/fallback.webp"} 
-                                                    alt={series.title} 
-                                                    fill 
-                                                    className="object-cover transition-transform duration-700 group-hover:scale-105" 
-                                                />
-                                                {/* Overlay */}
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
-                                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <div className="bg-white/20 backdrop-blur-sm p-3 rounded-full">
-                                                        <ListMusic className="w-8 h-8 text-white" />
-                                                    </div>
-                                                </div>
-                                                
-                                                {/* Language Badge */}
-                                                <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold text-brand-brown-dark uppercase tracking-wider">
-                                                    {series.category}
-                                                </div>
-                                            </div>
-
-                                            {/* Content */}
-                                            <div className="p-5 flex flex-col flex-grow" dir={getDir(series.title)}>
-                                                <h3 className={`font-agency text-xl text-brand-brown-dark leading-tight mb-1 group-hover:text-brand-gold transition-colors ${getDir(series.title) === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
-                                                    {series.title}
-                                                </h3>
-                                                <div className="flex items-center gap-2 mb-3" dir="ltr">
-                                                    <Mic className="w-3 h-3 text-brand-gold" />
-                                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wide truncate">
-                                                        {series.host || "Unknown Speaker"}
-                                                    </span>
-                                                </div>
-                                                
-                                                {/* Description Preview */}
-                                                <p className={`font-lato text-xs text-gray-400 line-clamp-2 mb-4 flex-grow ${getDir(series.description) === 'rtl' ? 'font-arabic' : ''}`}>
-                                                    {series.description || "No description available."}
-                                                </p>
-
-                                                {/* Footer Action */}
-                                                <div className="pt-4 border-t border-gray-50 flex items-center justify-between mt-auto" dir="ltr">
-                                                    <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
-                                                        View Series
-                                                    </span>
-                                                    <div className="w-8 h-8 rounded-full bg-brand-sand flex items-center justify-center text-brand-brown-dark group-hover:bg-brand-gold group-hover:text-white transition-colors">
-                                                        <ArrowRight className={`w-4 h-4 ${getDir(series.title) === 'rtl' ? 'rotate-180' : ''}`} />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </Link>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
-                                    <Layers className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                                    <p className="text-gray-400 font-bold">No series found matching your criteria.</p>
-                                    <p className="text-xs text-gray-300 mt-1">Try adjusting your filters.</p>
-                                </div>
-                            )}
+                                            Clear All Filters
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </section>
-                    </>
+                    </div>
                 )}
-
             </main>
             <Footer />
         </div>
