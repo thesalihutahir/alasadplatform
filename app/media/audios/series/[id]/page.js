@@ -317,7 +317,7 @@ export default function ViewSeriesPage() {
                                         href={`/media/audios/play/${audio.id}`}
                                         className="group relative flex items-start gap-4 p-3 rounded-xl border border-gray-100 hover:shadow-md hover:border-brand-gold/20 transition-all duration-300 bg-white"
                                     >
-                                        <div className="relative w-32 md:w-40 aspect-video rounded-lg overflow-hidden bg-black flex-shrink-0 border border-gray-50">
+                                        <div className="relative w-24 md:w-28 aspect-square rounded-lg overflow-hidden bg-black flex-shrink-0 border border-gray-50">
                                             <Image
                                                 src={audio.thumbnail || series.cover || '/fallback.webp'}
                                                 alt={audio.title}
