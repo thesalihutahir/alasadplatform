@@ -1,56 +1,59 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Loader from '@/components/Loader';
-// Firebase Imports
 import { db } from '@/lib/firebase';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
-import { Play, Download, ListMusic, Mic, Clock, Calendar, ChevronRight } from 'lucide-react';
+import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import {
+    ArrowUpDown,
+    Calendar,
+    ChevronRight,
+    Clock,
+    Download,
+    Headphones,
+    ListMusic,
+    Mic,
+    Play,
+    Search,
+    X
+} from 'lucide-react';
 
 export default function AudiosPage() {
-
-    // --- STATE ---
     const [allAudios, setAllAudios] = useState([]);
     const [allSeries, setAllSeries] = useState([]);
-    
-    // Filtered State
-    const [filteredAudios, setFilteredAudios] = useState([]);
-    const [filteredSeries, setFilteredSeries] = useState([]);
-    
+
     const [loading, setLoading] = useState(true);
-    const [activeLang, setActiveLang] = useState("English");
+    const [activeLang, setActiveLang] = useState('English');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortOrder, setSortOrder] = useState('desc');
     const [visibleCount, setVisibleCount] = useState(6);
 
-    const languages = ["English", "Hausa", "Arabic"];
+    const languages = ['English', 'Hausa', 'Arabic'];
 
-    // --- FETCH DATA ---
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // 1. Fetch Audios
-                const qAudios = query(collection(db, "audios"), orderBy("date", "desc"));
+                const qAudios = query(collection(db, 'audios'), orderBy('date', 'desc'));
                 const audiosSnapshot = await getDocs(qAudios);
-                const fetchedAudios = audiosSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
+                const fetchedAudios = audiosSnapshot.docs.map((docItem) => ({
+                    id: docItem.id,
+                    ...docItem.data()
                 }));
                 setAllAudios(fetchedAudios);
 
-                // 2. Fetch Audio Series
-                const qSeries = query(collection(db, "audio_series"), orderBy("createdAt", "desc"));
+                const qSeries = query(collection(db, 'audio_series'), orderBy('createdAt', 'desc'));
                 const seriesSnapshot = await getDocs(qSeries);
-                const fetchedSeries = seriesSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
+                const fetchedSeries = seriesSnapshot.docs.map((docItem) => ({
+                    id: docItem.id,
+                    ...docItem.data()
                 }));
                 setAllSeries(fetchedSeries);
-
             } catch (error) {
-                console.error("Error fetching audio data:", error);
+                console.error('Error fetching audio data:', error);
             } finally {
                 setLoading(false);
             }
@@ -59,22 +62,14 @@ export default function AudiosPage() {
         fetchData();
     }, []);
 
-    // --- FILTER LOGIC ---
     useEffect(() => {
-        // 1. Filter by Language (Category)
-        const langAudios = allAudios.filter(a => a.category === activeLang);
-        const langSeries = allSeries.filter(s => s.category === activeLang);
+        setVisibleCount(6);
+    }, [activeLang, searchTerm, sortOrder]);
 
-        setFilteredAudios(langAudios);
-        setFilteredSeries(langSeries);
-        setVisibleCount(6); // Reset pagination
-
-    }, [activeLang, allAudios, allSeries]);
-
-    // --- HELPER: Format Date ---
     const formatDate = (dateString) => {
         if (!dateString) return '';
         const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '';
         return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     };
 
@@ -84,34 +79,57 @@ export default function AudiosPage() {
         return arabicPattern.test(text) ? 'rtl' : 'ltr';
     };
 
-    const visibleAudios = filteredAudios.slice(0, visibleCount);
+    const filteredSeries = useMemo(
+        () => allSeries.filter((series) => series.category === activeLang),
+        [allSeries, activeLang]
+    );
+
+    const matchingAudios = useMemo(() => {
+        return allAudios.filter((audio) => {
+            const matchesCategory = audio.category === activeLang;
+            const matchesSearch = (audio.title || '').toLowerCase().includes(searchTerm.toLowerCase());
+            return matchesCategory && matchesSearch;
+        });
+    }, [allAudios, activeLang, searchTerm]);
+
+    const sortedAudios = useMemo(() => {
+        return [...matchingAudios].sort((a, b) => {
+            const dateA = new Date(a.date || 0);
+            const dateB = new Date(b.date || 0);
+            return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+        });
+    }, [matchingAudios, sortOrder]);
+
+    const seriesCounts = useMemo(() => {
+        return allAudios.reduce((acc, audio) => {
+            if (!audio.series) return acc;
+            acc[audio.series] = (acc[audio.series] || 0) + 1;
+            return acc;
+        }, {});
+    }, [allAudios]);
+
+    const visibleAudios = sortedAudios.slice(0, visibleCount);
 
     return (
-        <div className="min-h-screen flex flex-col bg-brand-sand font-lato">
+        <div className="min-h-screen flex flex-col bg-white font-lato">
             <Header />
 
-            <main className="flex-grow pb-16">
-
-                {/* 1. HERO SECTION */}
-                <section className="w-full relative bg-white mb-8 md:mb-12">
-                    <div className="relative w-full aspect-[2.5/1] md:aspect-[3.5/1] lg:aspect-[4/1]">
-                        <Image
-                            src="/images/heroes/media-audios-hero.webp" 
-                            alt="Audio Library Hero"
-                            fill
-                            className="object-cover object-center"
-                            priority
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-white via-brand-gold/40 to-transparent "></div>
-                    </div>
-
-                    <div className="relative -mt-16 md:-mt-32 text-center px-6 z-10 max-w-4xl mx-auto">
-                        <h1 className="font-agency text-4xl md:text-6xl lg:text-7xl text-brand-brown-dark mb-4 drop-shadow-md">
-                            Audio Library
-                        </h1>
-                        <div className="w-16 md:w-24 h-1 bg-brand-gold mx-auto rounded-full mb-6"></div>
-                        <p className="font-lato text-brand-brown text-sm md:text-xl max-w-2xl mx-auto leading-relaxed font-medium">
-                            Listen to sermons, tafsir, and educational series on the go. Build your personal library of knowledge.
+            <main className="flex-grow pb-20">
+                <section className="relative h-[220px] w-full overflow-hidden bg-brand-brown-dark mb-12">
+                    <Image
+                        src="/images/heroes/media-audios-hero.webp"
+                        alt="Audio Library"
+                        fill
+                        className="object-cover object-center opacity-20"
+                        priority
+                    />
+                    <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-6 z-10">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-brand-gold text-[10px] font-bold uppercase tracking-widest mb-3">
+                            <Headphones className="w-3 h-3" /> Audio Archive
+                        </div>
+                        <h1 className="font-agency text-4xl md:text-5xl text-white mb-2 leading-none">Audio Library</h1>
+                        <p className="font-lato text-white/60 text-sm md:text-base max-w-xl">
+                            Listen to sermons, tafsir, and educational series on the go.
                         </p>
                     </div>
                 </section>
@@ -122,156 +140,198 @@ export default function AudiosPage() {
                     </div>
                 ) : (
                     <>
-                        {/* 2. LANGUAGE FILTER */}
-                        <section className="px-6 md:px-12 lg:px-24 mb-10 max-w-7xl mx-auto">
-                            <div className="flex justify-center">
-                                <div className="bg-white p-2 rounded-full shadow-sm border border-gray-100 flex gap-2">
-                                    {languages.map((lang) => (
-                                        <button 
-                                            key={lang} 
-                                            onClick={() => setActiveLang(lang)}
-                                            className={`px-6 py-2 rounded-full text-xs font-bold transition-all ${
-                                                activeLang === lang 
-                                                ? 'bg-brand-brown-dark text-white shadow-md' 
-                                                : 'bg-transparent text-gray-500 hover:bg-gray-50'
-                                            }`}
-                                        >
-                                            {lang}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* 3. FEATURED SERIES */}
                         {filteredSeries.length > 0 && (
-                            <section className="px-6 md:px-12 lg:px-24 mb-12 max-w-7xl mx-auto">
-                                <div className="flex justify-between items-end mb-6">
-                                    <h2 className="font-agency text-2xl md:text-3xl text-brand-brown-dark">
-                                        Featured Series
-                                    </h2>
-                                    <Link href="/media/audios/series" className="text-xs font-bold text-gray-400 uppercase tracking-widest hover:text-brand-gold transition-colors flex items-center gap-1">
+                            <section className="px-6 md:px-12 lg:px-24 mb-16 border-b border-gray-100 pb-12">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="font-agency text-2xl text-brand-brown-dark">Featured Series</h2>
+                                    <Link
+                                        href="/media/audios/series"
+                                        className="text-xs font-bold text-gray-500 hover:text-brand-gold transition-colors flex items-center gap-1"
+                                    >
                                         View All <ChevronRight className="w-3 h-3" />
                                     </Link>
                                 </div>
 
-                                <div className="flex overflow-x-auto gap-4 pb-4 md:grid md:grid-cols-3 md:gap-8 scrollbar-hide snap-x">
-                                    {filteredSeries.slice(0, 3).map((item) => (
-                                        <Link 
-                                            key={item.id} 
+                                <div className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide snap-x">
+                                    {filteredSeries.slice(0, 5).map((item) => (
+                                        <Link
+                                            key={item.id}
                                             href={`/media/audios/series/${item.id}`}
-                                            className="snap-center min-w-[200px] md:min-w-0 bg-white rounded-2xl overflow-hidden cursor-pointer group hover:shadow-xl transition-all border border-gray-100"
+                                            className="snap-center flex-shrink-0 w-[160px] group"
                                         >
-                                            <div className="relative w-full aspect-square bg-gray-200">
-                                                <Image 
-                                                    src={item.cover || "/fallback.webp"} 
-                                                    alt={item.title} 
-                                                    fill 
-                                                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                                            <div className="relative w-full aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden mb-3 border border-gray-100 group-hover:border-brand-gold/30 transition-all">
+                                                <Image
+                                                    src={item.cover || '/fallback.webp'}
+                                                    alt={item.title}
+                                                    fill
+                                                    className="object-cover transition-transform duration-500 group-hover:scale-105"
                                                 />
-                                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <div className="bg-white/20 backdrop-blur-sm p-3 rounded-full">
-                                                        <ListMusic className="w-8 h-8 text-white" />
-                                                    </div>
+                                                <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 border border-white/10">
+                                                    <ListMusic className="w-3 h-3 text-brand-gold" />
+                                                    {seriesCounts[item.title] || 0}
                                                 </div>
                                             </div>
-                                            <div className="p-5 text-center">
-                                                <h3 className={`font-agency text-lg md:text-xl text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors truncate ${getDir(item.title) === 'rtl' ? 'font-tajawal font-bold' : ''}`}>
-                                                    {item.title}
-                                                </h3>
-                                                <p className="text-[10px] md:text-xs text-gray-500 mt-2 font-bold uppercase tracking-wider flex items-center justify-center gap-1">
-                                                    <Mic className="w-3 h-3" /> {item.host || "Sheikh Goni"}
-                                                </p>
-                                            </div>
+                                            <h3
+                                                className={`font-bold text-sm text-brand-brown-dark leading-tight line-clamp-2 group-hover:text-brand-gold transition-colors ${getDir(item.title) === 'rtl' ? 'font-tajawal' : ''}`}
+                                                dir={getDir(item.title)}
+                                            >
+                                                {item.title}
+                                            </h3>
                                         </Link>
                                     ))}
                                 </div>
                             </section>
                         )}
 
-                        {/* 4. AUDIO LIST */}
-                        <section className="px-6 md:px-12 lg:px-24 space-y-4 max-w-7xl mx-auto">
-                            <div className="flex justify-between items-end mb-4">
-                                 <h2 className="font-agency text-2xl md:text-3xl text-brand-brown-dark">
-                                    Latest Uploads
-                                </h2>
+                        <section className="px-6 md:px-12 lg:px-24 mb-12 flex flex-col lg:flex-row gap-12 items-start">
+                            <div className="w-full lg:w-[280px] lg:sticky lg:top-24 flex-shrink-0 space-y-8">
+                                <div>
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Search</h3>
+                                    <div className="relative group">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-brand-gold transition-colors" />
+                                        <input
+                                            type="text"
+                                            placeholder="Find audio by title..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="w-full pl-9 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-gold/50 transition-all shadow-sm"
+                                        />
+                                        {searchTerm && (
+                                            <button
+                                                onClick={() => setSearchTerm('')}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Filter By</h3>
+                                    <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 scrollbar-hide">
+                                        {languages.map((lang) => (
+                                            <button
+                                                key={lang}
+                                                onClick={() => setActiveLang(lang)}
+                                                className={`px-3 py-1.5 lg:px-4 lg:py-2 rounded-lg text-xs lg:text-sm font-bold text-left transition-all flex items-center justify-between group flex-shrink-0 whitespace-nowrap ${
+                                                    activeLang === lang
+                                                        ? 'bg-brand-brown-dark text-white shadow-md'
+                                                        : 'bg-white border border-gray-100 text-gray-600 hover:bg-gray-50 hover:text-brand-brown-dark'
+                                                }`}
+                                            >
+                                                {lang}
+                                                {activeLang === lang && <div className="w-1.5 h-1.5 rounded-full bg-brand-gold hidden lg:block"></div>}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
 
-                            {visibleAudios.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {visibleAudios.map((audio) => (
-                                        <div key={audio.id} className="group bg-white rounded-2xl p-4 md:p-5 shadow-sm border border-gray-100 flex items-center gap-4 transition-all hover:-translate-y-1 hover:shadow-lg hover:border-brand-gold/30">
+                            <div className="flex-grow w-full">
+                                <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+                                    <h2 className="font-agency text-2xl text-brand-brown-dark">Latest Uploads</h2>
+                                    <button
+                                        onClick={() => setSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
+                                        className="flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-brand-brown-dark transition-colors"
+                                    >
+                                        <ArrowUpDown className="w-3 h-3" />
+                                        {sortOrder === 'desc' ? 'Newest' : 'Oldest'}
+                                    </button>
+                                </div>
 
-                                            {/* Play Icon */}
-                                            <Link 
+                                {visibleAudios.length > 0 ? (
+                                    <div className="flex flex-col gap-4">
+                                        {visibleAudios.map((audio) => (
+                                            <Link
+                                                key={audio.id}
                                                 href={`/media/audios/play/${audio.id}`}
-                                                className="flex-shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-full bg-brand-sand text-brand-gold flex items-center justify-center group-hover:bg-brand-gold group-hover:text-white transition-colors shadow-sm"
+                                                className="group relative flex items-start gap-4 p-3 rounded-xl border border-gray-100 hover:shadow-md hover:border-brand-gold/20 transition-all duration-300 bg-white"
                                             >
-                                                <Play className="w-5 h-5 md:w-6 md:h-6 ml-1 fill-current" />
-                                            </Link>
-
-                                            {/* Content */}
-                                            <div className="flex-grow min-w-0" dir={getDir(audio.title)}>
-                                                <div className="flex justify-end items-start mb-1" dir="ltr">
-                                                    <span className="text-[10px] md:text-xs text-gray-400 font-lato flex items-center gap-1">
-                                                        <Clock className="w-3 h-3" /> {audio.fileSize}
-                                                    </span>
+                                                <div className="relative w-32 aspect-video rounded-lg overflow-hidden bg-black flex-shrink-0 border border-gray-50">
+                                                    <Image
+                                                        src={audio.thumbnail || '/fallback.webp'}
+                                                        alt={audio.title}
+                                                        fill
+                                                        className="object-cover opacity-90 group-hover:opacity-100 scale-110 group-hover:scale-125 transition-transform duration-700"
+                                                    />
+                                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <div className="w-8 h-8 bg-black/50 backdrop-blur rounded-full flex items-center justify-center text-white border border-white/10">
+                                                            <Play className="w-3 h-3 fill-current ml-0.5" />
+                                                        </div>
+                                                    </div>
+                                                    {audio.fileSize && (
+                                                        <div className="absolute bottom-1 right-1 bg-black/80 text-white text-[9px] font-bold px-1.5 rounded flex items-center gap-1">
+                                                            <Clock className="w-2.5 h-2.5" /> {audio.fileSize}
+                                                        </div>
+                                                    )}
                                                 </div>
 
-                                                <Link href={`/media/audios/play/${audio.id}`}>
-                                                    <h3 className={`font-agency text-lg md:text-xl text-brand-brown-dark leading-tight truncate pr-2 group-hover:text-brand-gold transition-colors cursor-pointer ${getDir(audio.title) === 'rtl' ? 'font-tajawal font-bold text-right' : ''}`}>
+                                                <div className="flex-grow min-w-0 py-0.5" dir={getDir(audio.title)}>
+                                                    <div className="flex flex-wrap items-center gap-2 mb-1" dir="ltr">
+                                                        <span className="text-[9px] font-bold text-brand-gold border border-brand-gold/20 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                                            {audio.category}
+                                                        </span>
+                                                        <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
+                                                            <Calendar className="w-3 h-3" /> {formatDate(audio.date)}
+                                                        </span>
+                                                        {audio.speaker && (
+                                                            <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1 truncate max-w-[120px]">
+                                                                <Mic className="w-3 h-3" /> {audio.speaker}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <h4
+                                                        className={`text-sm md:text-base font-bold text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors line-clamp-2 ${getDir(audio.title) === 'rtl' ? 'font-tajawal' : 'font-lato'}`}
+                                                    >
                                                         {audio.title}
-                                                    </h3>
-                                                </Link>
-
-                                                <div className="flex items-center gap-3 mt-2" dir="ltr">
-                                                    <p className="text-[10px] md:text-xs text-gray-500 font-lato flex items-center gap-1">
-                                                        <Calendar className="w-3 h-3" /> {formatDate(audio.date)}
-                                                    </p>
-                                                    <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                                                    <p className="text-[10px] md:text-xs text-gray-500 font-lato truncate max-w-[120px]">
-                                                        {audio.speaker}
-                                                    </p>
+                                                    </h4>
                                                 </div>
-                                            </div>
 
-                                            {/* Download Action */}
-                                            <a 
-                                                href={audio.audioUrl} 
-                                                download 
-                                                target="_blank" 
-                                                rel="noopener noreferrer"
-                                                className="flex-shrink-0 text-gray-300 hover:text-brand-brown-dark hover:bg-gray-50 p-2 rounded-full transition-colors" 
-                                                title="Download Audio"
-                                            >
-                                                <Download className="w-5 h-5 md:w-6 md:h-6" />
-                                            </a>
-
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        if (!audio.audioUrl) return;
+                                                        const proxyUrl = `/api/download?url=${encodeURIComponent(audio.audioUrl)}&name=${encodeURIComponent(`${audio.title || 'audio'}.mp3`)}`;
+                                                        window.location.assign(proxyUrl);
+                                                    }}
+                                                    className="self-center p-2.5 rounded-full border border-gray-100 text-gray-400 hover:text-brand-brown-dark hover:border-brand-gold/40 transition-colors"
+                                                    title="Download"
+                                                    aria-label="Download audio"
+                                                >
+                                                    <Download className="w-4 h-4" />
+                                                </button>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-center">
+                                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-3 shadow-sm text-gray-300">
+                                            <Mic className="w-5 h-5" />
                                         </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-12 text-gray-400">
-                                    <Mic className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                    <p>No audio tracks found for this category.</p>
-                                </div>
-                            )}
-                        </section>
+                                        <h3 className="font-agency text-lg text-gray-500">No audio tracks found</h3>
+                                        <p className="text-xs text-gray-400 mt-1">Try switching language filters or clearing search.</p>
+                                    </div>
+                                )}
 
-                        {/* 5. LOAD MORE */}
-                        {visibleCount < filteredAudios.length && (
-                            <section className="py-12 text-center">
-                                <button 
-                                    onClick={() => setVisibleCount(prev => prev + 6)}
-                                    className="px-8 py-3 bg-white border border-gray-200 text-brand-brown-dark rounded-full font-bold text-sm hover:bg-brand-brown-dark hover:text-white transition-colors shadow-sm uppercase tracking-wide"
-                                >
-                                    Load More Audios
-                                </button>
-                            </section>
-                        )}
+                                <div className="py-10 text-center space-y-4">
+                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                                        Showing {visibleAudios.length} of {sortedAudios.length} Audios
+                                    </p>
+                                    {visibleCount < sortedAudios.length && (
+                                        <button
+                                            onClick={() => setVisibleCount((prev) => prev + 6)}
+                                            className="px-8 py-2.5 bg-white border border-gray-200 text-brand-brown-dark rounded-full font-bold text-xs hover:border-brand-brown-dark transition-all uppercase tracking-wider shadow-sm"
+                                        >
+                                            Load More Audios
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </section>
                     </>
                 )}
-
             </main>
 
             <Footer />
