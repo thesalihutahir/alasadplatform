@@ -10,9 +10,9 @@ import Loader from '@/components/Loader';
 // Firebase Imports
 import { db } from '@/lib/firebase';
 import { doc, getDoc, collection, query, where, orderBy, getDocs } from 'firebase/firestore';
-import { 
-    Play, Mic, Calendar, Search, ArrowLeft, 
-    Share2, Check, ListMusic, ChevronDown, ChevronUp, ArrowUpRight, ArrowUpDown, X, Headphones 
+import {
+    Play, Mic, Calendar, Search, ArrowLeft,
+    Share2, Check, ListMusic, ChevronDown, ChevronUp, ArrowUpRight, ArrowUpDown, X, Headphones
 } from 'lucide-react';
 
 export default function ViewShowPage() {
@@ -20,23 +20,21 @@ export default function ViewShowPage() {
     const router = useRouter();
     const id = params?.id;
 
-    // --- STATE ---
     const [show, setShow] = useState(null);
     const [episodes, setEpisodes] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // Search, sort, pagination, expand
     const [searchTerm, setSearchTerm] = useState('');
-    const [sortOrder, setSortOrder] = useState('desc'); // desc = Newest first
+    const [sortOrder, setSortOrder] = useState('desc');
     const [visibleCount, setVisibleCount] = useState(10);
     const [expandedIds, setExpandedIds] = useState(new Set());
+    const [copied, setCopied] = useState(false);
+    const [sortAnimating, setSortAnimating] = useState(false);
 
-    // --- FETCH DATA ---
     useEffect(() => {
         const fetchData = async () => {
             if (!id) return;
             try {
-                // 1. Fetch Show Details
                 const showDocRef = doc(db, "podcast_shows", id);
                 const showSnap = await getDoc(showDocRef);
 
@@ -44,7 +42,6 @@ export default function ViewShowPage() {
                     const showData = { id: showSnap.id, ...showSnap.data() };
                     setShow(showData);
 
-                    // 2. Fetch Episodes for this Show
                     const qEpisodes = query(
                         collection(db, "podcasts"),
                         where("show", "==", showData.title),
@@ -52,9 +49,9 @@ export default function ViewShowPage() {
                     );
 
                     const epSnapshot = await getDocs(qEpisodes);
-                    const fetchedEpisodes = epSnapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
+                    const fetchedEpisodes = epSnapshot.docs.map((epDoc) => ({
+                        id: epDoc.id,
+                        ...epDoc.data()
                     }));
 
                     setEpisodes(fetchedEpisodes);
@@ -72,7 +69,6 @@ export default function ViewShowPage() {
         fetchData();
     }, [id, router]);
 
-    // --- HELPERS ---
     const formatDate = (dateString) => {
         if (!dateString) return '';
         const date = new Date(dateString);
@@ -89,12 +85,18 @@ export default function ViewShowPage() {
     const toggleExpand = (e, epId) => {
         e.preventDefault();
         e.stopPropagation();
-        setExpandedIds(prev => {
+        setExpandedIds((prev) => {
             const next = new Set(prev);
             if (next.has(epId)) next.delete(epId);
             else next.add(epId);
             return next;
         });
+    };
+
+    const toggleSortOrder = () => {
+        setSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'));
+        setSortAnimating(true);
+        setTimeout(() => setSortAnimating(false), 180);
     };
 
     const handleShare = async () => {
@@ -106,10 +108,12 @@ export default function ViewShowPage() {
                     title: show?.title || 'Podcast Show',
                     url
                 });
-            } else {
-                await navigator.clipboard.writeText(url);
-                alert("Share URL copied to clipboard!");
+                return;
             }
+
+            await navigator.clipboard.writeText(url);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
         } catch (e) {
             console.error("Share failed:", e);
         }
@@ -130,8 +134,7 @@ export default function ViewShowPage() {
     const isArabic = show.category === 'Arabic';
     const dir = getDir(show.title);
 
-    // Filter by search (derived)
-    const filteredEpisodes = episodes.filter(ep => {
+    const filteredEpisodes = episodes.filter((ep) => {
         const term = searchTerm.trim().toLowerCase();
         if (!term) return true;
         const t = (ep.title || "").toLowerCase();
@@ -139,7 +142,6 @@ export default function ViewShowPage() {
         return t.includes(term) || d.includes(term);
     });
 
-    // Sort derived from state (by date)
     const sortedEpisodes = [...filteredEpisodes].sort((a, b) => {
         const dateA = new Date(a.date || 0);
         const dateB = new Date(b.date || 0);
@@ -148,7 +150,6 @@ export default function ViewShowPage() {
 
     const visibleEpisodes = sortedEpisodes.slice(0, visibleCount);
 
-    // Oldest episode for "Start Listening"
     const oldestEpisodeSorted = [...episodes].sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
     const oldestEpisodeId = oldestEpisodeSorted.length > 0 ? oldestEpisodeSorted[0].id : null;
 
@@ -157,20 +158,16 @@ export default function ViewShowPage() {
             <Header />
 
             <main className="flex-grow pb-24">
-
-                {/* 1. GLASS PODCAST HEADER */}
                 <div className="relative w-full pt-10 pb-32 lg:pt-16 lg:pb-48 overflow-hidden bg-brand-brown-dark">
-                    {/* Ambient Blurred Background */}
                     <div className="absolute inset-0 z-0 pointer-events-none mix-blend-soft-light opacity-50">
-                        <Image 
-                            src={show.cover || "/fallback.webp"} 
-                            alt="" 
-                            fill 
+                        <Image
+                            src={show.cover || "/fallback.webp"}
+                            alt=""
+                            fill
                             className="object-cover blur-[80px] scale-120"
                         />
                     </div>
 
-                    {/* Subtle Overlay Picture */}
                     <div className="absolute inset-0 z-0 pointer-events-none">
                         <Image
                             src={show.cover || "/fallback.webp"}
@@ -184,7 +181,6 @@ export default function ViewShowPage() {
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-brand-gold/5 blur-[120px] rounded-full z-0 pointer-events-none"></div>
 
                     <div className="max-w-[1400px] lg:max-w-[1000px] xl:max-w-[1100px] mx-auto px-4 relative z-10">
-                        {/* Navigation Row */}
                         <div className="mb-8">
                             <Link href="/media/podcasts/shows" className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-white/70 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-md">
                                 <ArrowLeft className="w-3.5 h-3.5" /> Back to Shows
@@ -193,32 +189,26 @@ export default function ViewShowPage() {
                     </div>
                 </div>
 
-                {/* Overlapping Show Info Card */}
                 <div className="max-w-[1400px] lg:max-w-[1000px] xl:max-w-[1100px] mx-auto px-4 relative z-20 -mt-24 lg:-mt-36 mb-12">
-                    <div className="bg-white rounded-[2rem] shadow-2xl border border-gray-100 p-6 md:p-10 lg:p-12 relative overflow-hidden lg:overflow-visible" dir={dir}>
-
-                        {/* Card Background Decoration */}
+                    <div className="bg-white rounded-[2rem] shadow-2xl border border-gray-100 p-6 md:p-10 lg:p-12 relative" dir={dir}>
                         <div className="absolute inset-0 overflow-hidden rounded-[2rem] pointer-events-none z-0">
                             <div className="absolute top-0 right-0 w-64 h-64 bg-brand-sand/30 rounded-full blur-[80px]"></div>
                         </div>
 
-                        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center lg:items-start relative z-10">
-
-                            {/* Cover (UPDATED: Landscape style matching PlaylistViewPage) */}
-                            <div className="w-full sm:w-[400px] lg:w-[45%] xl:w-[48%] flex-shrink-0 lg:-mt-24">
+                        <div className="flex flex-col gap-8 lg:gap-10 items-center relative z-10">
+                            <div className="w-full sm:w-[400px] lg:w-[600px] flex-shrink-0 -mt-20 lg:-mt-32">
                                 <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white border border-gray-100 bg-gray-50">
-                                    <Image 
-                                        src={show.cover || "/fallback.webp"} 
-                                        alt={show.title} 
-                                        fill 
+                                    <Image
+                                        src={show.cover || "/fallback.webp"}
+                                        alt={show.title}
+                                        fill
                                         className="object-cover object-center"
                                         priority
                                     />
                                 </div>
                             </div>
 
-                            {/* Details Stack */}
-                            <div className={`flex-grow flex flex-col items-center pt-2 lg:pt-0 w-full ${dir === 'rtl' ? 'lg:items-end text-center lg:text-right' : 'lg:items-start text-center lg:text-left'}`}>
+                            <div className="flex-grow flex flex-col items-center text-center pt-2 w-full max-w-3xl">
                                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-brand-gold/20 bg-brand-gold/5 text-brand-gold text-[10px] font-bold uppercase tracking-widest mb-4">
                                     <Headphones className="w-3 h-3" /> Podcast Show
                                 </div>
@@ -227,7 +217,7 @@ export default function ViewShowPage() {
                                     {show.title}
                                 </h1>
 
-                                <div className={`flex flex-wrap items-center justify-center gap-3 mb-6 text-[10px] font-bold uppercase tracking-wider ${dir === 'rtl' ? 'lg:justify-end' : 'lg:justify-start'}`} dir="ltr">
+                                <div className="flex flex-wrap items-center justify-center gap-3 mb-6 text-[10px] font-bold uppercase tracking-wider" dir="ltr">
                                     <span className="bg-brand-brown-dark text-white px-3 py-1 rounded-md">
                                         {show.category} Series
                                     </span>
@@ -241,15 +231,14 @@ export default function ViewShowPage() {
                                     )}
                                 </div>
 
-                                <p className={`text-gray-600 text-sm md:text-base lg:text-lg max-w-2xl leading-relaxed mb-8 w-full ${getDir(show.description || "") === 'rtl' ? 'font-arabic lg:text-right' : 'font-lato lg:text-left'}`} dir={getDir(show.description || "")}>
+                                <p className={`text-gray-600 text-sm md:text-base lg:text-lg max-w-2xl leading-relaxed mb-8 w-full lg:text-center ${getDir(show.description || "") === 'rtl' ? 'font-arabic text-right' : 'font-lato text-left'}`} dir={getDir(show.description || "")}>
                                     {show.description || "Browse all episodes in this show below. Episodes can be sorted newest or oldest."}
                                 </p>
 
-                                {/* Actions */}
-                                <div className={`flex flex-col sm:flex-row items-center justify-center gap-3 w-full ${dir === 'rtl' ? 'lg:justify-end' : 'lg:justify-start'}`} dir="ltr">
+                                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full" dir="ltr">
                                     {oldestEpisodeId && (
-                                        <Link 
-                                            href={`/media/podcasts/play/${oldestEpisodeId}`} 
+                                        <Link
+                                            href={`/media/podcasts/play/${oldestEpisodeId}`}
                                             className="inline-flex items-center justify-center gap-3 bg-brand-gold text-white px-8 py-3.5 rounded-xl font-bold hover:bg-brand-brown-dark transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 group w-full sm:w-auto"
                                         >
                                             <Play className="w-4 h-4 fill-current" /> Start Listening
@@ -257,11 +246,12 @@ export default function ViewShowPage() {
                                         </Link>
                                     )}
 
-                                    <button 
-                                        onClick={handleShare} 
+                                    <button
+                                        onClick={handleShare}
                                         className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all shadow-sm w-full sm:w-auto bg-white border border-gray-200 text-brand-brown-dark hover:border-brand-gold/50"
                                     >
-                                        <Share2 className="w-4 h-4" /> Share
+                                        {copied ? <Check className="w-4 h-4 text-green-600" /> : <Share2 className="w-4 h-4" />}
+                                        {copied ? 'Copied' : 'Share'}
                                     </button>
                                 </div>
                             </div>
@@ -269,9 +259,7 @@ export default function ViewShowPage() {
                     </div>
                 </div>
 
-                {/* 2. EPISODE LIST */}
                 <div className="max-w-[1400px] lg:max-w-[1000px] xl:max-w-[1100px] mx-auto px-4 md:px-8">
-
                     <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8 pb-4 border-b border-gray-100">
                         <div>
                             <h2 className="font-agency text-2xl md:text-3xl text-brand-brown-dark flex items-center gap-3">
@@ -282,13 +270,11 @@ export default function ViewShowPage() {
                             </p>
                         </div>
 
-                        {/* UPDATED: Search & Sort in single row on mobile */}
-                        <div className="flex flex-row items-center gap-3 w-full lg:w-auto">
-                            {/* Search */}
-                            <div className="relative w-full sm:w-72 flex-grow">
+                        <div className="flex items-center gap-2 w-full lg:w-auto">
+                            <div className="relative flex-1 lg:w-72">
                                 <Search className={`absolute w-4 h-4 text-gray-400 top-1/2 -translate-y-1/2 ${isArabic ? 'right-3' : 'left-3'}`} />
-                                <input 
-                                    type="text" 
+                                <input
+                                    type="text"
                                     value={searchTerm}
                                     onChange={(e) => {
                                         setSearchTerm(e.target.value);
@@ -299,8 +285,11 @@ export default function ViewShowPage() {
                                     dir={isArabic ? 'rtl' : 'ltr'}
                                 />
                                 {searchTerm && (
-                                    <button 
-                                        onClick={() => setSearchTerm('')} 
+                                    <button
+                                        onClick={() => {
+                                            setSearchTerm('');
+                                            setVisibleCount(10);
+                                        }}
                                         className={`absolute top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors ${isArabic ? 'left-3' : 'right-3'}`}
                                         aria-label="Clear search"
                                     >
@@ -308,18 +297,19 @@ export default function ViewShowPage() {
                                     </button>
                                 )}
                             </div>
-                            
-                            {/* Sort */}
-                            <button 
-                                onClick={() => setSortOrder(prev => (prev === 'desc' ? 'asc' : 'desc'))}
-                                className={`flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-4 py-2.5 rounded-xl border shadow-sm transition-all active:scale-95 flex-shrink-0 ${
-                                    sortOrder === 'desc' 
-                                        ? 'bg-brand-brown-dark text-white border-brand-brown-dark' 
+
+                            <button
+                                onClick={toggleSortOrder}
+                                className={`flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-3 sm:px-4 py-2.5 rounded-xl border shadow-sm transition-all w-auto min-w-[44px] ${sortAnimating ? 'scale-110' : 'scale-100'} ${
+                                    sortOrder === 'desc'
+                                        ? 'bg-brand-brown-dark text-white border-brand-brown-dark'
                                         : 'bg-white text-gray-500 border-gray-200 hover:border-brand-brown-dark hover:text-brand-brown-dark'
                                 }`}
                                 dir="ltr"
+                                aria-label={sortOrder === 'desc' ? 'Sort oldest first' : 'Sort newest first'}
+                                title={sortOrder === 'desc' ? 'Newest First' : 'Oldest First'}
                             >
-                                <ArrowUpDown className={`w-3.5 h-3.5 transition-transform duration-300 ${sortOrder === 'desc' ? '' : 'rotate-180'}`} />
+                                <ArrowUpDown className="w-3.5 h-3.5" />
                                 <span className="hidden sm:inline">{sortOrder === 'desc' ? 'Newest First' : 'Oldest First'}</span>
                             </button>
                         </div>
@@ -333,18 +323,17 @@ export default function ViewShowPage() {
                                     const epDir = getDir(ep.title);
 
                                     return (
-                                        <Link 
-                                            key={ep.id} 
-                                            href={`/media/podcasts/play/${ep.id}`} 
+                                        <Link
+                                            key={ep.id}
+                                            href={`/media/podcasts/play/${ep.id}`}
                                             className="group relative flex items-start gap-4 p-3 rounded-xl border border-gray-100 hover:shadow-md hover:border-brand-gold/20 transition-all duration-300 bg-white"
                                         >
-                                            {/* Thumbnail */}
                                             <div className="relative w-32 md:w-40 aspect-video rounded-lg overflow-hidden bg-black flex-shrink-0 border border-gray-50">
-                                                <Image 
-                                                    src={ep.thumbnail || "/fallback.webp"} 
-                                                    alt={ep.title} 
-                                                    fill 
-                                                    className="object-cover opacity-90 group-hover:opacity-100 scale-110 group-hover:scale-125 transition-transform duration-700" 
+                                                <Image
+                                                    src={ep.thumbnail || "/fallback.webp"}
+                                                    alt={ep.title}
+                                                    fill
+                                                    className="object-cover opacity-90 group-hover:opacity-100 scale-110 group-hover:scale-125 transition-transform duration-700"
                                                 />
                                                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <div className="w-8 h-8 bg-black/50 backdrop-blur rounded-full flex items-center justify-center text-white">
@@ -358,7 +347,6 @@ export default function ViewShowPage() {
                                                 )}
                                             </div>
 
-                                            {/* Info */}
                                             <div className="flex-grow min-w-0 py-0.5" dir={epDir}>
                                                 <div className="flex flex-wrap items-center gap-2 mb-1" dir="ltr">
                                                     {ep.category && (
@@ -376,8 +364,7 @@ export default function ViewShowPage() {
                                                         {ep.title}
                                                     </h4>
 
-                                                    {/* Expand Button */}
-                                                    <button 
+                                                    <button
                                                         onClick={(e) => toggleExpand(e, ep.id)}
                                                         className="absolute right-0 top-0 p-1 text-gray-300 hover:text-brand-gold transition-colors"
                                                         aria-label={isExpanded ? "Collapse" : "Expand"}
@@ -391,15 +378,14 @@ export default function ViewShowPage() {
                                 })}
                             </div>
 
-                            {/* Footer Status & Load More */}
                             {sortedEpisodes.length > 0 && (
                                 <div className="py-10 text-center space-y-4">
                                     <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
                                         Showing {visibleEpisodes.length} of {sortedEpisodes.length} Episodes
                                     </p>
                                     {visibleCount < sortedEpisodes.length && (
-                                        <button 
-                                            onClick={() => setVisibleCount(prev => prev + 10)}
+                                        <button
+                                            onClick={() => setVisibleCount((prev) => prev + 10)}
                                             className="px-8 py-2.5 bg-white border border-gray-200 text-brand-brown-dark rounded-full font-bold text-xs hover:border-brand-brown-dark transition-all uppercase tracking-wider shadow-sm"
                                         >
                                             Load More Episodes
