@@ -12,13 +12,10 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc, collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import {
     Play,
-    Mic,
     Calendar,
     Search,
     ArrowLeft,
     Share2,
-    Bell,
-    Check,
     ListMusic,
     Download,
     FileText,
@@ -39,7 +36,6 @@ export default function ViewSeriesPage() {
     const [loading, setLoading] = useState(true);
 
     const [searchTerm, setSearchTerm] = useState('');
-    const [isSubscribed, setIsSubscribed] = useState(false);
     const [sortOrder, setSortOrder] = useState('desc');
     const [sortAnimating, setSortAnimating] = useState(false);
     const [copied, setCopied] = useState(false);
@@ -196,6 +192,7 @@ export default function ViewSeriesPage() {
                         </div>
                     </div>
                 </div>
+
                 <div className="max-w-[1400px] lg:max-w-[1000px] xl:max-w-[1100px] mx-auto px-4 relative z-20 -mt-24 lg:-mt-36 mb-12">
                     <div className="bg-white rounded-[2rem] shadow-2xl border border-gray-100 p-6 md:p-10 lg:p-12 relative" dir={dir}>
                         <div className="absolute inset-0 overflow-hidden rounded-[2rem] pointer-events-none z-0">
@@ -204,7 +201,7 @@ export default function ViewSeriesPage() {
 
                         <div className="flex flex-col gap-8 lg:gap-10 items-center relative z-10">
                             <div className="w-full sm:w-[400px] lg:w-[600px] flex-shrink-0 -mt-20 lg:-mt-32">
-                                <div className="relative aspect-video rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white border border-gray-100 bg-gray-50">
+                                <div className="relative aspect-square rounded-2xl overflow-hidden shadow-2xl ring-4 ring-white border border-gray-100 bg-gray-50">
                                     <Image
                                         src={series.cover || '/fallback.webp'}
                                         alt={series.title}
@@ -231,9 +228,6 @@ export default function ViewSeriesPage() {
                                     <span className="text-gray-500 flex items-center gap-1.5 bg-gray-50 px-3 py-1 rounded-md border border-gray-100">
                                         <ListMusic className="w-3 h-3" /> {audios.length} Tracks
                                     </span>
-                                    <span className="text-gray-500 flex items-center gap-1.5 bg-gray-50 px-3 py-1 rounded-md border border-gray-100">
-                                        <Mic className="w-3 h-3" /> {series.host || 'Al-Asad Scholar'}
-                                    </span>
                                 </div>
 
                                 <p className={`text-gray-600 text-sm md:text-base lg:text-lg max-w-2xl leading-relaxed mb-8 w-full lg:text-center ${getDir(series.description || '') === 'rtl' ? 'font-arabic text-right' : 'font-lato text-left'}`} dir={getDir(series.description || '')}>
@@ -250,18 +244,6 @@ export default function ViewSeriesPage() {
                                             <ArrowUpRight className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-opacity" />
                                         </Link>
                                     )}
-
-                                    <button
-                                        onClick={() => setIsSubscribed((prev) => !prev)}
-                                        className={`inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all shadow-sm w-full sm:w-auto ${
-                                            isSubscribed
-                                                ? 'bg-green-600 text-white hover:bg-green-700'
-                                                : 'bg-white border border-gray-200 text-brand-brown-dark hover:border-brand-gold/50'
-                                        }`}
-                                    >
-                                        {isSubscribed ? <Check className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
-                                        {isSubscribed ? 'Following' : 'Follow Series'}
-                                    </button>
 
                                     <button
                                         onClick={handleShare}
@@ -323,6 +305,7 @@ export default function ViewSeriesPage() {
                             </button>
                         </div>
                     </div>
+
                     {sortedAudios.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 lg:gap-6 w-full">
                             {sortedAudios.map((audio) => {
@@ -346,11 +329,6 @@ export default function ViewSeriesPage() {
                                                     <Play className="w-3 h-3 fill-current ml-0.5" />
                                                 </div>
                                             </div>
-                                            {(audio.duration || audio.fileSize) && (
-                                                <div className="absolute bottom-1 right-1 bg-black/80 text-white text-[9px] font-bold px-1.5 rounded">
-                                                    {audio.duration || audio.fileSize}
-                                                </div>
-                                            )}
                                         </div>
 
                                         <div className="flex-grow min-w-0 py-0.5" dir={audioDir}>
