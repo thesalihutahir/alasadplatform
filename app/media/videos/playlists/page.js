@@ -184,11 +184,11 @@ export default function PlaylistsPage() {
                                                             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-70 group-hover:opacity-90 transition-opacity"></div>
 
                                                             <div className="absolute top-2 left-2 right-2 flex items-center justify-between gap-2">
-                                                                <span className="px-2 py-1 bg-black/55 backdrop-blur-md border border-white/10 rounded text-[9px] font-bold uppercase tracking-wider text-brand-gold">
+                                                                <span className="px-2 py-1 bg-black/55 backdrop-blur-md border border-white/10 rounded text-[9px] font-bold uppercase tracking-wider text-white">
                                                                     {playlist.category || 'Playlist'}
                                                                 </span>
                                                                 <span className="px-2 py-1 bg-black/55 backdrop-blur-md border border-white/10 rounded text-[9px] font-bold text-white flex items-center gap-1">
-                                                                    <ListVideo className="w-3 h-3 text-brand-gold" /> {playlist.count}
+                                                                    <ListVideo className="w-3 h-3 text-white" /> {playlist.count}
                                                                 </span>
                                                             </div>
 
