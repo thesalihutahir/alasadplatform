@@ -12,7 +12,7 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc, collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import {
     Play, Mic, Calendar, Search, ArrowLeft,
-    Share2, Bell, Check, ListMusic, ChevronDown, ChevronUp, ArrowUpRight, ArrowUpDown, X, Headphones
+    Share2, Check, ListMusic, ChevronDown, ChevronUp, ArrowUpRight, ArrowUpDown, X, Headphones
 } from 'lucide-react';
 
 export default function ViewShowPage() {
@@ -30,8 +30,6 @@ export default function ViewShowPage() {
     const [sortOrder, setSortOrder] = useState('desc'); // desc = Newest first
     const [visibleCount, setVisibleCount] = useState(10);
     const [expandedIds, setExpandedIds] = useState(new Set());
-
-    const [isSubscribed, setIsSubscribed] = useState(false);
 
     // --- FETCH DATA ---
     useEffect(() => {
@@ -193,7 +191,8 @@ export default function ViewShowPage() {
                         </div>
                     </div>
                 </div>
-{/* Overlapping Show Info Card */}
+
+                {/* Overlapping Show Info Card */}
                 <div className="max-w-[1400px] lg:max-w-[1000px] xl:max-w-[1100px] mx-auto px-4 relative z-20 -mt-24 lg:-mt-36 mb-12">
                     <div className="bg-white rounded-[2rem] shadow-2xl border border-gray-100 p-6 md:p-10 lg:p-12 relative" dir={dir}>
 
@@ -256,18 +255,6 @@ export default function ViewShowPage() {
                                             <ArrowUpRight className="w-4 h-4 opacity-70 group-hover:opacity-100 transition-opacity" />
                                         </Link>
                                     )}
-
-                                    <button
-                                        onClick={() => setIsSubscribed(!isSubscribed)}
-                                        className={`inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all shadow-sm w-full sm:w-auto ${
-                                            isSubscribed
-                                                ? 'bg-green-600 text-white hover:bg-green-700'
-                                                : 'bg-white border border-gray-200 text-brand-brown-dark hover:border-brand-gold/50'
-                                        }`}
-                                    >
-                                        {isSubscribed ? <Check className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
-                                        {isSubscribed ? 'Subscribed' : 'Subscribe'}
-                                    </button>
 
                                     <button
                                         onClick={handleShare}
@@ -336,7 +323,8 @@ export default function ViewShowPage() {
                             </button>
                         </div>
                     </div>
-{visibleEpisodes.length > 0 ? (
+
+                    {visibleEpisodes.length > 0 ? (
                         <>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 lg:gap-6 w-full">
                                 {visibleEpisodes.map((ep) => {
@@ -380,16 +368,6 @@ export default function ViewShowPage() {
                                                     <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
                                                         <Calendar className="w-3 h-3" /> {formatDate(ep.date)}
                                                     </span>
-                                                    {ep.episodeNumber && (
-                                                        <span className="text-[9px] font-bold text-white bg-brand-brown px-1.5 py-0.5 rounded uppercase tracking-wider">
-                                                            EP {ep.episodeNumber}
-                                                        </span>
-                                                    )}
-                                                    {ep.season && (
-                                                        <span className="text-[9px] font-bold text-brand-brown-dark bg-brand-sand px-1.5 py-0.5 rounded uppercase tracking-wider">
-                                                            Season {ep.season}
-                                                        </span>
-                                                    )}
                                                 </div>
 
                                                 <div className="relative pr-6">
@@ -406,12 +384,6 @@ export default function ViewShowPage() {
                                                         {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                                                     </button>
                                                 </div>
-
-                                                {ep.description && (
-                                                    <p className={`mt-2 text-xs text-gray-500 leading-relaxed ${isExpanded ? '' : 'line-clamp-2'} ${getDir(ep.description) === 'rtl' ? 'font-arabic' : ''}`}>
-                                                        {ep.description}
-                                                    </p>
-                                                )}
                                             </div>
                                         </Link>
                                     );
