@@ -1,3 +1,4 @@
+// Split 1/2
 "use client";
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -18,7 +19,6 @@ import {
     Download,
     Headphones,
     ListMusic,
-    Mic,
     Play,
     Search,
     X
@@ -226,7 +226,7 @@ export default function AudiosPage() {
                                         )}
                                     </div>
                                 </div>
-
+// Split 2/2
                                 <div>
                                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Filter By</h3>
                                     <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 scrollbar-hide">
@@ -273,7 +273,7 @@ export default function AudiosPage() {
                                                     href={`/media/audios/play/${audio.id}`}
                                                     className="group relative flex items-start gap-4 p-3 rounded-xl border border-gray-100 hover:shadow-md hover:border-brand-gold/20 transition-all duration-300 bg-white"
                                                 >
-                                                    <div className="relative w-32 aspect-video rounded-lg overflow-hidden bg-black flex-shrink-0 border border-gray-50">
+                                                    <div className="relative w-32 aspect-square rounded-lg overflow-hidden bg-black flex-shrink-0 border border-gray-50">
                                                         <Image
                                                             src={audio.thumbnail || '/fallback.webp'}
                                                             alt={audio.title}
@@ -300,11 +300,6 @@ export default function AudiosPage() {
                                                             <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
                                                                 <Calendar className="w-3 h-3" /> {formatDate(audio.date)}
                                                             </span>
-                                                            {audio.speaker && (
-                                                                <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1 truncate max-w-[120px]">
-                                                                    <Mic className="w-3 h-3" /> {audio.speaker}
-                                                                </span>
-                                                            )}
                                                         </div>
 
                                                         <div className="relative pr-6">
