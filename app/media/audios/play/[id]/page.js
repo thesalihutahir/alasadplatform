@@ -10,20 +10,38 @@ import Loader from '@/components/Loader';
 // Firebase
 import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, increment, collection, query, where, orderBy, limit, getDocs, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
-
-import { 
-    Play, Pause, Volume2, Calendar, User, Download, Share2, Heart, 
-    MessageCircle, Send, Check, ArrowLeft, ListMusic, FileText 
+import {
+    Play,
+    Pause,
+    Calendar,
+    User,
+    Download,
+    Share2,
+    Heart,
+    MessageCircle,
+    Send,
+    Check,
+    ListMusic,
+    FileText,
+    Headphones,
+    ChevronDown,
+    ChevronUp,
+    ArrowLeft
 } from 'lucide-react';
 
-// --- HELPER: Date Formatter ---
 const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-// --- COMPONENT: Social Share ---
+const getDir = (text) => {
+    if (!text) return 'ltr';
+    const arabicPattern = /[\u0600-\u06FF]/;
+    return arabicPattern.test(text) ? 'rtl' : 'ltr';
+};
+
 const SocialShare = ({ title }) => {
     const [copied, setCopied] = useState(false);
     const [url, setUrl] = useState('');
@@ -32,26 +50,34 @@ const SocialShare = ({ title }) => {
         if (typeof window !== 'undefined') setUrl(window.location.href);
     }, []);
 
-    const handleCopy = () => {
-        navigator.clipboard.writeText(url);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+    const handleShare = async () => {
+        if (!url) return;
+        try {
+            if (navigator.share) {
+                await navigator.share({ title, url });
+                return;
+            }
+            await navigator.clipboard.writeText(url);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error('Error sharing:', err);
+        }
     };
 
     if (!url) return null;
 
     return (
-        <button 
-            onClick={handleCopy} 
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-full hover:bg-brand-gold hover:text-white transition-colors text-xs font-bold uppercase tracking-wider"
+        <button
+            onClick={handleShare}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 bg-white text-brand-brown-dark hover:border-brand-gold/50 transition-colors text-[10px] font-bold uppercase tracking-widest"
         >
-            {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+            {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Share2 className="w-3.5 h-3.5" />}
             {copied ? 'Copied' : 'Share'}
         </button>
     );
 };
 
-// --- COMPONENT: Like Button ---
 const LikeButton = ({ audioId, initialLikes }) => {
     const [likes, setLikes] = useState(initialLikes || 0);
     const [liked, setLiked] = useState(false);
@@ -63,30 +89,31 @@ const LikeButton = ({ audioId, initialLikes }) => {
 
     const handleLike = async () => {
         if (liked) return;
-        setLikes(prev => prev + 1);
+        setLikes((prev) => prev + 1);
         setLiked(true);
         localStorage.setItem(`liked_audio_${audioId}`, 'true');
         try {
-            const docRef = doc(db, "audios", audioId);
+            const docRef = doc(db, 'audios', audioId);
             await updateDoc(docRef, { likes: increment(1) });
-        } catch (error) { console.error("Error liking:", error); }
+        } catch (error) {
+            console.error('Error liking:', error);
+        }
     };
 
     return (
-        <button 
-            onClick={handleLike} 
-            disabled={liked} 
-            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all text-xs font-bold uppercase tracking-wider ${
-                liked ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-500'
+        <button
+            onClick={handleLike}
+            disabled={liked}
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full transition-all text-[10px] font-bold uppercase tracking-widest ${
+                liked ? 'bg-red-50 text-red-500 border border-red-100' : 'bg-white border border-gray-200 text-brand-brown-dark hover:bg-red-50 hover:border-red-100 hover:text-red-500'
             }`}
         >
-            <Heart className={`w-4 h-4 ${liked ? 'fill-current' : ''}`} />
+            <Heart className={`w-3.5 h-3.5 ${liked ? 'fill-current' : ''}`} />
             <span>{likes} Likes</span>
         </button>
     );
 };
 
-// --- COMPONENT: Comments ---
 const CommentsSection = ({ audioId, isArabic }) => {
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
@@ -94,9 +121,9 @@ const CommentsSection = ({ audioId, isArabic }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        const q = query(collection(db, "audios", audioId, "comments"), orderBy("createdAt", "desc"));
+        const q = query(collection(db, 'audios', audioId, 'comments'), orderBy('createdAtClient', 'desc'));
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            setComments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            setComments(snapshot.docs.map((docItem) => ({ id: docItem.id, ...docItem.data() })));
         });
         return () => unsubscribe();
     }, [audioId]);
@@ -106,150 +133,147 @@ const CommentsSection = ({ audioId, isArabic }) => {
         if (!newComment.trim() || !authorName.trim()) return;
         setIsSubmitting(true);
         try {
-            await addDoc(collection(db, "audios", audioId, "comments"), { 
-                text: newComment, 
-                author: authorName, 
-                createdAt: serverTimestamp() 
+            await addDoc(collection(db, 'audios', audioId, 'comments'), {
+                text: newComment,
+                author: authorName,
+                createdAt: serverTimestamp(),
+                createdAtClient: Date.now()
             });
             setNewComment('');
-        } catch (error) { console.error("Error posting comment:", error); } 
-        finally { setIsSubmitting(false); }
+        } catch (error) {
+            console.error('Error posting comment:', error);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
         <div className="mt-12 border-t border-gray-100 pt-8" dir={isArabic ? 'rtl' : 'ltr'}>
             <h3 className={`font-agency text-2xl text-brand-brown-dark mb-6 flex items-center gap-2 ${isArabic ? 'font-tajawal' : ''}`}>
-                <MessageCircle className="w-5 h-5" /> {isArabic ? 'التعليقات' : 'Discussion'}
+                <MessageCircle className="w-5 h-5 text-brand-gold" /> {isArabic ? 'التعليقات' : 'Discussion'}
             </h3>
-            
-            <form onSubmit={handlePostComment} className="mb-8 bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div className="md:col-span-1">
-                        <input 
-                            type="text" 
-                            value={authorName} 
-                            onChange={(e) => setAuthorName(e.target.value)} 
-                            placeholder={isArabic ? "الاسم" : "Your Name"} 
-                            className={`w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 ${isArabic ? 'font-arabic' : ''}`} 
-                            required 
-                        />
-                    </div>
-                    <div className="md:col-span-2">
-                        <input 
-                            type="text"
-                            value={newComment} 
-                            onChange={(e) => setNewComment(e.target.value)} 
-                            placeholder={isArabic ? "شارك برأيك..." : "Join the conversation..."} 
-                            className={`w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/50 ${isArabic ? 'font-arabic' : ''}`} 
-                            required
-                        />
-                    </div>
+
+            <form onSubmit={handlePostComment} className="mb-8 bg-gray-50 p-6 rounded-3xl border border-gray-100">
+                <div className="flex flex-col gap-4 mb-4">
+                    <input
+                        type="text"
+                        value={authorName}
+                        onChange={(e) => setAuthorName(e.target.value)}
+                        placeholder={isArabic ? 'الاسم' : 'Your Name'}
+                        className={`w-full md:w-1/3 bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-gold/50 transition-colors ${isArabic ? 'font-arabic' : ''}`}
+                        required
+                    />
+                    <textarea
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        placeholder={isArabic ? 'شارك برأيك...' : 'Join the conversation...'}
+                        rows="4"
+                        className={`w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-gold/50 transition-colors resize-y min-h-[100px] ${isArabic ? 'font-arabic' : ''}`}
+                        required
+                    ></textarea>
                 </div>
                 <div className={`flex ${isArabic ? 'justify-start' : 'justify-end'}`}>
-                    <button type="submit" disabled={isSubmitting} className="bg-brand-brown-dark text-white px-6 py-2 rounded-full font-bold text-xs uppercase tracking-wider hover:bg-brand-gold transition-colors flex items-center gap-2 disabled:opacity-50">
-                        {isSubmitting ? 'Posting...' : <>{isArabic ? 'إرسال' : 'Post Comment'} <Send className={`w-3 h-3 ${isArabic ? 'rotate-180' : ''}`} /></>}
+                    <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="bg-brand-brown-dark text-white px-8 py-2.5 rounded-full font-bold text-xs uppercase tracking-wider hover:bg-brand-gold transition-colors flex items-center gap-2 disabled:opacity-50"
+                    >
+                        {isSubmitting ? 'Posting...' : <>{isArabic ? 'إرسال' : 'Post Comment'} <Send className={`w-3.5 h-3.5 ${isArabic ? 'rotate-180' : ''}`} /></>}
                     </button>
                 </div>
             </form>
 
             <div className="space-y-6">
                 {comments.length > 0 ? (
-                    comments.map(comment => (
+                    comments.map((comment) => (
                         <div key={comment.id} className="flex gap-4">
-                            <div className="w-8 h-8 rounded-full bg-brand-sand flex items-center justify-center text-brand-brown-dark font-bold text-xs flex-shrink-0">
-                                {comment.author.charAt(0).toUpperCase()}
+                            <div className="w-10 h-10 rounded-full bg-brand-gold/10 border border-brand-gold/20 flex items-center justify-center text-brand-gold font-bold text-sm flex-shrink-0 uppercase">
+                                {comment.author.charAt(0)}
                             </div>
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
                                     <span className="font-bold text-brand-brown-dark text-sm">{comment.author}</span>
-                                    <span className="text-xs text-gray-400 opacity-60">• Just now</span>
                                 </div>
-                                <p className={`text-gray-600 text-sm leading-relaxed ${isArabic ? 'font-arabic' : ''}`}>{comment.text}</p>
+                                <p className={`text-gray-600 text-sm leading-relaxed ${isArabic ? 'font-arabic' : 'font-lato'}`}>{comment.text}</p>
                             </div>
                         </div>
                     ))
                 ) : (
-                    <p className="text-gray-400 text-sm italic">{isArabic ? "كن أول من يعلق!" : "Be the first to share your thoughts."}</p>
+                    <div className="text-center py-8 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                        <p className="text-gray-400 text-sm italic">{isArabic ? 'كن أول من يعلق!' : 'Be the first to share your thoughts.'}</p>
+                    </div>
                 )}
             </div>
         </div>
     );
 };
 
-// ==========================================
-// MAIN PAGE COMPONENT
-// ==========================================
 export default function AudioPlayPage() {
     const params = useParams();
     const router = useRouter();
     const id = params?.id;
 
-    // Data State
     const [audio, setAudio] = useState(null);
     const [relatedAudios, setRelatedAudios] = useState([]);
     const [seriesImage, setSeriesImage] = useState(null);
+    const [seriesId, setSeriesId] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Player State
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
     const [duration, setDuration] = useState(0);
+    const [expandedIds, setExpandedIds] = useState(new Set());
     const audioRef = useRef(null);
 
     useEffect(() => {
         const fetchAudioData = async () => {
             if (!id) return;
             try {
-                // 1. Get Audio Data
-                const docRef = doc(db, "audios", id);
+                const docRef = doc(db, 'audios', id);
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     setAudio({ id: docSnap.id, ...data });
-
-                    // Increment Plays
                     updateDoc(docRef, { plays: increment(1) });
 
-                    // 2. Fetch Series Image (if part of a series)
                     if (data.series) {
-                        const qSeries = query(collection(db, "audio_series"), where("title", "==", data.series));
+                        const qSeries = query(collection(db, 'audio_series'), where('title', '==', data.series));
                         const seriesSnap = await getDocs(qSeries);
                         if (!seriesSnap.empty) {
                             setSeriesImage(seriesSnap.docs[0].data().cover);
+                            setSeriesId(seriesSnap.docs[0].id);
                         }
 
-                        // 3. Fetch Related (Same Series)
                         const qRelated = query(
-                            collection(db, "audios"), 
-                            where("series", "==", data.series),
-                            orderBy("date", "desc"),
+                            collection(db, 'audios'),
+                            where('series', '==', data.series),
+                            orderBy('date', 'desc'),
                             limit(5)
                         );
                         const relatedSnap = await getDocs(qRelated);
                         const related = relatedSnap.docs
-                            .map(d => ({ id: d.id, ...d.data() }))
-                            .filter(a => a.id !== id);
+                            .map((d) => ({ id: d.id, ...d.data() }))
+                            .filter((audioItem) => audioItem.id !== id);
                         setRelatedAudios(related);
                     } else {
-                        // 3B. If no series, fetch SAME CATEGORY (Language) instead of Genre
                         const qRelated = query(
-                            collection(db, "audios"), 
-                            where("category", "==", data.category),
-                            orderBy("date", "desc"),
+                            collection(db, 'audios'),
+                            where('category', '==', data.category),
+                            orderBy('date', 'desc'),
                             limit(5)
                         );
                         const relatedSnap = await getDocs(qRelated);
                         const related = relatedSnap.docs
-                            .map(d => ({ id: d.id, ...d.data() }))
-                            .filter(a => a.id !== id);
+                            .map((d) => ({ id: d.id, ...d.data() }))
+                            .filter((audioItem) => audioItem.id !== id);
                         setRelatedAudios(related);
                     }
                 } else {
                     router.push('/media/audios');
                 }
             } catch (error) {
-                console.error("Error fetching audio:", error);
+                console.error('Error fetching audio:', error);
             } finally {
                 setLoading(false);
             }
@@ -258,28 +282,22 @@ export default function AudioPlayPage() {
         fetchAudioData();
     }, [id, router]);
 
-    // --- PLAYER CONTROLS ---
     const togglePlay = () => {
-        if (audioRef.current) {
-            if (isPlaying) {
-                audioRef.current.pause();
-            } else {
-                audioRef.current.play();
-            }
-            setIsPlaying(!isPlaying);
+        if (!audioRef.current) return;
+        if (isPlaying) {
+            audioRef.current.pause();
+        } else {
+            audioRef.current.play();
         }
+        setIsPlaying(!isPlaying);
     };
 
     const handleTimeUpdate = () => {
-        if (audioRef.current) {
-            setProgress(audioRef.current.currentTime);
-        }
+        if (audioRef.current) setProgress(audioRef.current.currentTime);
     };
 
     const handleLoadedMetadata = () => {
-        if (audioRef.current) {
-            setDuration(audioRef.current.duration);
-        }
+        if (audioRef.current) setDuration(audioRef.current.duration);
     };
 
     const handleSeek = (e) => {
@@ -291,172 +309,246 @@ export default function AudioPlayPage() {
     };
 
     const formatTime = (time) => {
-        if (isNaN(time)) return "00:00";
+        if (isNaN(time)) return '00:00';
         const minutes = Math.floor(time / 60);
         const seconds = Math.floor(time % 60);
         return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
     };
 
-    if (loading) return <Loader size="lg" className="h-screen bg-brand-sand" />;
-    if (!audio) return null;
+    const handleDownload = (e, audioUrl, title) => {
+        e.preventDefault();
+        if (!audioUrl) return;
+        const proxyUrl = `/api/download?url=${encodeURIComponent(audioUrl)}&name=${encodeURIComponent(title || 'audio')}`;
+        window.location.assign(proxyUrl);
+    };
+
+    const toggleExpand = (e, audioId) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setExpandedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(audioId)) next.delete(audioId);
+            else next.add(audioId);
+            return next;
+        });
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-white flex flex-col">
+                <Header />
+                <div className="flex-grow flex items-center justify-center">
+                    <Loader size="lg" />
+                </div>
+                <Footer />
+            </div>
+        );
+    }
+
+    if (!audio) {
+        return (
+            <div className="min-h-screen bg-white flex flex-col">
+                <Header />
+                <div className="flex-grow flex flex-col items-center justify-center p-10 text-center">
+                    <h1 className="text-2xl font-bold text-gray-400">Audio Not Found</h1>
+                    <Link href="/media/audios" className="mt-4 text-brand-gold hover:underline">Browse Audio Library</Link>
+                </div>
+                <Footer />
+            </div>
+        );
+    }
 
     const isArabic = audio.category === 'Arabic';
-    const coverImage = seriesImage || "/images/heroes/media-audios-hero.webp"; // Fallback to hero if no series cover
+    const dir = getDir(audio.title);
+    const coverImage = seriesImage || audio.thumbnail || '/fallback.webp';
 
     return (
-        <div className="min-h-screen flex flex-col bg-white font-lato">
+        <div className="min-h-screen flex flex-col bg-[#FAFAFA] font-lato">
             <Header />
 
-            <main className="flex-grow">
-                {/* 1. PLAYER SECTION */}
-                <div className="bg-brand-brown-dark text-white py-12 md:py-16 px-6">
-                    <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center gap-8 md:gap-12">
-                        
-                        {/* Cover Art */}
-                        <div className="relative w-48 h-48 md:w-64 md:h-64 flex-shrink-0 rounded-2xl overflow-hidden shadow-2xl border-4 border-white/10 bg-black">
-                            <Image 
-                                src={coverImage} 
-                                alt={audio.title} 
-                                fill 
-                                className={`object-cover ${isPlaying ? 'scale-105' : 'scale-100'} transition-transform duration-700`} 
-                            />
-                            {/* Spinning Disc Effect Overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-tr from-black/40 to-transparent"></div>
-                        </div>
+            <main className="flex-grow pb-24">
+                <div className="relative w-full pt-10 pb-32 lg:pt-16 lg:pb-48 overflow-hidden bg-brand-brown-dark">
+                    <div className="absolute inset-0 z-0 pointer-events-none mix-blend-soft-light opacity-50">
+                        <Image src={coverImage} alt="" fill className="object-cover blur-[80px] scale-120" />
+                    </div>
+                    <div className="absolute inset-0 z-0 pointer-events-none">
+                        <Image src={coverImage} alt="" fill className="object-cover opacity-20 mix-blend-overlay scale-115 saturate-0" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-brand-brown-dark via-brand-brown-dark/50 to-transparent"></div>
+                    </div>
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-brand-gold/5 blur-[120px] rounded-full z-0 pointer-events-none"></div>
 
-                        {/* Controls */}
-                        <div className="flex-grow w-full text-center md:text-left">
-                            <div className="mb-6">
-                                <span className="inline-block px-3 py-1 bg-brand-gold text-white text-[10px] font-bold uppercase rounded mb-2 tracking-widest">
-                                    {audio.category}
-                                </span>
-                                <h1 className={`text-2xl md:text-4xl font-bold leading-tight mb-2 ${isArabic ? 'font-tajawal' : 'font-agency'}`} dir={isArabic ? 'rtl' : 'ltr'}>
-                                    {audio.title}
-                                </h1>
-                                <p className="text-white/60 font-bold text-sm uppercase tracking-wide flex items-center justify-center md:justify-start gap-2">
-                                    <User className="w-4 h-4 text-brand-gold" /> {audio.speaker}
-                                </p>
-                            </div>
-
-                            {/* Audio Element (Hidden) */}
-                            <audio 
-                                ref={audioRef} 
-                                src={audio.audioUrl} 
-                                onTimeUpdate={handleTimeUpdate}
-                                onLoadedMetadata={handleLoadedMetadata}
-                                onEnded={() => setIsPlaying(false)}
-                            />
-
-                            {/* Progress Bar */}
-                            <div className="mb-6">
-                                <input 
-                                    type="range" 
-                                    min="0" 
-                                    max={duration} 
-                                    value={progress} 
-                                    onChange={handleSeek}
-                                    className="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-brand-gold hover:accent-white transition-all"
-                                />
-                                <div className="flex justify-between text-xs font-mono text-white/50 mt-2">
-                                    <span>{formatTime(progress)}</span>
-                                    <span>{formatTime(duration)}</span>
-                                </div>
-                            </div>
-
-                            {/* Buttons */}
-                            <div className="flex items-center justify-center md:justify-start gap-6">
-                                <button 
-                                    onClick={togglePlay}
-                                    className="w-16 h-16 bg-white text-brand-brown-dark rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-lg hover:shadow-brand-gold/20"
-                                >
-                                    {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current ml-1" />}
-                                </button>
-                                
-                                <div className="flex gap-3">
-                                    <a 
-                                        href={audio.audioUrl} 
-                                        download 
-                                        target="_blank"
-                                        className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center hover:bg-white hover:text-brand-brown-dark transition-colors"
-                                        title="Download"
-                                    >
-                                        <Download className="w-5 h-5" />
-                                    </a>
-                                </div>
+                    <div className="max-w-[1400px] lg:max-w-[1000px] xl:max-w-[1100px] mx-auto px-4 relative z-10">
+                        <div className="mb-8 flex items-center justify-between">
+                            <Link href="/media/audios" className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-white/70 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-md">
+                                <ArrowLeft className="w-3.5 h-3.5" /> Back to Audios
+                            </Link>
+                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-black/20 backdrop-blur-md">
+                                <Headphones className="w-3.5 h-3.5 text-brand-gold animate-pulse" />
+                                <span className="text-[10px] font-bold text-white tracking-[0.2em] uppercase">Now Playing</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* 2. DETAILS & SIDEBAR GRID */}
-                <div className="max-w-6xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-12 gap-12">
-                    
-                    {/* LEFT: INFO & COMMENTS */}
-                    <div className="lg:col-span-8">
-                        <div className="flex justify-between items-start border-b border-gray-100 pb-6 mb-8" dir={isArabic ? 'rtl' : 'ltr'}>
-                            <div className="flex gap-6 text-sm text-gray-500 font-bold uppercase tracking-wider">
-                                <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-brand-gold" /> {formatDate(audio.date)}</div>
-                                <div className="flex items-center gap-2"><FileText className="w-4 h-4 text-brand-gold" /> {audio.fileSize}</div>
-                            </div>
-                            <div className="flex gap-3">
-                                <LikeButton audioId={audio.id} initialLikes={audio.likes || 0} />
-                                <SocialShare title={audio.title} />
-                            </div>
-                        </div>
-
-                        <div className="prose prose-stone max-w-none text-gray-600 leading-loose font-lato" dir={isArabic ? 'rtl' : 'ltr'}>
-                            <h3 className={`text-xl font-bold text-brand-brown-dark mb-4 ${isArabic ? 'font-tajawal' : 'font-agency'}`}>
-                                {isArabic ? 'حول هذا المقطع' : 'About this Audio'}
-                            </h3>
-                            <p className={isArabic ? 'font-arabic text-lg' : ''}>
-                                {audio.description || "No description provided for this audio track."}
-                            </p>
-                        </div>
-
-                        <CommentsSection audioId={audio.id} isArabic={isArabic} />
-                    </div>
-
-                    {/* RIGHT: UP NEXT */}
-                    <aside className="lg:col-span-4 space-y-8">
-                        <div className="bg-brand-sand/30 p-6 rounded-2xl border border-brand-sand">
-                            <h3 className="font-agency text-xl text-brand-brown-dark mb-6 flex items-center gap-2">
-                                <ListMusic className="w-5 h-5 text-brand-gold" /> 
-                                {audio.series ? 'More in Series' : 'Similar Audios'}
-                            </h3>
-                            
-                            <div className="space-y-3">
-                                {relatedAudios.length > 0 ? (
-                                    relatedAudios.map((item) => (
-                                        <Link key={item.id} href={`/media/audios/play/${item.id}`} className="group flex gap-3 items-center bg-white p-3 rounded-xl shadow-sm hover:shadow-md transition-all">
-                                            <div className="w-10 h-10 rounded-full bg-brand-sand text-brand-gold flex-shrink-0 flex items-center justify-center group-hover:bg-brand-gold group-hover:text-white transition-colors">
-                                                <Play className="w-4 h-4 fill-current ml-0.5" />
-                                            </div>
-                                            <div className="min-w-0 flex-grow" dir={getDir(item.title)}>
-                                                <h4 className={`text-sm font-bold text-brand-brown-dark leading-tight truncate group-hover:text-brand-gold transition-colors ${getDir(item.title) === 'rtl' ? 'font-tajawal' : ''}`}>
-                                                    {item.title}
-                                                </h4>
-                                                <p className="text-[10px] text-gray-400 mt-0.5 uppercase tracking-wide">
-                                                    {item.duration || item.fileSize}
-                                                </p>
-                                            </div>
-                                        </Link>
-                                    ))
-                                ) : (
-                                    <div className="text-center py-8 text-gray-400 text-sm">
-                                        <ListMusic className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                                        No related tracks found.
+                <div className="max-w-[1200px] mx-auto px-4 md:px-8 lg:px-12 relative z-20 -mt-24 lg:-mt-36">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+                        <div className="lg:col-span-8 space-y-8">
+                            <div className="bg-white rounded-3xl p-5 md:p-8 border border-gray-100 shadow-sm" dir={dir}>
+                                <div className="flex flex-col md:flex-row gap-6 items-center md:items-stretch mb-6">
+                                    <div className="relative w-full md:w-[260px] aspect-square rounded-2xl overflow-hidden shadow-xl border border-gray-100 bg-gray-50 flex-shrink-0">
+                                        <Image src={coverImage} alt={audio.title} fill className={`object-cover transition-transform duration-700 ${isPlaying ? 'scale-105' : 'scale-100'}`} />
                                     </div>
-                                )}
-                            </div>
-                            
-                            <div className="mt-6 pt-6 border-t border-brand-brown/10 text-center">
-                                <Link href="/media/audios" className="inline-block text-xs font-bold text-brand-brown-dark uppercase tracking-widest hover:text-brand-gold transition-colors">
-                                    Browse Library
-                                </Link>
+
+                                    <div className="flex-grow w-full text-center md:text-left">
+                                        <div className="mb-4">
+                                            <span className="inline-flex px-3 py-1 bg-brand-brown-dark text-white text-[10px] font-bold uppercase rounded-full tracking-wider mb-3" dir="ltr">
+                                                {audio.category}
+                                            </span>
+                                            <h1 className={`text-2xl md:text-4xl font-bold text-brand-brown-dark leading-tight mb-2 ${dir === 'rtl' ? 'font-tajawal' : 'font-agency'}`}>
+                                                {audio.title}
+                                            </h1>
+                                            <p className="text-gray-500 font-bold text-xs uppercase tracking-wider flex items-center justify-center md:justify-start gap-2" dir="ltr">
+                                                <User className="w-3.5 h-3.5 text-brand-gold" /> {audio.speaker}
+                                            </p>
+                                        </div>
+
+                                        <audio
+                                            ref={audioRef}
+                                            src={audio.audioUrl}
+                                            onTimeUpdate={handleTimeUpdate}
+                                            onLoadedMetadata={handleLoadedMetadata}
+                                            onEnded={() => setIsPlaying(false)}
+                                        />
+
+                                        <div className="mb-5" dir="ltr">
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max={duration || 0}
+                                                value={progress}
+                                                onChange={handleSeek}
+                                                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-gold"
+                                            />
+                                            <div className="flex justify-between text-[11px] font-mono text-gray-400 mt-2">
+                                                <span>{formatTime(progress)}</span>
+                                                <span>{formatTime(duration)}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-center md:justify-start gap-3" dir="ltr">
+                                            <button
+                                                onClick={togglePlay}
+                                                className="w-14 h-14 bg-brand-brown-dark text-white rounded-full flex items-center justify-center hover:bg-brand-gold transition-all shadow-lg"
+                                                aria-label={isPlaying ? 'Pause audio' : 'Play audio'}
+                                            >
+                                                {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
+                                            </button>
+
+                                            <button
+                                                onClick={(e) => handleDownload(e, audio.audioUrl, `${audio.title}.mp3`)}
+                                                className="inline-flex items-center gap-2 px-5 py-3 bg-gray-50 text-brand-brown-dark rounded-full border border-gray-200 hover:border-brand-gold/50 transition-all text-xs font-bold uppercase tracking-wider"
+                                            >
+                                                <Download className="w-4 h-4" /> Download MP3
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 pb-6 border-b border-gray-100" dir="ltr">
+                                    <div className="flex flex-wrap items-center gap-4 text-xs font-bold uppercase tracking-wider text-gray-400">
+                                        <span className="inline-flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-brand-gold" /> {formatDate(audio.date)}</span>
+                                        <span className="inline-flex items-center gap-1.5"><FileText className="w-3.5 h-3.5 text-brand-gold" /> {audio.fileSize || audio.duration || '--'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <LikeButton audioId={audio.id} initialLikes={audio.likes || 0} />
+                                        <SocialShare title={audio.title} />
+                                    </div>
+                                </div>
+
+                                <div className={`prose prose-sm md:prose-base max-w-none text-gray-600 leading-relaxed whitespace-pre-line ${dir === 'rtl' ? 'font-arabic text-right' : 'font-lato'}`}>
+                                    {audio.series && (seriesId ? (
+                                        <Link href={`/media/audios/series/${seriesId}`} className="block w-fit text-xs font-bold text-brand-gold mb-4 uppercase tracking-wide border-l-2 border-brand-gold pl-3 hover:text-brand-brown-dark hover:underline transition-colors" dir="ltr">
+                                            Audio Series: {audio.series}
+                                        </Link>
+                                    ) : (
+                                        <p className="text-xs font-bold text-brand-gold mb-4 uppercase tracking-wide border-l-2 border-brand-gold pl-3" dir="ltr">
+                                            Audio Series: {audio.series}
+                                        </p>
+                                    ))}
+                                    {audio.description || 'No description provided for this audio track.'}
+                                </div>
+
+                                <CommentsSection audioId={audio.id} isArabic={isArabic} />
                             </div>
                         </div>
-                    </aside>
 
+                        <aside className="lg:col-span-4 space-y-8">
+                            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm">
+                                <h3 className="font-agency text-xl text-brand-brown-dark mb-6 flex items-center gap-2">
+                                    <ListMusic className="w-5 h-5 text-brand-gold" />
+                                    {audio.series ? 'More in Series' : 'Similar Audios'}
+                                </h3>
+
+                                <div className="flex flex-col gap-4">
+                                    {relatedAudios.length > 0 ? (
+                                        relatedAudios.map((item) => {
+                                            const isExpanded = expandedIds.has(item.id);
+                                            const itemDir = getDir(item.title);
+                                            return (
+                                                <Link
+                                                    key={item.id}
+                                                    href={`/media/audios/play/${item.id}`}
+                                                    className="group relative flex items-start gap-3 p-2 rounded-2xl hover:bg-gray-50 transition-all duration-300"
+                                                >
+                                                    <div className="relative w-24 aspect-video rounded-xl overflow-hidden bg-black flex-shrink-0 border border-gray-100 shadow-sm">
+                                                        <Image
+                                                            src={item.thumbnail || seriesImage || '/fallback.webp'}
+                                                            alt={item.title}
+                                                            fill
+                                                            className="object-cover opacity-90 group-hover:opacity-100 scale-110 group-hover:scale-125 transition-transform duration-700"
+                                                        />
+                                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <div className="w-7 h-7 bg-black/50 backdrop-blur rounded-full flex items-center justify-center text-white border border-white/20">
+                                                                <Play className="w-3 h-3 fill-current ml-0.5" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex-grow min-w-0 py-0.5" dir={itemDir}>
+                                                        <div className="relative pr-6">
+                                                            <h4 className={`text-sm font-bold text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors ${isExpanded ? '' : 'line-clamp-2'} ${itemDir === 'rtl' ? 'font-tajawal' : 'font-lato'}`}>
+                                                                {item.title}
+                                                            </h4>
+                                                            <button
+                                                                onClick={(e) => toggleExpand(e, item.id)}
+                                                                className="absolute right-0 top-0 p-0.5 text-gray-300 hover:text-brand-gold transition-colors"
+                                                                aria-label={isExpanded ? 'Collapse title' : 'Expand title'}
+                                                            >
+                                                                {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                                            </button>
+                                                        </div>
+                                                        <p className="text-[9px] text-gray-400 mt-1.5 font-bold uppercase tracking-wider" dir="ltr">
+                                                            {formatDate(item.date)}
+                                                        </p>
+                                                    </div>
+                                                </Link>
+                                            );
+                                        })
+                                    ) : (
+                                        <div className="text-center py-8 text-gray-400 text-sm">
+                                            <ListMusic className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                                            No related tracks found.
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="mt-6 pt-6 border-t border-brand-brown/10 text-center">
+                                    <Link href="/media/audios" className="inline-block text-xs font-bold text-brand-brown-dark uppercase tracking-widest hover:text-brand-gold transition-colors">
+                                        Browse Library
+                                    </Link>
+                                </div>
+                            </div>
+                        </aside>
+                    </div>
                 </div>
             </main>
 
