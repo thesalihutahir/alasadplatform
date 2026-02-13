@@ -1,4 +1,3 @@
-// Split 1/2
 "use client";
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -42,7 +41,7 @@ export default function AudiosPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const qAudios = query(collection(db, 'audios'), orderBy('createdAt', 'desc'));
+                const qAudios = query(collection(db, 'audios'), orderBy('date', 'desc'));
                 const audiosSnapshot = await getDocs(qAudios);
                 const fetchedAudios = audiosSnapshot.docs.map((docItem) => ({
                     id: docItem.id,
@@ -95,10 +94,10 @@ export default function AudiosPage() {
         });
     };
 
-    const filteredSeries = useMemo(
-        () => allSeries.filter((series) => activeLang === 'All' || series.category === activeLang),
-        [allSeries, activeLang]
-    );
+    const filteredSeries = useMemo(() => {
+        if (activeLang === 'All') return allSeries;
+        return allSeries.filter((series) => series.category === activeLang);
+    }, [allSeries, activeLang]);
 
     const matchingAudios = useMemo(() => {
         return allAudios.filter((audio) => {
@@ -200,8 +199,7 @@ export default function AudiosPage() {
                                 </div>
                             </section>
                         )}
-
-                        {/* 3. CONTROL BAR */}
+{/* 3. CONTROL BAR */}
                         <section className="px-6 md:px-12 lg:px-24 mb-12 flex flex-col lg:flex-row gap-12 items-start">
                             {/* LEFT RAIL */}
                             <div className="w-full lg:w-[280px] lg:sticky lg:top-24 flex-shrink-0 space-y-8">
@@ -226,7 +224,7 @@ export default function AudiosPage() {
                                         )}
                                     </div>
                                 </div>
-// Split 2/2
+
                                 <div>
                                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Filter By</h3>
                                     <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 scrollbar-hide">
@@ -273,7 +271,8 @@ export default function AudiosPage() {
                                                     href={`/media/audios/play/${audio.id}`}
                                                     className="group relative flex items-start gap-4 p-3 rounded-xl border border-gray-100 hover:shadow-md hover:border-brand-gold/20 transition-all duration-300 bg-white"
                                                 >
-                                                    <div className="relative w-32 aspect-square rounded-lg overflow-hidden bg-black flex-shrink-0 border border-gray-50">
+                                                    {/* UPDATED: Changed aspect-video to aspect-square and adjusted width */}
+                                                    <div className="relative w-24 md:w-28 aspect-square rounded-lg overflow-hidden bg-black flex-shrink-0 border border-gray-50">
                                                         <Image
                                                             src={audio.thumbnail || '/fallback.webp'}
                                                             alt={audio.title}
@@ -300,6 +299,7 @@ export default function AudiosPage() {
                                                             <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
                                                                 <Calendar className="w-3 h-3" /> {formatDate(audio.date)}
                                                             </span>
+                                                            {/* UPDATED: Removed Speaker Name */}
                                                         </div>
 
                                                         <div className="relative pr-6">
@@ -313,7 +313,7 @@ export default function AudiosPage() {
                                                                 onClick={(e) => toggleExpand(e, audio.id)}
                                                                 className="absolute right-0 top-0 p-1 text-gray-300 hover:text-brand-gold transition-colors"
                                                             >
-                                                                {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                                                {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                                                             </button>
                                                         </div>
                                                     </div>
