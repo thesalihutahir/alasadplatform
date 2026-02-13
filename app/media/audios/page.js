@@ -271,7 +271,7 @@ export default function AudiosPage() {
                                                     href={`/media/audios/play/${audio.id}`}
                                                     className="group relative flex items-start gap-4 p-3 rounded-xl border border-gray-100 hover:shadow-md hover:border-brand-gold/20 transition-all duration-300 bg-white"
                                                 >
-                                                    {/* UPDATED: Changed aspect-video to aspect-square and adjusted width */}
+                                                    {/* UPDATED: Reduced width and changed to square aspect ratio */}
                                                     <div className="relative w-24 md:w-28 aspect-square rounded-lg overflow-hidden bg-black flex-shrink-0 border border-gray-50">
                                                         <Image
                                                             src={audio.thumbnail || '/fallback.webp'}
@@ -299,7 +299,6 @@ export default function AudiosPage() {
                                                             <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
                                                                 <Calendar className="w-3 h-3" /> {formatDate(audio.date)}
                                                             </span>
-                                                            {/* UPDATED: Removed Speaker Name */}
                                                         </div>
 
                                                         <div className="relative pr-6">
