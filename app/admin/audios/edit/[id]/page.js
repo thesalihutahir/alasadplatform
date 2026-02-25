@@ -204,8 +204,12 @@ export default function EditAudioPage() {
 
             // 1. Upload New File (if selected)
             if (audioFile) {
-                const storageRef = ref(storage, `audios/${Date.now()}_${audioFile.name}`);
-                const uploadTask = uploadBytesResumable(storageRef, audioFile);
+                const metadata = {
+    contentType: audioFile.type,
+    contentDisposition: `attachment; filename="${audioFile.name}"`
+};
+
+const uploadTask = uploadBytesResumable(storageRef, audioFile, metadata);
 
                 await new Promise((resolve, reject) => {
                     uploadTask.on('state_changed', 
