@@ -314,15 +314,15 @@ const handleDownload = async (e, audioItem) => {
                                                             <span className="text-[9px] font-bold text-brand-gold border border-brand-gold/20 px-1.5 py-0.5 rounded uppercase tracking-wider">
                                                                 {audio.category}
                                                             </span>
-                                                            <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
-                                                                <Calendar className="w-3 h-3" /> {formatDate(audio.date)}
-                                                            </span>
 
 {audio.fileSize && (
     <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
         <FileText className="w-3 h-3" /> {audio.fileSize}
     </span>
 )}
+                                                            <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1 truncate">
+                                                                <Calendar className="w-3 h-3" /> {formatDate(audio.date)}
+                                                            </span>
                                                         </div>
 
                                                         <div className="relative pr-6">
