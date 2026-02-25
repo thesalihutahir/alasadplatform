@@ -9,7 +9,7 @@ import Footer from '@/components/Footer';
 import Loader from '@/components/Loader';
 // Firebase Imports
 import { db } from '@/lib/firebase';
-import { doc, getDoc, collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, orderBy, getDocs, updateDoc, increment } from 'firebase/firestore';
 import {
     Play,
     Calendar,
@@ -91,7 +91,29 @@ export default function ViewSeriesPage() {
         const arabicPattern = /[\u0600-\u06FF]/;
         return arabicPattern.test(text) ? 'rtl' : 'ltr';
     };
+    
+const buildForcedDownloadUrl = (url, filename) => {
+    if (!url) return url;
+    const disp = `attachment; filename="${filename || 'audio.mp3'}"`;
+    const sep = url.includes('?') ? '&' : '?';
+    return `${url}${sep}response-content-disposition=${encodeURIComponent(disp)}`;
+};
 
+const handleDownload = async (e, audioItem) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!audioItem?.audioUrl || !audioItem?.id) return;
+
+    try {
+        const docRef = doc(db, 'audios', audioItem.id);
+        await updateDoc(docRef, { downloads: increment(1) });
+    } catch (err) {
+        console.error('Error incrementing downloads:', err);
+    }
+
+    const filename = audioItem.fileName || `${audioItem.title || 'audio'}.mp3`;
+    window.location.href = buildForcedDownloadUrl(audioItem.audioUrl, filename);
+};
     const toggleSortOrder = () => {
         setSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'));
         setSortAnimating(true);
@@ -317,7 +339,7 @@ export default function ViewSeriesPage() {
                                         href={`/media/audios/play/${audio.id}`}
                                         className="group relative flex items-start gap-4 p-3 rounded-xl border border-gray-100 hover:shadow-md hover:border-brand-gold/20 transition-all duration-300 bg-white"
                                     >
-                                        <div className="relative w-24 md:w-28 aspect-square rounded-lg overflow-hidden bg-black flex-shrink-0 border border-gray-50">
+                                        <div className="relative w-16 sm:w-20 md:w-24 aspect-square rounded-lg overflow-hidden bg-black flex-shrink-0 border border-gray-50">
                                             <Image
                                                 src={audio.thumbnail || series.cover || '/fallback.webp'}
                                                 alt={audio.title}
@@ -332,19 +354,19 @@ export default function ViewSeriesPage() {
                                         </div>
 
                                         <div className="flex-grow min-w-0 py-0.5" dir={audioDir}>
-                                            <div className="flex flex-wrap items-center gap-2 mb-1" dir="ltr">
-                                                <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
+                                            <div className="flex items-center gap-2 mb-1 whitespace-nowrap" dir="ltr">
+                                                <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1 truncate">
                                                     <Calendar className="w-3 h-3" /> {formatDate(audio.date)}
                                                 </span>
                                                 {audio.fileSize && (
-                                                    <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
+                                                    <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1 truncate">
                                                         <FileText className="w-3 h-3" /> {audio.fileSize}
                                                     </span>
                                                 )}
                                             </div>
 
                                             <div className="relative pr-6">
-                                                <h4 className={`text-sm md:text-base lg:text-lg font-bold text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors ${isExpanded ? '' : 'line-clamp-2'} ${audioDir === 'rtl' ? 'font-tajawal' : 'font-lato'}`}>
+                                                <h4 className={`text-sm md:text-base lg:text-lg font-bold text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors ${isExpanded ? '' : 'line-clamp-3'} ${audioDir === 'rtl' ? 'font-tajawal' : 'font-lato'}`}>
                                                     {audio.title}
                                                 </h4>
 
@@ -359,18 +381,13 @@ export default function ViewSeriesPage() {
                                         </div>
 
                                         <button
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                if (!audio.audioUrl) return;
-                                                const proxyUrl = `/api/download?url=${encodeURIComponent(audio.audioUrl)}&name=${encodeURIComponent(`${audio.title || 'audio'}.mp3`)}`;
-                                                window.location.assign(proxyUrl);
-                                            }}
-                                            className="self-center p-2.5 rounded-full border border-gray-100 text-gray-400 hover:text-brand-brown-dark hover:border-brand-gold/40 transition-colors"
-                                            title="Download"
-                                            aria-label="Download audio"
-                                        >
-                                            <Download className="w-4 h-4" />
-                                        </button>
+    onClick={(e) => handleDownload(e, audio)}
+    className="self-center p-2.5 rounded-full border border-gray-100 text-gray-400 hover:text-brand-brown-dark hover:border-brand-gold/40 transition-colors"
+    title="Download"
+    aria-label="Download audio"
+>
+    <Download className="w-4 h-4" />
+</button>
                                     </Link>
                                 );
                             })}
