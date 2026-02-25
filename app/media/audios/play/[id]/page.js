@@ -315,12 +315,30 @@ export default function AudioPlayPage() {
         return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
     };
 
-    const handleDownload = (e, audioUrl, title) => {
-        e.preventDefault();
-        if (!audioUrl) return;
-        const proxyUrl = `/api/download?url=${encodeURIComponent(audioUrl)}&name=${encodeURIComponent(title || 'audio')}`;
-        window.location.assign(proxyUrl);
-    };
+    const buildForcedDownloadUrl = (url, filename) => {
+  if (!url) return url;
+
+  // Works for Firebase download URLs even if object metadata wasn't set for old uploads
+  const disp = `attachment; filename="${filename || 'audio.mp3'}"`;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}response-content-disposition=${encodeURIComponent(disp)}`;
+};
+
+const handleDownload = async (e, audioUrl, filename) => {
+  e.preventDefault();
+  if (!audioUrl || !audio?.id) return;
+
+  try {
+    // Track downloads (non-blocking is fine, but awaiting keeps it clean)
+    const docRef = doc(db, 'audios', audio.id);
+    await updateDoc(docRef, { downloads: increment(1) });
+  } catch (err) {
+    console.error('Error incrementing downloads:', err);
+  }
+
+  const forcedUrl = buildForcedDownloadUrl(audioUrl, filename);
+  window.location.href = forcedUrl;
+};
 
     const toggleExpand = (e, audioId) => {
         e.preventDefault();
@@ -445,7 +463,7 @@ export default function AudioPlayPage() {
                                             </button>
 
                                             <button
-                                                onClick={(e) => handleDownload(e, audio.audioUrl, `${audio.title}.mp3`)}
+                                                onClick={(e) => handleDownload(e, audio.audioUrl, audio.fileName || `${audio.title}.mp3`)}
                                                 className="inline-flex items-center gap-2 px-5 py-3 bg-gray-50 text-brand-brown-dark rounded-full border border-gray-200 hover:border-brand-gold/50 transition-all text-xs font-bold uppercase tracking-wider"
                                             >
                                                 <Download className="w-4 h-4" /> Download MP3
