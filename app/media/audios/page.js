@@ -319,7 +319,7 @@ const handleDownload = async (e, audioItem) => {
                                                             </span>
 
 {audio.fileSize && (
-    <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1 truncate">
+    <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
         <FileText className="w-3 h-3" /> {audio.fileSize}
     </span>
 )}
