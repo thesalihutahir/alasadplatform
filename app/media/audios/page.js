@@ -74,7 +74,7 @@ export default function AudiosPage() {
         if (!dateString) return '';
         const date = new Date(dateString);
         if (isNaN(date.getTime())) return '';
-        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: 'numeric' });
     };
 
     const getDir = (text) => {
@@ -320,7 +320,7 @@ const handleDownload = async (e, audioItem) => {
         <FileText className="w-3 h-3" /> {audio.fileSize}
     </span>
 )}
-                                                            <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1 truncate">
+                                                            <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
                                                                 <Calendar className="w-3 h-3" /> {formatDate(audio.date)}
                                                             </span>
                                                         </div>
