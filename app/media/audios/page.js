@@ -7,14 +7,14 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Loader from '@/components/Loader';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { collection, getDocs, orderBy, query, doc, updateDoc, increment } from 'firebase/firestore';
 import {
     ArrowUpDown,
     Calendar,
     ChevronDown,
     ChevronRight,
     ChevronUp,
-    Clock,
+    FileText,
     Download,
     Headphones,
     ListMusic,
@@ -83,6 +83,28 @@ export default function AudiosPage() {
         return arabicPattern.test(text) ? 'rtl' : 'ltr';
     };
 
+    const buildForcedDownloadUrl = (url, filename) => {
+    if (!url) return url;
+    const disp = `attachment; filename="${filename || 'audio.mp3'}"`;
+    const sep = url.includes('?') ? '&' : '?';
+    return `${url}${sep}response-content-disposition=${encodeURIComponent(disp)}`;
+};
+
+const handleDownload = async (e, audioItem) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!audioItem?.audioUrl || !audioItem?.id) return;
+
+    try {
+        const docRef = doc(db, 'audios', audioItem.id);
+        await updateDoc(docRef, { downloads: increment(1) });
+    } catch (err) {
+        console.error('Error incrementing downloads:', err);
+    }
+
+    const filename = audioItem.fileName || `${audioItem.title || 'audio'}.mp3`;
+    window.location.href = buildForcedDownloadUrl(audioItem.audioUrl, filename);
+};
     const toggleExpand = (e, id) => {
         e.preventDefault();
         e.stopPropagation();
@@ -272,7 +294,7 @@ export default function AudiosPage() {
                                                     className="group relative flex items-start gap-4 p-3 rounded-xl border border-gray-100 hover:shadow-md hover:border-brand-gold/20 transition-all duration-300 bg-white"
                                                 >
                                                     {/* UPDATED: Reduced width and changed to square aspect ratio */}
-                                                    <div className="relative w-24 md:w-28 aspect-square rounded-lg overflow-hidden bg-black flex-shrink-0 border border-gray-50">
+                                                    <div className="relative w-16 sm:w-20 md:w-24 aspect-square rounded-lg overflow-hidden bg-black flex-shrink-0 border border-gray-50">
                                                         <Image
                                                             src={audio.thumbnail || '/fallback.webp'}
                                                             alt={audio.title}
@@ -284,26 +306,28 @@ export default function AudiosPage() {
                                                                 <Play className="w-3 h-3 fill-current ml-0.5" />
                                                             </div>
                                                         </div>
-                                                        {audio.fileSize && (
-                                                            <div className="absolute bottom-1 right-1 bg-black/80 text-white text-[9px] font-bold px-1.5 rounded flex items-center gap-1">
-                                                                <Clock className="w-2.5 h-2.5" /> {audio.fileSize}
-                                                            </div>
-                                                        )}
+                                                        
                                                     </div>
 
                                                     <div className="flex-grow min-w-0 py-0.5" dir={dir}>
-                                                        <div className="flex flex-wrap items-center gap-2 mb-1" dir="ltr">
+                                                        <div className="flex items-center gap-2 mb-1 whitespace-nowrap overflow-hidden" dir="ltr">
                                                             <span className="text-[9px] font-bold text-brand-gold border border-brand-gold/20 px-1.5 py-0.5 rounded uppercase tracking-wider">
                                                                 {audio.category}
                                                             </span>
                                                             <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
                                                                 <Calendar className="w-3 h-3" /> {formatDate(audio.date)}
                                                             </span>
+
+{audio.fileSize && (
+    <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1 truncate">
+        <FileText className="w-3 h-3" /> {audio.fileSize}
+    </span>
+)}
                                                         </div>
 
                                                         <div className="relative pr-6">
                                                             <h4
-                                                                className={`text-sm md:text-base font-bold text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors ${isExpanded ? '' : 'line-clamp-2'} ${dir === 'rtl' ? 'font-tajawal' : 'font-lato'}`}
+                                                                className={`text-sm md:text-base font-bold text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors ${isExpanded ? '' : 'line-clamp-3'} ${dir === 'rtl' ? 'font-tajawal' : 'font-lato'}`}
                                                             >
                                                                 {audio.title}
                                                             </h4>
@@ -318,18 +342,13 @@ export default function AudiosPage() {
                                                     </div>
 
                                                     <button
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            if (!audio.audioUrl) return;
-                                                            const proxyUrl = `/api/download?url=${encodeURIComponent(audio.audioUrl)}&name=${encodeURIComponent(`${audio.title || 'audio'}.mp3`)}`;
-                                                            window.location.assign(proxyUrl);
-                                                        }}
-                                                        className="self-center p-2.5 rounded-full border border-gray-100 text-gray-400 hover:text-brand-brown-dark hover:border-brand-gold/40 transition-colors"
-                                                        title="Download"
-                                                        aria-label="Download audio"
-                                                    >
-                                                        <Download className="w-4 h-4" />
-                                                    </button>
+    onClick={(e) => handleDownload(e, audio)}
+    className="self-center p-2.5 rounded-full border border-gray-100 text-gray-400 hover:text-brand-brown-dark hover:border-brand-gold/40 transition-colors"
+    title="Download"
+    aria-label="Download audio"
+>
+    <Download className="w-4 h-4" />
+</button>
                                                 </Link>
                                             );
                                         })}
