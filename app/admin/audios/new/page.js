@@ -192,8 +192,12 @@ export default function UploadAudioPage() {
 
         try {
             // 1. Upload File to Firebase Storage
-            const storageRef = ref(storage, `audios/${Date.now()}_${audioFile.name}`);
-            const uploadTask = uploadBytesResumable(storageRef, audioFile);
+            const metadata = {
+    contentType: audioFile.type,
+    contentDisposition: `attachment; filename="${audioFile.name}"`
+};
+
+const uploadTask = uploadBytesResumable(storageRef, audioFile, metadata);
 
             uploadTask.on('state_changed', 
                 (snapshot) => {
