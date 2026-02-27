@@ -93,7 +93,24 @@ export default function ManageBlogsPage() {
     // Helper: Format Date
     const formatDate = (timestamp) => {
         if (!timestamp) return <span className="text-gray-300 italic">...</span>;
-        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
+        
+        let date;
+        // Handle Firestore Timestamp (has toDate method)
+        if (typeof timestamp.toDate === 'function') {
+            date = timestamp.toDate();
+        } 
+        // Handle Firestore object serialization (has seconds property)
+        else if (timestamp.seconds) {
+            date = new Date(timestamp.seconds * 1000);
+        } 
+        // Handle standard Date strings or objects
+        else {
+            date = new Date(timestamp);
+        }
+
+        // Safety check for invalid dates
+        if (isNaN(date.getTime())) return <span className="text-gray-300 italic">Invalid Date</span>;
+
         return new Intl.DateTimeFormat('en-NG', {
             day: 'numeric', month: 'short', year: 'numeric'
         }).format(date);
@@ -124,11 +141,20 @@ export default function ManageBlogsPage() {
 
         return matchesSearch && matchesLanguage;
     }).sort((a, b) => {
-        const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
-        const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+        // Robust Date Parser for Sorting
+        const getDate = (d) => {
+            if (!d) return new Date(0); // Default to epoch if missing
+            if (typeof d.toDate === 'function') return d.toDate();
+            if (d.seconds) return new Date(d.seconds * 1000);
+            return new Date(d);
+        };
+
+        const dateA = getDate(a.createdAt);
+        const dateB = getDate(b.createdAt);
+        
         return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
     });
-
+    
     // 3. DELETE ACTION
     const handleDelete = (id) => {
         showConfirm({
