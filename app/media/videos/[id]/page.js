@@ -1,5 +1,8 @@
 import { adminDb } from '@/lib/firebaseAdmin';
-import WatchVideoClientPage from './ClientPage'; // Ensure this points to your renamed ClientPage.js
+import WatchVideoClientPage from './ClientPage';
+
+// ✅ Force Node runtime (required for firebase-admin)
+export const runtime = 'nodejs';
 
 // 1. GENERATE METADATA (Runs on Server for Social Media Previews)
 export async function generateMetadata({ params }) {
@@ -52,7 +55,7 @@ export async function generateMetadata({ params }) {
   }
 }
 
-// 2. RENDER PAGE (Passes control to Client Component)
+// 2. RENDER PAGE
 export default function Page() {
   return <WatchVideoClientPage />;
 }
