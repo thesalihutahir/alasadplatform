@@ -1,8 +1,8 @@
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import WatchVideoClientPage from './ClientPage'; // Importing your renamed file
+import WatchVideoClientPage from './ClientPage'; // Ensure this points to your renamed ClientPage.js
 
-// 1. GENERATE METADATA (Runs on Server)
+// 1. GENERATE METADATA (Runs on Server for Social Media Previews)
 export async function generateMetadata({ params }) {
   const id = params.id;
 
@@ -18,8 +18,10 @@ export async function generateMetadata({ params }) {
     }
 
     const data = docSnap.data();
+    
+    // Prepare description (truncate if too long for SEO)
     const description = data.description 
-      ? data.description.substring(0, 160) // Truncate for SEO
+      ? data.description.substring(0, 160) + (data.description.length > 160 ? '...' : '')
       : 'Watch this educational video from Al-Asad Education Foundation.';
 
     return {
@@ -31,7 +33,7 @@ export async function generateMetadata({ params }) {
         siteName: 'Al-Asad Education Foundation',
         images: [
           {
-            url: data.thumbnail || '/fallback.webp',
+            url: data.thumbnail || '/fallback.webp', // WhatsApp uses this image
             width: 1200,
             height: 630,
             alt: data.title,
