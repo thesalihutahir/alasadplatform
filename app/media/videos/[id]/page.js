@@ -1,18 +1,18 @@
 import { adminDb } from '@/lib/firebaseAdmin';
 import WatchVideoClientPage from './ClientPage';
 
-// ✅ Force Node runtime (required for firebase-admin)
 export const runtime = 'nodejs';
 
-// 1. GENERATE METADATA (Runs on Server for Social Media Previews)
 export async function generateMetadata({ params }) {
-  const { id } = params;
+  // ✅ FIX 1: Await params (Required for Next.js 15+)
+  const { id } = await params;
 
   try {
     const docRef = adminDb.collection('videos').doc(id);
     const snap = await docRef.get();
 
     if (!snap.exists) {
+      console.log(`Metadata Error: Video ID ${id} not found in Firestore.`);
       return {
         title: 'Video Not Found | Al-Asad Education Foundation',
       };
@@ -20,42 +20,55 @@ export async function generateMetadata({ params }) {
 
     const data = snap.data();
 
-    const imageUrl = data.thumbnail?.startsWith('http')
+    // ✅ FIX 2: Ensure absolute image URL
+    // WhatsApp/Twitter often reject relative paths.
+    const imageUrl = data.thumbnail && data.thumbnail.startsWith('http')
       ? data.thumbnail
       : 'https://www.alasadfoundation.org/fallback.webp';
 
+    const pageUrl = `https://www.alasadfoundation.org/media/videos/${id}`;
+    const cleanDescription = data.description 
+      ? data.description.substring(0, 160).replace(/\n/g, ' ') 
+      : 'Watch this video from Al-Asad Education Foundation.';
+
     return {
       title: `${data.title} | Al-Asad Education Foundation`,
-      description: data.description || 'Watch this video.',
+      description: cleanDescription,
+      alternates: {
+        canonical: pageUrl,
+      },
       openGraph: {
         title: data.title,
-        description: data.description || '',
-        url: `https://www.alasadfoundation.org/media/videos/${id}`,
+        description: cleanDescription,
+        url: pageUrl,
         siteName: 'Al-Asad Education Foundation',
+        locale: 'en_US',
+        type: 'video.other',
         images: [
           {
             url: imageUrl,
             width: 1200,
             height: 630,
+            alt: data.title,
           },
         ],
-        type: 'video.other',
       },
       twitter: {
         card: 'summary_large_image',
         title: data.title,
-        description: data.description || '',
+        description: cleanDescription,
         images: [imageUrl],
       },
     };
   } catch (err) {
+    // This console error will show up in your terminal or Vercel logs
+    console.error("Critical Metadata Fetch Error:", err);
     return {
-      title: 'Video | Al-Asad Education Foundation',
+      title: 'Al-Asad Education Foundation',
     };
   }
 }
 
-// 2. RENDER PAGE
 export default function Page() {
   return <WatchVideoClientPage />;
 }
