@@ -4,65 +4,44 @@ import WatchVideoClientPage from './ClientPage';
 export const runtime = 'nodejs';
 
 export async function generateMetadata({ params }) {
-  // ✅ FIX 1: Await params (Required for Next.js 15+)
-  const { id } = await params;
+  // ✅ MUST await params in Next.js 15
+  const awaitedParams = await params;
+  const id = awaitedParams.id;
 
   try {
+    // Log the ID to Vercel logs so you can see it working
+    console.log("Fetching metadata for ID:", id);
+
     const docRef = adminDb.collection('videos').doc(id);
     const snap = await docRef.get();
 
     if (!snap.exists) {
-      console.log(`Metadata Error: Video ID ${id} not found in Firestore.`);
-      return {
-        title: 'Video Not Found | Al-Asad Education Foundation',
-      };
+      console.error(`Metadata Error: Video ${id} not found in Firestore.`);
+      return { title: 'Video Not Found | Al-Asad' };
     }
 
     const data = snap.data();
-
-    // ✅ FIX 2: Ensure absolute image URL
-    // WhatsApp/Twitter often reject relative paths.
-    const imageUrl = data.thumbnail && data.thumbnail.startsWith('http')
-      ? data.thumbnail
-      : 'https://www.alasadfoundation.org/fallback.webp';
-
-    const pageUrl = `https://www.alasadfoundation.org/media/videos/${id}`;
-    const cleanDescription = data.description 
-      ? data.description.substring(0, 160).replace(/\n/g, ' ') 
-      : 'Watch this video from Al-Asad Education Foundation.';
+    const imageUrl = data.thumbnail || 'https://www.alasadfoundation.org/fallback.webp';
 
     return {
       title: `${data.title} | Al-Asad Education Foundation`,
-      description: cleanDescription,
-      alternates: {
-        canonical: pageUrl,
-      },
+      description: data.description || 'Watch this video.',
       openGraph: {
         title: data.title,
-        description: cleanDescription,
-        url: pageUrl,
-        siteName: 'Al-Asad Education Foundation',
-        locale: 'en_US',
+        description: data.description || '',
+        url: `https://www.alasadfoundation.org/media/videos/${id}`,
+        images: [{ url: imageUrl }],
         type: 'video.other',
-        images: [
-          {
-            url: imageUrl,
-            width: 1200,
-            height: 630,
-            alt: data.title,
-          },
-        ],
       },
       twitter: {
         card: 'summary_large_image',
         title: data.title,
-        description: cleanDescription,
         images: [imageUrl],
       },
     };
   } catch (err) {
-    // This console error will show up in your terminal or Vercel logs
-    console.error("Critical Metadata Fetch Error:", err);
+    // If you see this in your terminal/Vercel logs, the Private Key is likely wrong
+    console.error("Metadata fetch crashed:", err);
     return {
       title: 'Al-Asad Education Foundation',
     };
