@@ -13,7 +13,7 @@ import { collection, query, where, orderBy, limit, getDocs } from 'firebase/fire
 import { 
     Play, ArrowRight, Calendar, Clock, Download, ChevronRight,
     ClipboardList, MonitorPlay, Newspaper, Users, MapPin,
-    GraduationCap, HandHeart, Lightbulb, Mic, Layers
+    GraduationCap, HandHeart, Lightbulb, Mic, Layers, FileText
 } from 'lucide-react'; 
 
 export default function HomePage() {
@@ -190,8 +190,16 @@ export default function HomePage() {
     return (
         <div className="min-h-screen flex flex-col bg-white font-lato text-brand-brown-dark">
             {showSplash && (
-                <div className={`fixed inset-0 z-[100] bg-white/75 backdrop-blur-sm flex items-center justify-center transition-opacity duration-700 ease-out ${fadeOut ? 'opacity-0' : 'opacity-100'}`}>
-                    <div className="w-full max-w-md p-8"><LogoReveal /></div>
+                <div className={`fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center transition-all duration-1000 ease-in-out ${fadeOut ? 'opacity-0 pointer-events-none blur-md' : 'opacity-100 blur-0'}`}>
+                    <div className={`w-full max-w-[220px] px-6 transform transition-transform duration-1000 ${fadeOut ? 'scale-105' : 'scale-100'}`}>
+                        <LogoReveal />
+                    </div>
+                    {/* Minimalist Loading Dots */}
+                    <div className={`absolute bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-2 transition-opacity duration-500 ${fadeOut ? 'opacity-0' : 'opacity-100'}`}>
+                        <div className="w-1.5 h-1.5 bg-brand-gold/40 rounded-full animate-pulse"></div>
+                        <div className="w-1.5 h-1.5 bg-brand-gold/70 rounded-full animate-pulse delay-150"></div>
+                        <div className="w-1.5 h-1.5 bg-brand-gold rounded-full animate-pulse delay-300"></div>
+                    </div>
                 </div>
             )}
             <Header />
@@ -431,41 +439,52 @@ export default function HomePage() {
                                     </h3>
                                     <div className="space-y-4 flex-grow">
                                         {loading ? (
-                                            [1, 2].map(i => <div key={i} className="h-20 bg-white rounded-xl animate-pulse" />)
+                                            [1, 2].map(i => <div key={i} className="h-24 bg-white rounded-xl animate-pulse border border-gray-100" />)
                                         ) : latestAudios.length > 0 ? (
-                                            latestAudios.map((audio) => (
-                                                <Link 
-                                                    href={`/media/audios/play/${audio.id}`} 
-                                                    key={audio.id} 
-                                                    className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 hover:border-brand-gold/30 hover:shadow-md transition-all flex items-center gap-3 group relative"
-                                                >
-                                                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-brand-gold/10 text-brand-gold flex items-center justify-center group-hover:bg-brand-gold group-hover:text-white transition-colors">
-                                                        <Play className="w-4 h-4 fill-current" />
-                                                    </div>
-                                                    <div className="flex-grow min-w-0">
-                                                        {audio.series && (
-                                                            <p className="text-[10px] text-brand-gold font-bold uppercase tracking-wider truncate mb-0.5">{audio.series}</p>
-                                                        )}
-                                                        <h4 className={`text-sm font-bold text-brand-brown-dark leading-tight truncate ${getDir(audio.title) === 'rtl' ? 'font-tajawal text-right' : 'font-lato text-left'}`} dir={getDir(audio.title)}>
-                                                            {audio.title}
-                                                        </h4>
-                                                        <div className="flex items-center gap-2 mt-1">
-                                                            <span className="text-[10px] text-gray-400 font-mono bg-gray-100 px-1.5 rounded">{audio.duration || "N/A"}</span>
-                                                            {audio.fileSize && <span className="text-[10px] text-gray-400">{audio.fileSize}</span>}
+                                            latestAudios.map((audio) => {
+                                                const dir = getDir(audio.title);
+                                                return (
+                                                    <Link 
+                                                        href={`/media/audios/play/${audio.id}`} 
+                                                        key={audio.id} 
+                                                        className="group relative flex items-start gap-3 p-3 rounded-xl border border-gray-100 hover:shadow-md hover:border-brand-gold/20 transition-all duration-300 bg-white"
+                                                    >
+                                                        <div className="relative w-16 sm:w-20 aspect-square rounded-lg overflow-hidden bg-black flex-shrink-0 border border-gray-50">
+                                                            <Image
+                                                                src={audio.thumbnail || '/fallback.webp'}
+                                                                alt={audio.title}
+                                                                fill
+                                                                className="object-cover opacity-90 group-hover:opacity-100 scale-110 group-hover:scale-125 transition-transform duration-700"
+                                                            />
+                                                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <div className="w-8 h-8 bg-black/50 backdrop-blur rounded-full flex items-center justify-center text-white border border-white/10">
+                                                                    <Play className="w-3 h-3 fill-current ml-0.5" />
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    {/* Direct Download Button */}
-                                                    {audio.audioUrl && (
-                                                        <button 
-                                                            onClick={(e) => handleDownload(e, audio.audioUrl)}
-                                                            className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-brand-brown-dark hover:text-white transition-colors z-20"
-                                                            title="Download MP3"
-                                                        >
-                                                            <Download className="w-4 h-4" />
-                                                        </button>
-                                                    )}
-                                                </Link>
-                                            ))
+
+                                                        <div className="flex-grow min-w-0 py-0.5" dir={dir}>
+                                                            <div className="flex flex-wrap items-center gap-1.5 mb-1.5" dir="ltr">
+                                                                <span className="text-[9px] font-bold text-brand-gold border border-brand-gold/20 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                                                    {audio.category || "Audio"}
+                                                                </span>
+                                                                {audio.fileSize && (
+                                                                    <span className="text-[9px] text-gray-400 font-medium flex items-center gap-1">
+                                                                        <FileText className="w-2.5 h-2.5" /> {audio.fileSize}
+                                                                    </span>
+                                                                )}
+                                                                <span className="text-[9px] text-gray-400 font-medium flex items-center gap-1">
+                                                                    <Calendar className="w-2.5 h-2.5" /> {formatSimpleDate(audio.date)}
+                                                                </span>
+                                                            </div>
+
+                                                            <h4 className={`text-sm font-bold text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors line-clamp-2 ${dir === 'rtl' ? 'font-tajawal' : 'font-lato'}`}>
+                                                                {audio.title}
+                                                            </h4>
+                                                        </div>
+                                                    </Link>
+                                                );
+                                            })
                                         ) : (
                                             <p className="text-gray-400 text-sm text-center py-4">No audios available.</p>
                                         )}
