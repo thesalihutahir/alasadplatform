@@ -13,7 +13,7 @@ export const metadata = {
     url: 'https://www.alasadfoundation.org/media/audios/series',
     images: [
       {
-        url: 'https://www.alasadfoundation.org/images/heroes/media-audios-hero.webp',
+        url: 'https://www.alasadfoundation.org/fallback.webp',
       },
     ],
     type: 'website',
@@ -22,7 +22,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'Audio Series | Al-Asad Education Foundation',
     images: [
-      'https://www.alasadfoundation.org/images/heroes/media-audios-hero.webp',
+      'https://www.alasadfoundation.org/fallback.webp',
     ],
   },
 };
