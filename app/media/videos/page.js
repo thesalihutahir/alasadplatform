@@ -14,7 +14,7 @@ export const metadata = {
     url: 'https://www.alasadfoundation.org/media/videos',
     images: [
       {
-        url: 'https://www.alasadfoundation.org/images/heroes/media-videos-hero.webp',
+        url: 'https://www.alasadfoundation.org/fallback.webp',
       },
     ],
     type: 'website',
@@ -24,7 +24,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'Video Library | Al-Asad Education Foundation',
     images: [
-      'https://www.alasadfoundation.org/images/heroes/media-videos-hero.webp',
+      'https://www.alasadfoundation.org/fallback.webp',
     ],
   },
 };
