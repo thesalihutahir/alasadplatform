@@ -1,60 +1,55 @@
-import ClientPage from "./ClientPage";
+import { adminDb } from '@/lib/firebaseAdmin';
+import ViewSeriesClientPage from './ClientPage';
 
-const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-
-async function getSeries(id) {
-  try {
-    const res = await fetch(
-      `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/audio_series/${id}`,
-      { cache: "no-store" }
-    );
-
-    if (!res.ok) return null;
-
-    const data = await res.json();
-    const fields = data.fields || {};
-
-    return {
-      title: fields.title?.stringValue || "",
-      description: fields.description?.stringValue || "",
-      cover: fields.cover?.stringValue || ""
-    };
-  } catch {
-    return null;
-  }
-}
+export const runtime = 'nodejs';
 
 export async function generateMetadata({ params }) {
-  const series = await getSeries(params.id);
+  const awaitedParams = await params;
+  const id = awaitedParams.id;
 
-  if (!series) {
+  try {
+    console.log("Fetching audio series metadata for ID:", id);
+
+    const docRef = adminDb.collection('audio_series').doc(id);
+    const snap = await docRef.get();
+
+    if (!snap.exists) {
+      console.error(`Metadata Error: Audio series ${id} not found in Firestore.`);
+      return { title: 'Series Not Found | Al-Asad' };
+    }
+
+    const data = snap.data();
+    const imageUrl = data.cover || 'https://www.alasadfoundation.org/fallback.webp';
+
     return {
-      title: "Audio Series",
-      description: "Listen to audio series"
+      title: `${data.title} | Al-Asad Audio Series`,
+      description:
+        data.description ||
+        'Listen to this audio series from Al-Asad Education Foundation.',
+
+      openGraph: {
+        title: data.title,
+        description: data.description || '',
+        url: `https://www.alasadfoundation.org/media/audios/series/${id}`,
+        images: [{ url: imageUrl }],
+        type: 'website',
+      },
+
+      twitter: {
+        card: 'summary_large_image',
+        title: data.title,
+        images: [imageUrl],
+      },
+    };
+  } catch (err) {
+    console.error("Audio series metadata fetch crashed:", err);
+
+    return {
+      title: 'Al-Asad Education Foundation',
     };
   }
-
-  const title = `${series.title} | Audio Series`;
-  const description =
-    series.description || "Browse and listen to this audio series.";
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      images: series.cover ? [series.cover] : []
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: series.cover ? [series.cover] : []
-    }
-  };
 }
 
 export default function Page() {
-  return <ClientPage />;
+  return <ViewSeriesClientPage />;
 }
