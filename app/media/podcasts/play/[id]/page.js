@@ -1,52 +1,38 @@
-import { adminDb } from '@/lib/firebaseAdmin';
+import { notFound } from 'next/navigation';
 import PodcastPlayClientPage from './ClientPage';
+import { getDocForMeta, absoluteImage, SITE_URL } from '@/lib/seo';
 
 export const runtime = 'nodejs';
 
 export async function generateMetadata({ params }) {
-  const awaitedParams = await params;
-  const id = awaitedParams.id;
+  const { id } = await params;
+  const result = await getDocForMeta('podcasts', id);
 
-  try {
-    console.log("Fetching podcast metadata for ID:", id);
+  if (result.state === 'missing') notFound();
+  if (result.state === 'error') return { title: 'Al-Asad Education Foundation' };
 
-    const docRef = adminDb.collection('podcasts').doc(id);
-    const snap = await docRef.get();
+  const data = result.data;
+  const title = data.title || 'Podcast Episode';
+  const description = data.description || 'Listen to this podcast episode.';
+  const image = absoluteImage(data.thumbnail);
+  const url = `${SITE_URL}/media/podcasts/play/${id}`;
 
-    if (!snap.exists) {
-      console.error(`Metadata Error: Podcast ${id} not found in Firestore.`);
-      return {
-        title: 'Podcast Not Found | Al-Asad',
-      };
-    }
-
-    const data = snap.data();
-    const imageUrl = data.thumbnail || 'https://www.alasadfoundation.org/fallback.webp';
-
-    return {
-      title: `${data.title} | Al-Asad Education Foundation`,
-      description: data.description || 'Listen to this podcast episode.',
-      openGraph: {
-        title: data.title,
-        description: data.description || '',
-        url: `https://www.alasadfoundation.org/media/podcasts/play/${id}`,
-        images: [{ url: imageUrl }],
-        type: 'video.other',
-      },
-      twitter: {
-        card: 'summary_large_image',
-        title: data.title,
-        images: [imageUrl],
-      },
-    };
-  } catch (err) {
-    console.error("Podcast metadata fetch crashed:", err);
-    return {
-      title: 'Al-Asad Education Foundation',
-    };
-  }
+  return {
+    title: `${title} | Al-Asad Education Foundation`,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: 'Al-Asad Education Foundation',
+      images: [{ url: image }],
+      type: 'website',
+    },
+    twitter: { card: 'summary_large_image', title, description, images: [image] },
+  };
 }
 
 export default function Page() {
   return <PodcastPlayClientPage />;
-    }
+}

@@ -1,0 +1,365 @@
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import Loader from '@/components/Loader';
+// Firebase Imports
+import { db } from '@/lib/firebase';
+import { collection, query, orderBy, getDocs, limit } from 'firebase/firestore';
+import { Play, Headphones, Calendar, Mic, ArrowUpDown, Search, X, ChevronRight, ChevronDown, ChevronUp, ListMusic } from 'lucide-react';
+
+export default function PodcastsPage() {
+
+    // --- STATE ---
+    const [episodes, setEpisodes] = useState([]);
+    const [shows, setShows] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    // Filters & Search
+    const [activeFilter, setActiveFilter] = useState("All Episodes");
+    const [searchTerm, setSearchTerm] = useState("");
+    const [visibleCount, setVisibleCount] = useState(9);
+
+    // UI State for Card Expansion
+    const [expandedIds, setExpandedIds] = useState(new Set());
+
+    // Sort Order State ('desc' = Newest Date Recorded First)
+    const [sortOrder, setSortOrder] = useState('desc');
+
+    const filters = ["All Episodes", "English", "Hausa", "Arabic"];
+
+    // --- FETCH DATA ---
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                // 1. Fetch Episodes (Safety Limit 100)
+                const qEpisodes = query(collection(db, "podcasts"), orderBy("date", "desc"), limit(100));
+                const epSnapshot = await getDocs(qEpisodes);
+                const fetchedEpisodes = epSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                setEpisodes(fetchedEpisodes);
+
+                // 2. Fetch Shows
+                const qShows = query(collection(db, "podcast_shows"), orderBy("createdAt", "desc"));
+                const showSnapshot = await getDocs(qShows);
+                let fetchedShows = showSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+
+                // 3. CALCULATE REAL COUNTS
+                fetchedShows = fetchedShows.map(show => {
+                    const realCount = fetchedEpisodes.filter(ep =>
+                        ep.show === show.title || ep.showId === show.id
+                    ).length;
+                    return { ...show, count: realCount };
+                });
+
+                setShows(fetchedShows);
+
+            } catch (error) {
+                console.error("Error fetching podcasts:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+// --- HELPERS ---
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return '';
+        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    };
+
+    const getDir = (text) => {
+        if (!text) return 'ltr';
+        const arabicPattern = /[\u0600-\u06FF]/;
+        return arabicPattern.test(text) ? 'rtl' : 'ltr';
+    };
+
+    const toggleExpand = (e, id) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setExpandedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    // --- FILTER & SORT LOGIC ---
+    const filteredEpisodes = episodes.filter(ep => {
+        const matchesCategory = activeFilter === "All Episodes" || ep.category === activeFilter;
+        const matchesSearch = (ep.title || "").toLowerCase().includes(searchTerm.toLowerCase());
+        return matchesCategory && matchesSearch;
+    });
+
+    const sortedEpisodes = [...filteredEpisodes].sort((a, b) => {
+        const dateA = new Date(a.date || 0);
+        const dateB = new Date(b.date || 0);
+        return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+    });
+
+    const visibleEpisodes = sortedEpisodes.slice(0, visibleCount);
+
+    return (
+        <div className="min-h-screen flex flex-col bg-white font-lato">
+            <Header />
+
+            <main className="flex-grow pb-20">
+
+                {/* 1. HERO SECTION */}
+                <section className="relative h-[220px] w-full overflow-hidden bg-brand-brown-dark mb-12">
+                    <Image
+                        src="/images/heroes/media-podcasts-hero.webp"
+                        alt="Podcasts"
+                        fill
+                        className="object-cover object-center opacity-20"
+                        priority
+                    />
+                    <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-6 z-10">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-brand-gold text-[10px] font-bold uppercase tracking-widest mb-3">
+                            <Headphones className="w-3 h-3" /> Audio Archive
+                        </div>
+                        <h1 className="font-agency text-4xl md:text-5xl text-white mb-2 leading-none">
+                            Podcast Library
+                        </h1>
+                        <p className="font-lato text-white/60 text-sm md:text-base max-w-xl">
+                            Series, discussions, and reflections, curated by language and theme.
+                        </p>
+                    </div>
+                </section>
+
+                {loading ? (
+                    <div className="flex justify-center items-center py-20">
+                        <Loader size="md" />
+                    </div>
+                ) : (
+                    <>
+{/* 2. SERIES SHELF */}
+                        {shows.length > 0 && (
+                            <section className="px-6 md:px-12 lg:px-24 mb-16 border-b border-gray-100 pb-12">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="font-agency text-2xl text-brand-brown-dark">
+                                        Featured Shows
+                                    </h2>
+                                    <Link
+                                        href="/media/podcasts/shows"
+                                        className="text-xs font-bold text-gray-500 hover:text-brand-gold transition-colors flex items-center gap-1"
+                                    >
+                                        View All <ChevronRight className="w-3 h-3" />
+                                    </Link>
+                                </div>
+
+                                <div className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide snap-x">
+                                    {shows
+                                        .sort((a, b) => (b.count || 0) - (a.count || 0))
+                                        .slice(0, 5)
+                                        .map((show) => (
+                                            <Link
+                                                key={show.id}
+                                                href={`/media/podcasts/shows/${show.id}`}
+                                                className="snap-center flex-shrink-0 w-[160px] group"
+                                            >
+                                                <div className="relative w-full aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden mb-3 border border-gray-100 group-hover:border-brand-gold/30 transition-all">
+                                                    <Image
+                                                        src={show.cover || "/fallback.webp"}
+                                                        alt={show.title}
+                                                        fill
+                                                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                                    />
+                                                    <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 border border-white/10">
+                                                        <ListMusic className="w-3 h-3 text-brand-gold" /> {show.count || 0}
+                                                    </div>
+                                                </div>
+                                                <h3
+                                                    className="font-bold text-sm text-brand-brown-dark leading-tight line-clamp-2 group-hover:text-brand-gold transition-colors"
+                                                    dir={getDir(show.title)}
+                                                >
+                                                    {show.title}
+                                                </h3>
+                                            </Link>
+                                        ))}
+                                </div>
+                            </section>
+                        )}
+
+                        {/* 3. CONTROL BAR */}
+                        <section className="px-6 md:px-12 lg:px-24 mb-12 flex flex-col lg:flex-row gap-12 items-start">
+
+                            {/* LEFT RAIL */}
+                            <div className="w-full lg:w-[280px] lg:sticky lg:top-24 flex-shrink-0 space-y-8">
+
+                                <div>
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Search</h3>
+                                    <div className="relative group">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-brand-gold transition-colors" />
+                                        <input
+                                            type="text"
+                                            placeholder="Find an episode..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="w-full pl-9 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-brand-gold/50 transition-all shadow-sm"
+                                        />
+                                        {searchTerm && (
+                                            <button
+                                                onClick={() => setSearchTerm('')}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Filter By</h3>
+                                    <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 scrollbar-hide">
+                                        {filters.map((filter) => (
+                                            <button
+                                                key={filter}
+                                                onClick={() => setActiveFilter(filter)}
+                                                className={`px-3 py-1.5 lg:px-4 lg:py-2 rounded-lg text-xs lg:text-sm font-bold text-left transition-all flex items-center justify-between group flex-shrink-0 whitespace-nowrap ${
+                                                    activeFilter === filter
+                                                        ? 'bg-brand-brown-dark text-white shadow-md'
+                                                        : 'bg-white border border-gray-100 text-gray-600 hover:bg-gray-50 hover:text-brand-brown-dark'
+                                                }`}
+                                            >
+                                                {filter}
+                                                {activeFilter === filter && <div className="w-1.5 h-1.5 rounded-full bg-brand-gold hidden lg:block"></div>}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+{/* RIGHT: RESULTS LIST */}
+                            <div className="flex-grow w-full">
+
+                                {/* Header Row */}
+                                <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+                                    <h2 className="font-agency text-2xl text-brand-brown-dark">Recent Episodes</h2>
+                                    <button
+                                        onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                                        className="flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-brand-brown-dark transition-colors"
+                                    >
+                                        <ArrowUpDown className="w-3 h-3" />
+                                        {sortOrder === 'desc' ? 'Newest' : 'Oldest'}
+                                    </button>
+                                </div>
+
+                                {/* LIST ROWS */}
+                                {visibleEpisodes.length > 0 ? (
+                                    <div className="flex flex-col gap-4">
+                                        {visibleEpisodes.map((ep) => {
+                                            const dir = getDir(ep.title);
+                                            const isExpanded = expandedIds.has(ep.id);
+                                            return (
+                                                <Link
+                                                    key={ep.id}
+                                                    href={`/media/podcasts/play/${ep.id}`}
+                                                    className="group relative flex items-start gap-4 p-3 rounded-xl border border-gray-100 hover:shadow-md hover:border-brand-gold/20 transition-all duration-300 bg-white"
+                                                >
+                                                    {/* Thumbnail */}
+                                                    <div className="relative w-32 aspect-video rounded-lg overflow-hidden bg-black flex-shrink-0 border border-gray-50">
+                                                        <Image
+                                                            src={ep.thumbnail || "/fallback.webp"}
+                                                            alt={ep.title}
+                                                            fill
+                                                            className="object-cover opacity-90 group-hover:opacity-100 scale-110 group-hover:scale-125 transition-transform duration-700"
+                                                        />
+                                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <div className="w-8 h-8 bg-black/50 backdrop-blur rounded-full flex items-center justify-center text-white border border-white/10">
+                                                                <Play className="w-3 h-3 fill-current ml-0.5" />
+                                                            </div>
+                                                        </div>
+                                                        {ep.duration && (
+                                                            <div className="absolute bottom-1 right-1 bg-black/80 text-white text-[9px] font-bold px-1.5 rounded">
+                                                                {ep.duration}
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Info Stack */}
+                                                    <div className="flex-grow min-w-0 py-0.5" dir={dir}>
+                                                        <div className="flex flex-wrap items-center gap-2 mb-1" dir="ltr">
+                                                            <span className="text-[9px] font-bold text-brand-gold border border-brand-gold/20 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                                                {ep.category || 'Podcast'}
+                                                            </span>
+                                                            <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
+                                                                <Calendar className="w-3 h-3" /> {formatDate(ep.date)}
+                                                            </span>
+                                                            {ep.show && (
+                                                                <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1 truncate">
+                                                                    <Mic className="w-3 h-3" /> {ep.show}
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="relative pr-6">
+                                                            <h4 className={`text-sm md:text-base font-bold text-brand-brown-dark leading-tight group-hover:text-brand-gold transition-colors ${isExpanded ? '' : 'line-clamp-2'} ${dir === 'rtl' ? 'font-tajawal' : 'font-lato'}`}>
+                                                                {ep.title}
+                                                            </h4>
+
+                                                            {/* Expand Button */}
+                                                            <button
+                                                                onClick={(e) => toggleExpand(e, ep.id)}
+                                                                className="absolute right-0 top-0 p-1 text-gray-300 hover:text-brand-gold transition-colors"
+                                                            >
+                                                                {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </Link>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-center">
+                                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-3 shadow-sm text-gray-300">
+                                            <Search className="w-5 h-5" />
+                                        </div>
+                                        <h3 className="font-agency text-lg text-gray-500">No episodes found</h3>
+                                        <p className="text-xs text-gray-400 mt-1">Try clearing filters or search terms.</p>
+                                        <button
+                                            onClick={() => { setSearchTerm(''); setActiveFilter('All Episodes'); }}
+                                            className="mt-4 text-xs font-bold text-brand-gold hover:underline"
+                                        >
+                                            Clear All Filters
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* FOOTER STATUS & LOAD MORE */}
+                                <div className="py-10 text-center space-y-4">
+                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                                        Showing {visibleEpisodes.length} of {filteredEpisodes.length} Episodes
+                                    </p>
+                                    {visibleCount < sortedEpisodes.length && (
+                                        <button
+                                            onClick={() => setVisibleCount(prev => prev + 6)}
+                                            className="px-8 py-2.5 bg-white border border-gray-200 text-brand-brown-dark rounded-full font-bold text-xs hover:border-brand-brown-dark transition-all uppercase tracking-wider shadow-sm"
+                                        >
+                                            Load More Episodes
+                                        </button>
+                                    )}
+                                </div>
+
+                            </div>
+                        </section>
+                    </>
+                )}
+            </main>
+
+            <Footer />
+        </div>
+    );
+}

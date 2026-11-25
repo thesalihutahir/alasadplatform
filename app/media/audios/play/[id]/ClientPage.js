@@ -235,7 +235,15 @@ export default function AudioPlayPage() {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     setAudio({ id: docSnap.id, ...data });
-                    updateDoc(docRef, { plays: increment(1) });
+                    try {
+                        const playKey = `played_audio_${id}`;
+                        if (typeof window !== 'undefined' && !window.sessionStorage.getItem(playKey)) {
+                            window.sessionStorage.setItem(playKey, '1');
+                            updateDoc(docRef, { plays: increment(1) }).catch(() => {});
+                        }
+                    } catch {
+                        // counters are best-effort
+                    }
 
                     if (data.series) {
                         const qSeries = query(collection(db, 'audio_series'), where('title', '==', data.series));

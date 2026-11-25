@@ -1,0 +1,160 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner() {
+      return isAuthenticated() && request.auth.token.email == 'realdahirusalihu@gmail.com';
+    }
+
+    // We verify admin status via Firestore lookup OR Owner bypass
+    function isAdmin() {
+      return isOwner() || (
+        isAuthenticated()
+        && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.active == true
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['super_admin', 'content_admin', 'finance_admin']
+      );
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isPdf() {
+      return request.resource.contentType == 'application/pdf';
+    }
+
+    function isAudio() {
+      return request.resource.contentType.matches('audio/.*');
+    }
+
+    function smallEnough(maxMB) {
+      return request.resource.size < maxMB * 1024 * 1024;
+    }
+
+    // 1) Blog & Content Images
+    match /blog_images/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && smallEnough(10);
+    }
+
+    match /article_covers/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && smallEnough(10);
+    }
+
+    // 2) Research & Ebooks
+    match /research_pdfs/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isPdf() && smallEnough(60);
+    }
+
+    match /ebooks/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && (isPdf() || isImage()) && smallEnough(100);
+    }
+
+    match /ebook_collection_covers/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && smallEnough(10);
+    }
+
+    // 3) Gallery & Team
+    match /gallery/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && smallEnough(15);
+    }
+
+    match /album_covers/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && smallEnough(10);
+    }
+
+    match /team/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && smallEnough(10);
+    }
+
+    match /leadership/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && smallEnough(10);
+    }
+
+    // 4) Programs, donation funds, site settings (hero images etc.)
+    match /programs/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && smallEnough(10);
+    }
+
+    match /funds/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && smallEnough(10);
+    }
+
+    match /settings/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && smallEnough(10);
+    }
+
+    // 5) Media
+    match /video_thumbnails/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && smallEnough(5);
+    }
+
+    match /playlist_covers/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && smallEnough(10);
+    }
+
+    match /series_covers/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && smallEnough(10);
+    }
+
+    match /podcast_covers/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && smallEnough(10);
+    }
+
+    match /audios/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isAudio() && smallEnough(100);
+    }
+
+    match /podcast_audios/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isAudio() && smallEnough(100);
+    }
+
+    // 6) Admin Avatars
+    match /avatars/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if (isAuthenticated() && request.auth.uid == userId) && isImage() && smallEnough(5);
+    }
+
+    // The admin profile screen uploads to admins/<uid>_<timestamp>
+    match /admins/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated()
+        && fileName.matches(request.auth.uid + '_.*')
+        && isImage() && smallEnough(5);
+    }
+
+    // 7) Donation Receipts (Private)
+    // Nothing in the app uploads here today, so public upload is disabled.
+    // Re-enable (with type and size limits) when a receipt-upload feature exists.
+    match /donation_receipts/{allPaths=**} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
