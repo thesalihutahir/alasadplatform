@@ -23,7 +23,8 @@ import {
     X,
     ChevronDown,
     ChevronUp,
-    ArrowUpRight
+    ArrowUpRight,
+    Check
 } from 'lucide-react';
 
 export default function ViewSeriesPage() {

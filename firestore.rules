@@ -1,0 +1,315 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* =========================================================================
+       1. HELPER FUNCTIONS
+       ========================================================================= */
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // HARDCODED OWNER BYPASS (Prevents Lockout)
+    function isOwner() {
+      return isAuthenticated() && request.auth.token.email == 'realdahirusalihu@gmail.com';
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function userData() {
+      return userDoc().data;
+    }
+
+    function hasUserDoc() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    // PRIMARY ADMIN CHECK (Owner OR DB Role)
+    function isAdmin() {
+      return isOwner() || (
+        hasUserDoc()
+        && userData().active == true
+        && (userData().role in ['super_admin', 'content_admin', 'finance_admin'])
+      );
+    }
+
+    function isSuperAdmin() {
+      return isOwner() || (isAdmin() && userData().role == 'super_admin');
+    }
+
+    function isFinanceAdmin() {
+      return isOwner() || (isAdmin() && (userData().role == 'finance_admin' || userData().role == 'super_admin'));
+    }
+
+    function isContentAdmin() {
+      return isOwner() || (isAdmin() && (userData().role == 'content_admin' || userData().role == 'super_admin'));
+    }
+
+    function protectedEmail() {
+      return 'realdahirusalihu@gmail.com';
+    }
+
+    // ---- Input-validation helpers for public submissions ----
+
+    // Optional string field: absent, or a string no longer than max.
+    function optStr(d, k, max) {
+      return !(k in d) || (d[k] is string && d[k].size() <= max);
+    }
+
+    // Required string field (must be present): non-empty, no longer than max.
+    function reqStr(d, k, max) {
+      return (k in d) && d[k] is string && d[k].size() > 0 && d[k].size() <= max;
+    }
+
+    // Public engagement counters: allow ONLY "+1" on exactly one counter field.
+    // (Matches the app's increment(1) calls. A missing field counts as 0.)
+    function onlyBumps(field) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([field])
+        && request.resource.data[field] is number
+        && request.resource.data[field] == resource.data.get(field, 0) + 1;
+    }
+
+    function counterBump() {
+      return onlyBumps('likes') || onlyBumps('plays') || onlyBumps('downloads') || onlyBumps('reads');
+    }
+
+    // Public comment (create only): fixed fields, bounded sizes, server timestamp.
+    function validComment() {
+      let d = request.resource.data;
+      return d.keys().hasAll(['text', 'author', 'createdAt'])
+        && d.keys().hasOnly(['text', 'author', 'createdAt', 'createdAtClient'])
+        && d.text is string && d.text.size() > 0 && d.text.size() <= 2000
+        && d.author is string && d.author.size() > 0 && d.author.size() <= 60
+        && d.createdAt == request.time
+        && (!('createdAtClient' in d) || d.createdAtClient is int);
+    }
+
+    /* =========================================================================
+       2. USERS & AUTHENTICATION
+       ========================================================================= */
+
+    match /users/{userId} {
+      // Read: Owner, Admin, or Self
+      allow read: if isOwner() || isAdmin() || (isAuthenticated() && request.auth.uid == userId);
+
+      // Create: Owner or Super Admin
+      allow create: if isSuperAdmin();
+
+      // Update:
+      // 1. Owner/Super Admin can update anyone
+      // 2. Users can update their own basic info, but cannot change role, email or active status
+      allow update: if
+        (isSuperAdmin())
+        ||
+        (isAuthenticated() && request.auth.uid == userId
+          && (isOwner() || (
+             request.resource.data.role == resource.data.role
+             && request.resource.data.email == resource.data.email
+             && request.resource.data.active == resource.data.active
+          ))
+        );
+
+      allow delete: if false;
+    }
+
+    /* =========================================================================
+       3. PUBLIC CONTENT
+       Public read. Writes: content admins, plus "+1" engagement counters
+       (likes / plays / downloads / reads) on media and blog content.
+       ========================================================================= */
+
+    match /articles/{docId} {
+      allow read: if true;
+      allow create, delete: if isContentAdmin();
+      allow update: if isContentAdmin() || counterBump();
+    }
+    match /news/{docId} {
+      allow read: if true;
+      allow create, delete: if isContentAdmin();
+      allow update: if isContentAdmin() || counterBump();
+    }
+    match /research/{docId} {
+      allow read: if true;
+      allow create, delete: if isContentAdmin();
+      allow update: if isContentAdmin() || counterBump();
+    }
+
+    match /videos/{docId} { allow read: if true; allow write: if isContentAdmin(); }
+    match /video_playlists/{docId} { allow read: if true; allow write: if isContentAdmin(); }
+
+    match /audios/{docId} {
+      allow read: if true;
+      allow create, delete: if isContentAdmin();
+      allow update: if isContentAdmin() || counterBump();
+    }
+    match /audio_series/{docId} { allow read: if true; allow write: if isContentAdmin(); }
+
+    match /podcasts/{docId} {
+      allow read: if true;
+      allow create, delete: if isContentAdmin();
+      allow update: if isContentAdmin() || counterBump();
+    }
+    match /podcast_shows/{docId} { allow read: if true; allow write: if isContentAdmin(); }
+
+    match /ebooks/{docId} {
+      allow read: if true;
+      allow create, delete: if isContentAdmin();
+      allow update: if isContentAdmin() || counterBump();
+    }
+    match /ebook_collections/{docId} { allow read: if true; allow write: if isContentAdmin(); }
+
+    match /gallery_albums/{docId} { allow read: if true; allow write: if isContentAdmin(); }
+    match /gallery_photos/{docId} { allow read: if true; allow write: if isContentAdmin(); }
+
+    match /programs/{docId} { allow read: if true; allow write: if isContentAdmin(); }
+    match /events/{docId} { allow read: if true; allow write: if isContentAdmin(); }
+
+    match /team_members/{docId} { allow read: if true; allow write: if isContentAdmin(); }
+    match /leadership_members/{docId} { allow read: if true; allow write: if isContentAdmin(); }
+
+    // Legacy collection referenced by the admin homepage settings screen.
+    match /audio_library/{docId} { allow read: if isAdmin(); allow write: if isContentAdmin(); }
+
+    /* ============================
+       COMMENTS (all commentable content)
+       Public read + validated create. Content admins can delete (moderation).
+       ============================ */
+    match /{parent}/{parentId}/comments/{commentId} {
+      allow read: if parent in ['podcasts', 'audios', 'ebooks', 'news', 'articles', 'research'];
+      allow create: if parent in ['podcasts', 'audios', 'ebooks', 'news', 'articles', 'research']
+        && validComment();
+      allow update: if false;
+      allow delete: if parent in ['podcasts', 'audios', 'ebooks', 'news', 'articles', 'research']
+        && isContentAdmin();
+    }
+
+    /* =========================================================================
+       4. PUBLIC SUBMISSIONS (create-only, validated; never publicly readable)
+       ========================================================================= */
+
+    match /volunteers/{docId} {
+      allow create: if
+        request.resource.data.keys().hasAll(['fullName', 'email', 'status', 'submittedAt'])
+        && request.resource.data.keys().hasOnly([
+            'fullName', 'email', 'phone', 'nationality', 'state',
+            'department', 'availability', 'experience', 'status', 'submittedAt'])
+        && reqStr(request.resource.data, 'fullName', 150)
+        && reqStr(request.resource.data, 'email', 200)
+        && optStr(request.resource.data, 'phone', 40)
+        && optStr(request.resource.data, 'nationality', 100)
+        && optStr(request.resource.data, 'state', 100)
+        && optStr(request.resource.data, 'department', 150)
+        && optStr(request.resource.data, 'availability', 150)
+        && optStr(request.resource.data, 'experience', 3000)
+        && request.resource.data.status == 'Pending'
+        && request.resource.data.submittedAt == request.time;
+      allow read: if isAdmin();
+      allow update, delete: if isContentAdmin();
+    }
+
+    // Partnership inquiries (public form). Previously this collection was
+    // world-readable; it now holds private contact details, so read is admin-only.
+    match /partners/{docId} {
+      allow create: if
+        request.resource.data.keys().hasAll(['organization', 'email', 'status', 'submittedAt'])
+        && request.resource.data.keys().hasOnly([
+            'organization', 'orgType', 'contactPerson', 'email', 'country',
+            'type', 'message', 'phone', 'status', 'submittedAt'])
+        && reqStr(request.resource.data, 'organization', 200)
+        && reqStr(request.resource.data, 'email', 200)
+        && optStr(request.resource.data, 'orgType', 100)
+        && optStr(request.resource.data, 'contactPerson', 150)
+        && optStr(request.resource.data, 'country', 100)
+        && optStr(request.resource.data, 'type', 100)
+        && optStr(request.resource.data, 'message', 3000)
+        && optStr(request.resource.data, 'phone', 60)
+        && request.resource.data.status == 'New'
+        && request.resource.data.submittedAt == request.time;
+      allow read: if isAdmin();
+      allow update, delete: if isContentAdmin();
+    }
+
+    match /contact_messages/{docId} {
+      allow create: if
+        request.resource.data.keys().hasAll(['fullName', 'email', 'message', 'status', 'createdAt'])
+        && request.resource.data.keys().hasOnly([
+            'fullName', 'email', 'subject', 'message', 'status', 'createdAt'])
+        && reqStr(request.resource.data, 'fullName', 150)
+        && reqStr(request.resource.data, 'email', 200)
+        && optStr(request.resource.data, 'subject', 200)
+        && reqStr(request.resource.data, 'message', 5000)
+        && request.resource.data.status == 'New'
+        && request.resource.data.createdAt == request.time;
+      allow read: if isAdmin();
+      allow update, delete: if isContentAdmin();
+    }
+
+    /* =========================================================================
+       5. DONATIONS & FINANCE
+       ========================================================================= */
+
+    match /donation_funds/{docId} {
+      allow read: if true;
+      allow write: if isFinanceAdmin();
+    }
+
+    // A visitor may only create a PENDING record with the expected fields.
+    // Status changes (Success / Failed / Cancelled) are made by the server
+    // (Admin SDK in /api/paystack/*), which bypasses these rules.
+    match /donations/{docId} {
+      allow create: if
+        request.resource.data.keys().hasAll([
+            'fundId', 'fundTitle', 'amount', 'donorName', 'donorEmail',
+            'method', 'reference', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasOnly([
+            'fundId', 'fundTitle', 'amount', 'donorName', 'donorEmail', 'donorPhone',
+            'message', 'method', 'reference', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.amount is number
+        && request.resource.data.amount >= 100
+        && request.resource.data.amount <= 100000000
+        && request.resource.data.status == 'Pending'
+        && request.resource.data.reference == docId
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && reqStr(request.resource.data, 'fundId', 100)
+        && optStr(request.resource.data, 'fundTitle', 300)
+        && optStr(request.resource.data, 'donorName', 150)
+        && optStr(request.resource.data, 'donorEmail', 200)
+        && optStr(request.resource.data, 'donorPhone', 40)
+        && optStr(request.resource.data, 'message', 1000)
+        && reqStr(request.resource.data, 'method', 50);
+      allow read: if isAdmin();
+      allow update, delete: if isFinanceAdmin();
+    }
+
+    /* =========================================================================
+       6. SYSTEM SETTINGS
+       ========================================================================= */
+
+    match /general_settings/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+
+    match /settings/{docId} {
+      allow read: if isAdmin();
+      allow write: if isSuperAdmin();
+    }
+
+    match /audit_logs/{docId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    /* =========================================================================
+       7. CATCH-ALL
+       ========================================================================= */
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

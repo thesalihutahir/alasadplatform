@@ -271,7 +271,15 @@ export default function PodcastPlayPage() {
                     }
 
                     // 2. Increment Plays
-                    updateDoc(docRef, { plays: increment(1) });
+                    try {
+                        const playKey = `played_podcast_${id}`;
+                        if (typeof window !== 'undefined' && !window.sessionStorage.getItem(playKey)) {
+                            window.sessionStorage.setItem(playKey, '1');
+                            updateDoc(docRef, { plays: increment(1) }).catch(() => {});
+                        }
+                    } catch {
+                        // counters are best-effort
+                    }
 
                     // 3. Fetch Related
                     const podcastsRef = collection(db, "podcasts");
